@@ -33,6 +33,7 @@ public partial class TurnManager : Node
     {
         CurrentPhase = TurnPhase.Tide;
         EmitSignal(SignalName.PhaseChanged, (int)CurrentPhase);
+        GameState.Instance?.CurrentWarden?.OnTideStart();
     }
 
     public void EndTide()

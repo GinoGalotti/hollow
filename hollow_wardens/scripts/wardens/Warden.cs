@@ -14,6 +14,9 @@ public partial class Warden : Node
     // Override in subclasses for Warden-specific Dissolution behavior
     public virtual void OnDissolve(CardData card) { }
 
+    // Called at start of The Tide — override for network/passive effects (e.g. Root's Network Fear)
+    public virtual void OnTideStart() { }
+
     // Called at start of Resolution phase — override for Warden-specific resolution style
     public virtual void OnResolutionStart(List<TerritoryState> territories) { }
 

@@ -407,17 +407,32 @@ The card pool per Warden is fixed. Variety comes from drafting, not unlocking.
 ### 8.2 Turn Economy
 
 - Standard turn: 2 tops + 1 bottom = 3 cards spent
-- Rest turn: 0 cards played, full discard recovered
+- Rest turn: 0 cards played, full discard recovered (Tide still resolves — rest is costly)
 - Dissolution: 1 additional card removed until next encounter
-- A hand of 6 with no rests = ~2 full turns before needing to rest
+- A hand of 7 with no rests: 2 full turns before forced rest (7 → 4 → 1, can't play a third turn)
+- A hand of 10 (max, post-reward): 3 full turns between rests (10 → 7 → 4 → 1)
 
-Target: Player should need to rest roughly every 2–3 turns in a standard encounter. Resting every turn = losing. Never resting = either winning easily (encounter too easy) or about to exhaust.
+**Rest rate target:** ~1 rest per 2–3 play turns. With starting hand 7: 33% of turns are rests. With hand 10: 25%. Card rewards directly reduce rest pressure — a meaningful, legible upgrade.
+
+**Cycle math (starting deck 30 cards, hand 7):**
+- Pattern: P, P, Rest, P, P, Rest... (every 3rd turn is rest)
+- Each cycle through the hand = 6 cards played + 1 rest turn
+- 30-card deck → never fully cycled in a single encounter (see §8.3)
+- Dormancy (Root): dormant cards in hand reduce effective play cards without consuming a full rest slot — creates passive stamina pressure
 
 ### 8.3 Encounter Length
 
-- Standard encounter: 5–7 Tide steps + up to 3 Resolution turns
-- Elite encounter: 6–8 Tide steps + up to 2 Resolution turns
-- Boss encounter: 8–10 Tide steps + 1 Resolution turn (bosses are designed to be survived, not cleaned up)
+Target turn counts (Tide steps = total turns including rests):
+
+| Tier | Tide steps | Est. play turns | Est. rest turns | Cards played |
+|------|-----------|-----------------|-----------------|--------------|
+| Standard | 5–6 | 3–4 | 1–2 | 9–12 |
+| Elite | ~10 | 6–7 | 3–4 | 18–21 |
+| Boss | 12–13 | 8–9 | 4–5 | 24–27 |
+
+Boss fights nearly exhaust the starting 30-card deck. With reward cards (hand up to 10), the boss cycle extends: more turns between rests, more cards played total — the late-game deck feels meaningfully larger.
+
+Resolution turns: up to 3 (Standard), up to 2 (Elite), 1 (Boss — bosses are designed to be survived, not cleaned up).
 
 ### 8.4 Weave Economy
 
@@ -643,6 +658,88 @@ PanelContainer          ← Kenney card frame as StyleBoxTexture
 ```
 
 This scene is the first thing to build in Phase 6 — everything else (Hand display, reward screen) follows the same pattern.
+
+### 9.6 Card Data Authoring
+
+Card definitions live in two layers: **design data** (editable) and **Godot resources** (generated).
+
+```
+data/
+├── cards-root.tres          ← Root warden card definitions (source of truth)
+├── cards-ember.json         ← Ember (when created)
+└── cards-veil.json          ← Veil (when created)
+
+hollow_wardens/resources/cards/
+├── root/   root_001.tres … root_030.tres   ← auto-generated, do not edit
+├── ember/  (generated when ember JSON exists)
+└── veil/   (generated when veil JSON exists)
+
+cards-catalog.html           ← browsable card viewer (auto-updated)
+tools/generate-cards.py      ← migration script
+```
+
+**Rule: never edit `.tres` files by hand. Always edit `data/cards-{warden}.json` then run the script.**
+
+#### Card JSON schema
+
+```json
+{
+  "warden": "root",
+  "version": "1.0",
+  "cards": [
+    {
+      "num":     "001",
+      "id":      "root_001",
+      "name":    "Card Name",
+      "cost":    0,
+      "vigil":   { "type": "ReduceCorruption", "value": 1, "range": 1, "desc": "..." },
+      "dusk":    { "type": "GenerateFear",     "value": 2, "range": 0, "desc": "..." },
+      "dissolve": null,
+      "design_note": "Balance notes and open questions."
+    }
+  ]
+}
+```
+
+- `"dissolve": null` → uses the engine default (PlacePresence 1, range bypasses check)
+- Custom dissolve overrides with any `EffectType` and specific value/range
+- `design_note` is display-only — shown in the catalog viewer, not written to .tres
+
+#### Running the migration
+
+```bash
+python tools/generate-cards.py           # regenerate ALL wardens
+python tools/generate-cards.py root      # regenerate root only
+python tools/generate-cards.py root ember  # explicit list
+```
+
+This rewrites all `.tres` files and updates the embedded JSON in `cards-catalog.html`.
+Open `cards-catalog.html` in any browser to review cards (works offline, no server needed).
+
+#### Adding a new Warden's cards
+
+1. Create `data/cards-{warden}.json` (copy root as template, change `"warden"` field)
+2. Run `python tools/generate-cards.py {warden}`
+3. New `.tres` files appear in `hollow_wardens/resources/cards/{warden}/`
+4. Catalog HTML gains a warden filter entry for the new warden
+
+#### Valid `EffectType` strings
+
+| String | Enum | Notes |
+|---|---|---|
+| `PlacePresence` | 0 | Requires target territory, range applies |
+| `MovePresence` | 1 | Requires target territory, range applies |
+| `GenerateFear` | 2 | No target needed |
+| `ReduceCorruption` | 3 | Requires target territory, range applies |
+| `Purify` | 4 | Requires target territory |
+| `DamageInvaders` | 5 | Requires target territory, range applies |
+| `PushInvaders` | 6 | Requires target territory |
+| `RoutInvaders` | 7 | Requires target territory — **stubbed, Phase 6** |
+| `RestoreWeave` | 8 | No target needed |
+| `PredictTide` | 9 | No target needed — **stubbed** |
+| `Conditional` | 10 | Threshold/if-then — needs EffectCondition |
+| `Custom` | 11 | Warden-specific, resolved in Warden subclass |
+| `AwakeDormant` | 12 | Root only. Value=0 means all dormant cards. |
 
 ---
 
@@ -909,7 +1006,7 @@ One Warden (The Root), 30 cards, 3-encounter Realm (2 standard + 1 boss), The Pa
 
 ### Build Order
 
-**Phase 1 — Data Layer** ✅ Complete (41/41 tests passing)
+**Phase 1 — Data Layer** ✅ Complete (41 tests)
 - [x] CardData, CardEffect, EffectCondition resources
 - [x] EncounterData, SpawnEvent, EscalateEvent resources
 - [x] TerritoryState model
@@ -920,32 +1017,33 @@ One Warden (The Root), 30 cards, 3-encounter Realm (2 standard + 1 boss), The Pa
 - [x] Deck, Hand entity classes
 - [x] Headless test runner (`scenes/tests/TestRunner.tscn`)
 
-**Phase 2 — Turn Engine**
-- [ ] TurnManager with phase sequencing
-- [ ] TideExecutor (spawn, advance, ravage — no animation yet)
-- [ ] Basic territory grid (hardcoded for V1, 9 territories)
-- [ ] Corruption system
-- [ ] Weave drain and Fear counter
+**Phase 2 — Turn Engine** ✅ Complete
+- [x] TurnManager with phase sequencing
+- [x] TideExecutor (spawn, advance, ravage)
+- [x] Territory grid (hardcoded 3×3, 9 territories, TerritoryGraph)
+- [x] Corruption system
+- [x] Weave drain and Fear counter
 
-**Phase 3 — Card Engine**
-- [ ] Deck and Hand classes
-- [ ] Card play routing (Vigil vs Dusk enforcement)
-- [ ] Effect resolution (PLACE_PRESENCE, GENERATE_FEAR, REDUCE_CORRUPTION, DAMAGE_INVADERS)
-- [ ] Dissolution logic (remove until encounter end)
-- [ ] Rest mechanic
+**Phase 3 — Card Engine** ✅ Complete
+- [x] CardEngine: TryPlayCard with phase limits
+- [x] Effect resolution (PlacePresence, GenerateFear, ReduceCorruption, DamageInvaders, RestoreWeave)
+- [x] Dissolution logic (route to DissolvedThisEncounter or PermanentlyRemoved per tier)
+- [x] Rest mechanic (TurnManager.PlayerRest)
 
-**Phase 4 — Encounter Loop**
-- [ ] EncounterManager (start, run Tide steps, Resolution, end)
-- [ ] Resolution turn logic
-- [ ] Breach detection
-- [ ] Reward tier evaluation
-- [ ] Encounter-end state cleanup (return dissolved cards)
+**Phase 4 — Encounter Loop** ✅ Complete
+- [x] EncounterManager (start, run Tide steps, Resolution, end)
+- [x] Resolution turn logic
+- [x] Breach detection
+- [x] Reward tier evaluation (Clean / Weathered / Breach)
+- [x] Encounter-end state cleanup (dissolved cards per tier: Standard/Elite/Boss)
 
-**Phase 5 — Root Warden**
-- [ ] Dormancy Dissolution variant
-- [ ] Network Fear generation (adjacency bonus)
-- [ ] Assimilation Resolution style
-- [ ] All 30 starting cards defined as .tres resources
+**Phase 5 — Root Warden** ✅ Complete (111/111 tests)
+- [x] AwakeDormant effect type (CardEffect.EffectType = 12)
+- [x] Dormancy Dissolution (OnDissolve override — first dissolve = dormant, second = permanent)
+- [x] Network Fear (OnTideStart — adjacency passive)
+- [x] Assimilation Resolution style (OnResolutionStart)
+- [x] 30 starting cards as .tres resources (generated from data/cards-root.json)
+- [x] Card data tooling: data/ folder + tools/generate-cards.py + cards-catalog.html
 
 **Phase 6 — UI (Functional, Not Pretty)**
 - [ ] `Card.tscn` — PanelContainer with VBox (see §9.5 for node structure + font spec)
@@ -981,3 +1079,18 @@ Issues to resolve through playtesting or further design discussion:
 6. **Fear reset mechanics** — Does Fear reset to 0 after each threshold, or accumulate? Current design: resets after each threshold trigger. Means hitting threshold 1 five times is better than hitting threshold 3 once. May create perverse incentives. Review after first playtest.
 
 7. **Pale March passive Weave drain** — How much? Current proposal: 1 Weave per turn per 3+ Pale March units on the board simultaneously. Needs tuning.
+
+8. **Deck size vs. hand size vs. encounter length** — With 30-card starting deck, hand of 7, and 3 cards/turn: players rest every 2 play turns (~33% rest rate). Boss fights at 12–13 turns consume ~24–27 cards total — almost the full deck. Questions to resolve through playtesting:
+   - Does 30 feel too many cards to absorb for a new player? Should starting deck be smaller (12–15)?
+   - Is 33% rest rate correct? Does the invader pacing need to account for rest turns being "free" damage turns for the board?
+   - With max hand 10 (post-reward), rests drop to 25% of turns — does this power curve feel right for a boss fight?
+
+9. **Card variety / anti-stagnation** — Risk: players always play the same top 2 + bottom regardless of situation (optimal rotation found early, no reason to deviate). Potential mitigations:
+   - Situational cards that are bad unless triggered (e.g., fear-threshold cards, adjacency-required damage)
+   - Hand diversity via draw mechanics (draw N, keep M — but loses stamina/rest feel)
+   - Forced dormancy as a stamina substitute: instead of resting, one card in hand becomes Dormant (Root-specific? or general mechanic?) — costs playable cards without full rest, keeps Tide active
+   - Deck thinning pressure: the deck naturally narrows via dissolution — old stagnant cards leave, new cards from rewards add variety
+
+10. **Invader action speed relative to rest turns** — If players rest every 3rd turn, invaders act uncontested that often. Does The Tide need a slower cadence for Standard encounters, or is uncontested Tide damage the natural punishment for resting? Consider: Tide acts only on turns 2, 4, 6... (every other turn) in Standard; every turn in Elite/Boss.
+
+11. **Fear and Corruption interaction** — *[To address in next session]* How do Fear thresholds interact with Corruption ticks? Can Fear generation outpace Corruption spread? What happens when both hit critical values simultaneously?

@@ -1,0 +1,28 @@
+[gd_resource type="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/CardData.cs" id="1"]
+[ext_resource type="Script" path="res://scripts/data/CardEffect.cs" id="2"]
+
+[sub_resource type="CardEffect" id="CardEffect_v"]
+script = ExtResource("2")
+Type = 12
+Value = 1
+Range = 0
+Description = "Awaken 1 dormant card in hand"
+
+[sub_resource type="CardEffect" id="CardEffect_d"]
+script = ExtResource("2")
+Type = 12
+Value = 1
+Range = 0
+Description = "Awaken 1 dormant card in hand"
+
+[resource]
+script = ExtResource("1")
+Id = "root_025"
+CardName = "Stir the Sleeping"
+WardenId = "root"
+Cost = 0
+IsDormant = false
+VigilEffect = SubResource("CardEffect_v")
+DuskEffect = SubResource("CardEffect_d")

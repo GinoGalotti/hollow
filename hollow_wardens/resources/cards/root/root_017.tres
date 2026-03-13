@@ -1,0 +1,28 @@
+[gd_resource type="CardData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/CardData.cs" id="1"]
+[ext_resource type="Script" path="res://scripts/data/CardEffect.cs" id="2"]
+
+[sub_resource type="CardEffect" id="CardEffect_v"]
+script = ExtResource("2")
+Type = 2
+Value = 3
+Range = 0
+Description = "Generate 3 Fear"
+
+[sub_resource type="CardEffect" id="CardEffect_d"]
+script = ExtResource("2")
+Type = 7
+Value = 1
+Range = 1
+Description = "Rout 1 invader in range 1"
+
+[resource]
+script = ExtResource("1")
+Id = "root_017"
+CardName = "Root Terror"
+WardenId = "root"
+Cost = 0
+IsDormant = false
+VigilEffect = SubResource("CardEffect_v")
+DuskEffect = SubResource("CardEffect_d")

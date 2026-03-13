@@ -12,7 +12,8 @@ public partial class CardEffect : Resource
         RestoreWeave,
         PredictTide,
         Conditional,    // Threshold/if-then effects — needs EffectCondition
-        Custom          // Warden-specific, resolved in Warden subclass
+        Custom,         // Warden-specific, resolved in Warden subclass
+        AwakeDormant    // Root-specific: awaken Value dormant cards from hand (0 = all)
     }
 
     [Export] public EffectType Type { get; set; }

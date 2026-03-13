@@ -17,6 +17,8 @@ public partial class EncounterManager : Node
     public int CurrentTideStep { get; private set; } = 0;
     public int ResolutionTurnsUsed { get; private set; } = 0;
 
+    public Random? Rng { get; set; }
+
     private readonly TerritoryGraph _graph = new();
     private readonly TurnManager _turnManager = new();
     private readonly TideExecutor _tideExecutor = new();
@@ -76,6 +78,8 @@ public partial class EncounterManager : Node
     {
         State = EncounterState.Resolution;
         _turnManager.EnterResolution();
+        var territories = GameState.Instance?.Territories.Values.ToList() ?? new();
+        GameState.Instance?.CurrentWarden?.OnResolutionStart(territories);
         EmitSignal(SignalName.ResolutionPhaseStarted, CurrentEncounter!.ResolutionTurns - ResolutionTurnsUsed);
     }
 
@@ -83,13 +87,20 @@ public partial class EncounterManager : Node
     {
         if (State != EncounterState.Resolution)
             throw new InvalidOperationException("EncounterManager must be in Resolution.");
+        if (!HasActiveInvaders())
+        {
+            EndEncounter();
+            return;
+        }
         ResolutionTurnsUsed++;
         if (CheckForBreach())
         {
             GameState.Instance!.BreachCount++;
             EmitSignal(SignalName.BreachOccurred);
             EndEncounter();
+            return;
         }
+        EmitSignal(SignalName.ResolutionPhaseStarted, CurrentEncounter!.ResolutionTurns - ResolutionTurnsUsed);
     }
 
     private bool CheckForBreach() =>
@@ -109,15 +120,32 @@ public partial class EncounterManager : Node
 
     private void EndEncounter()
     {
-        if (CurrentEncounter?.Tier == EncounterData.EncounterTier.Standard)
+        var warden = GameState.Instance?.CurrentWarden;
+        if (warden != null)
         {
-            var warden = GameState.Instance?.CurrentWarden;
-            if (warden != null)
+            var tier = CurrentEncounter?.Tier ?? EncounterData.EncounterTier.Standard;
+            var rng = Rng ?? new Random();
+            foreach (var card in warden.DissolvedThisEncounter.ToList())
             {
-                foreach (var card in warden.DissolvedThisEncounter)
+                if (tier == EncounterData.EncounterTier.Elite)
+                {
+                    if (rng.NextDouble() < 0.5)
+                    {
+                        warden.PermanentlyRemoved.Add(card);
+                        EventBus.Instance?.EmitSignal(EventBus.SignalName.CardPermanentlyRemoved, card);
+                    }
+                    else
+                    {
+                        warden.Discard.Add(card);
+                    }
+                }
+                else if (tier == EncounterData.EncounterTier.Standard)
+                {
                     warden.Discard.Add(card);
-                warden.DissolvedThisEncounter.Clear();
+                }
+                // Boss: DissolvedThisEncounter is empty — CardEngine routes Boss dissolves to PermanentlyRemoved directly
             }
+            warden.DissolvedThisEncounter.Clear();
         }
         State = EncounterState.Ended;
         EmitSignal(SignalName.EncounterEnded, EvaluateRewardTier());

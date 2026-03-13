@@ -1,0 +1,306 @@
+{
+  "warden": "root",
+  "version": "1.0",
+  "cards": [
+    {
+      "num": "001",
+      "id": "root_001",
+      "name": "Tendrils of Reclamation",
+      "cost": 0,
+      "vigil":   { "type": "ReduceCorruption", "value": 1, "range": 1, "desc": "Reduce Corruption by 1 in range 1" },
+      "dusk":    { "type": "ReduceCorruption", "value": 2, "range": 1, "desc": "Reduce Corruption by 2 in range 1" },
+      "dissolve":{ "type": "PlacePresence",    "value": 1, "range": 3, "desc": "Place 1 Presence in range 3" },
+      "design_note": "Good opener — efficient cleansing at Vigil and Dusk. Custom dissolve with range 3 is excellent burst reach. Consider if rng3 dissolve is too reliable as a dissolve-pump."
+    },
+    {
+      "num": "002",
+      "id": "root_002",
+      "name": "Deep Roots",
+      "cost": 0,
+      "vigil":   { "type": "PlacePresence",    "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "dusk":    { "type": "ReduceCorruption", "value": 1, "range": 0, "desc": "Reduce Corruption by 1 anywhere" },
+      "dissolve": null,
+      "design_note": "Flexible card: grow network (Vigil) or cleanse anywhere (Dusk). Range 0 on Dusk means it works with presence anywhere on board."
+    },
+    {
+      "num": "003",
+      "id": "root_003",
+      "name": "Earthen Mending",
+      "cost": 0,
+      "vigil":   { "type": "ReduceCorruption", "value": 1, "range": 0, "desc": "Reduce Corruption by 1 anywhere" },
+      "dusk":    { "type": "ReduceCorruption", "value": 1, "range": 2, "desc": "Reduce Corruption by 1 in range 2" },
+      "dissolve": null,
+      "design_note": "Pure corruption cleanse. Vigil at range 0 is safe setup; Dusk at range 2 gives reach."
+    },
+    {
+      "num": "004",
+      "id": "root_004",
+      "name": "Ancient Cleansing",
+      "cost": 0,
+      "vigil":   { "type": "ReduceCorruption", "value": 1, "range": 1, "desc": "Reduce Corruption by 1 in range 1" },
+      "dusk":    { "type": "ReduceCorruption", "value": 2, "range": 0, "desc": "Reduce Corruption by 2 anywhere" },
+      "dissolve": null,
+      "design_note": "Strong cleanse burst on Dusk (2 corruption anywhere). Good for late-game Sacred Site protection."
+    },
+    {
+      "num": "005",
+      "id": "root_005",
+      "name": "Subterranean Surge",
+      "cost": 0,
+      "vigil":   { "type": "ReduceCorruption", "value": 1, "range": 2, "desc": "Reduce Corruption by 1 in range 2" },
+      "dusk":    { "type": "ReduceCorruption", "value": 1, "range": 1, "desc": "Reduce Corruption by 1 in range 1" },
+      "dissolve": null,
+      "design_note": "Wide-reach cleanse on both phases. Useful for spreading coverage across the board."
+    },
+    {
+      "num": "006",
+      "id": "root_006",
+      "name": "Healing Earth",
+      "cost": 0,
+      "vigil":   { "type": "RestoreWeave",     "value": 1, "range": 0, "desc": "Restore 1 Weave" },
+      "dusk":    { "type": "ReduceCorruption", "value": 1, "range": 1, "desc": "Reduce Corruption by 1 in range 1" },
+      "dissolve": null,
+      "design_note": "Weave + cleanse combo. Weave recovery on Vigil means you can hold Dusk cleanse for threats. Only card in cleanse cluster with Weave."
+    },
+    {
+      "num": "007",
+      "id": "root_007",
+      "name": "Reclaim the Soil",
+      "cost": 0,
+      "vigil":   { "type": "PlacePresence",    "value": 1, "range": 0, "desc": "Place 1 Presence at existing Presence" },
+      "dusk":    { "type": "ReduceCorruption", "value": 2, "range": 1, "desc": "Reduce Corruption by 2 in range 1" },
+      "dissolve": null,
+      "design_note": "Reinforce an existing Presence territory (Vigil), then cleanse 2 Corruption adjacent to it (Dusk rng1). Rewards planting near corruption hotspots."
+    },
+    {
+      "num": "008",
+      "id": "root_008",
+      "name": "Verdant Restoration",
+      "cost": 0,
+      "vigil":   { "type": "ReduceCorruption", "value": 1, "range": 1, "desc": "Reduce Corruption by 1 in range 1" },
+      "dusk":    { "type": "ReduceCorruption", "value": 1, "range": 2, "desc": "Reduce Corruption by 1 in range 2" },
+      "dissolve": null,
+      "design_note": "Steady cleanse with increasing range across phases. Safe and consistent."
+    },
+    {
+      "num": "009",
+      "id": "root_009",
+      "name": "Root Dominance",
+      "cost": 0,
+      "vigil":   { "type": "PlacePresence",    "value": 1, "range": 2, "desc": "Place 1 Presence in range 2" },
+      "dusk":    { "type": "ReduceCorruption", "value": 2, "range": 2, "desc": "Reduce Corruption by 2 in range 2" },
+      "dissolve": null,
+      "design_note": "High-reach power card. Place presence far out, then big cleanse. Rewarding if you build network first."
+    },
+    {
+      "num": "010",
+      "id": "root_010",
+      "name": "Embrace the Earth",
+      "cost": 0,
+      "vigil":   { "type": "ReduceCorruption", "value": 1, "range": 0, "desc": "Reduce Corruption by 1 anywhere" },
+      "dusk":    { "type": "PlacePresence",    "value": 1, "range": 2, "desc": "Place 1 Presence in range 2" },
+      "dissolve": null,
+      "design_note": "Flipped from 002 — cleanse first, grow second. Interesting tempo choice depending on board state."
+    },
+    {
+      "num": "011",
+      "id": "root_011",
+      "name": "Shiver of the Ancient",
+      "cost": 0,
+      "vigil":   { "type": "GenerateFear",     "value": 3, "range": 0, "desc": "Generate 3 Fear" },
+      "dusk":    { "type": "GenerateFear",     "value": 2, "range": 0, "desc": "Generate 2 Fear" },
+      "dissolve":{ "type": "PlacePresence",    "value": 1, "range": 2, "desc": "Place 1 Presence in range 2" },
+      "design_note": "Fear engine with network synergy. Dissolve expands reach to range 2. Synergizes with Network Fear passive."
+    },
+    {
+      "num": "012",
+      "id": "root_012",
+      "name": "Dread Awakening",
+      "cost": 0,
+      "vigil":   { "type": "GenerateFear",     "value": 2, "range": 0, "desc": "Generate 2 Fear" },
+      "dusk":    { "type": "GenerateFear",     "value": 4, "range": 0, "desc": "Generate 4 Fear" },
+      "dissolve": null,
+      "design_note": "Massive Dusk fear spike (4). Good for threshold pushes. Weaker Vigil so consider card order carefully."
+    },
+    {
+      "num": "013",
+      "id": "root_013",
+      "name": "Whisper of Roots",
+      "cost": 0,
+      "vigil":   { "type": "GenerateFear",     "value": 2, "range": 0, "desc": "Generate 2 Fear" },
+      "dusk":    { "type": "GenerateFear",     "value": 3, "range": 0, "desc": "Generate 3 Fear" },
+      "dissolve": null,
+      "design_note": "Balanced fear card. Steady 5 total fear across phases."
+    },
+    {
+      "num": "014",
+      "id": "root_014",
+      "name": "The Forest Remembers",
+      "cost": 0,
+      "vigil":   { "type": "GenerateFear",     "value": 3, "range": 0, "desc": "Generate 3 Fear" },
+      "dusk":    { "type": "GenerateFear",     "value": 2, "range": 0, "desc": "Generate 2 Fear" },
+      "dissolve": null,
+      "design_note": "Mirror of 013 — heavier on Vigil. Good if you need threshold early in turn."
+    },
+    {
+      "num": "015",
+      "id": "root_015",
+      "name": "Trembling Earth",
+      "cost": 0,
+      "vigil":   { "type": "GenerateFear",     "value": 2, "range": 0, "desc": "Generate 2 Fear" },
+      "dusk":    { "type": "DamageInvaders",   "value": 2, "range": 1, "desc": "Deal 2 damage to invaders in range 1" },
+      "dissolve": null,
+      "design_note": "Fear + combat hybrid. Dusk damage at range 1 needs network near invader. Consider if range 1 is too restrictive."
+    },
+    {
+      "num": "016",
+      "id": "root_016",
+      "name": "Ancient Dread",
+      "cost": 0,
+      "vigil":   { "type": "GenerateFear",     "value": 4, "range": 0, "desc": "Generate 4 Fear" },
+      "dusk":    { "type": "GenerateFear",     "value": 2, "range": 0, "desc": "Generate 2 Fear" },
+      "dissolve": null,
+      "design_note": "Big Vigil fear (4). Strong opener for threshold timing. Similar to 012 but front-loaded."
+    },
+    {
+      "num": "017",
+      "id": "root_017",
+      "name": "Root Terror",
+      "cost": 0,
+      "vigil":   { "type": "GenerateFear",     "value": 3, "range": 0, "desc": "Generate 3 Fear" },
+      "dusk":    { "type": "RoutInvaders",     "value": 1, "range": 1, "desc": "Rout 1 invader in range 1" },
+      "dissolve": null,
+      "design_note": "Fear + rout combo. Rout at Dusk buys time after fear burst at Vigil. Note: RoutInvaders is currently stubbed — needs Phase 6 implementation."
+    },
+    {
+      "num": "018",
+      "id": "root_018",
+      "name": "Darkness Below",
+      "cost": 0,
+      "vigil":   { "type": "GenerateFear",     "value": 2, "range": 0, "desc": "Generate 2 Fear" },
+      "dusk":    { "type": "GenerateFear",     "value": 3, "range": 0, "desc": "Generate 3 Fear" },
+      "dissolve": null,
+      "design_note": "Same totals as 013 (5 fear) but reversed distribution. Consider differentiating — maybe add a small presence or corruption effect to one of 013/018."
+    },
+    {
+      "num": "019",
+      "id": "root_019",
+      "name": "Spreading Growth",
+      "cost": 0,
+      "vigil":   { "type": "PlacePresence",    "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "dusk":    { "type": "PlacePresence",    "value": 1, "range": 2, "desc": "Place 1 Presence in range 2" },
+      "dissolve": null,
+      "design_note": "Pure network expansion. Escalating range Vigil→Dusk. Essential for Network Fear passive and Assimilation reach."
+    },
+    {
+      "num": "020",
+      "id": "root_020",
+      "name": "Vast Network",
+      "cost": 0,
+      "vigil":   { "type": "PlacePresence",    "value": 1, "range": 2, "desc": "Place 1 Presence in range 2" },
+      "dusk":    { "type": "PlacePresence",    "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "dissolve": null,
+      "design_note": "Reverse of 019. Useful for reaching distant territories at Vigil, then consolidating at Dusk."
+    },
+    {
+      "num": "021",
+      "id": "root_021",
+      "name": "Creeping Vines",
+      "cost": 0,
+      "vigil":   { "type": "PlacePresence",    "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "dusk":    { "type": "MovePresence",     "value": 1, "range": 2, "desc": "Move 1 Presence in range 2" },
+      "dissolve": null,
+      "design_note": "Place + move. MovePresence is stubbed in Phase 5 — will be powerful for repositioning once Phase 6 implements it."
+    },
+    {
+      "num": "022",
+      "id": "root_022",
+      "name": "Lattice of Life",
+      "cost": 0,
+      "vigil":   { "type": "MovePresence",     "value": 1, "range": 1, "desc": "Move 1 Presence in range 1" },
+      "dusk":    { "type": "PlacePresence",    "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "dissolve": null,
+      "design_note": "Move + place. Similar to 021 but reversed. Both MovePresence cards are future-facing (stubbed in Phase 5)."
+    },
+    {
+      "num": "023",
+      "id": "root_023",
+      "name": "Rootbound",
+      "cost": 0,
+      "vigil":   { "type": "PlacePresence",    "value": 2, "range": 0, "desc": "Place 2 Presence at existing Presence" },
+      "dusk":    { "type": "ReduceCorruption", "value": 1, "range": 1, "desc": "Reduce Corruption by 1 in range 1" },
+      "dissolve": null,
+      "design_note": "Double down on an existing territory (Vigil rng0 = holy site reinforcement). Strong for creating a heavily-stacked sacred site to anchor Network Fear. Then cleanse adjacent (Dusk)."
+    },
+    {
+      "num": "024",
+      "id": "root_024",
+      "name": "Boundless Growth",
+      "cost": 0,
+      "vigil":   { "type": "PlacePresence",    "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "dusk":    { "type": "PlacePresence",    "value": 1, "range": 3, "desc": "Place 1 Presence in range 3" },
+      "dissolve": null,
+      "design_note": "Massive reach on Dusk (range 3 = almost anywhere on 3×3 grid). Key card for late network expansion."
+    },
+    {
+      "num": "025",
+      "id": "root_025",
+      "name": "Stir the Sleeping",
+      "cost": 0,
+      "vigil":   { "type": "AwakeDormant",     "value": 1, "range": 0, "desc": "Awaken 1 dormant card in hand" },
+      "dusk":    { "type": "AwakeDormant",     "value": 1, "range": 0, "desc": "Awaken 1 dormant card in hand" },
+      "dissolve": null,
+      "design_note": "Pure hand recovery — awaken 1 on both phases. Synergizes with deliberate dissolution strategy. Consider if this is too efficient (2 awakenings per play)."
+    },
+    {
+      "num": "026",
+      "id": "root_026",
+      "name": "Call from Slumber",
+      "cost": 0,
+      "vigil":   { "type": "GenerateFear",     "value": 1, "range": 0, "desc": "Generate 1 Fear" },
+      "dusk":    { "type": "AwakeDormant",     "value": 0, "range": 0, "desc": "Awaken all dormant cards in hand" },
+      "dissolve": null,
+      "design_note": "Value=0 means awaken ALL dormant cards. Potentially explosive late-game recovery. Watch hand size limits when this fires."
+    },
+    {
+      "num": "027",
+      "id": "root_027",
+      "name": "Rise, Ancient One",
+      "cost": 0,
+      "vigil":   { "type": "PlacePresence",    "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "dusk":    { "type": "AwakeDormant",     "value": 1, "range": 0, "desc": "Awaken 1 dormant card in hand" },
+      "dissolve": null,
+      "design_note": "Grow network then recover a card. Balanced utility card. Good mid-game inclusion."
+    },
+    {
+      "num": "028",
+      "id": "root_028",
+      "name": "Dream of the Root",
+      "cost": 0,
+      "vigil":   { "type": "AwakeDormant",     "value": 1, "range": 0, "desc": "Awaken 1 dormant card in hand" },
+      "dusk":    { "type": "PlacePresence",    "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "dissolve": null,
+      "design_note": "Recover dormant card at Vigil, then use the freed-up hand slot to place presence at Dusk. Nice sequencing."
+    },
+    {
+      "num": "029",
+      "id": "root_029",
+      "name": "Living Wall",
+      "cost": 0,
+      "vigil":   { "type": "PlacePresence",    "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "dusk":    { "type": "DamageInvaders",   "value": 3, "range": 1, "desc": "Deal 3 damage to invaders in range 1" },
+      "dissolve": null,
+      "design_note": "Presence + heavy damage (3 at range 1). Defensive card. Requires adjacency. Strong in Resolution phase combat."
+    },
+    {
+      "num": "030",
+      "id": "root_030",
+      "name": "Ancient Pulse",
+      "cost": 0,
+      "vigil":   { "type": "RestoreWeave",     "value": 2, "range": 0, "desc": "Restore 2 Weave" },
+      "dusk":    { "type": "GenerateFear",     "value": 2, "range": 0, "desc": "Generate 2 Fear" },
+      "dissolve": null,
+      "design_note": "Weave recovery + fear generation. Good sustain card. Restores 2 Weave (significant in long encounters). One of only two Weave recovery cards in the deck."
+    }
+  ]
+}

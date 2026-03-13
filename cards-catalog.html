@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hollow Wardens — Root Card Catalog</title>
+<style>
+  :root {
+    --bg: #0d0d12;
+    --surface: #16161e;
+    --surface2: #1e1e2a;
+    --border: #2a2a3a;
+    --accent: #6a4c93;
+    --accent-light: #9b72c8;
+    --text: #e0dff0;
+    --text-muted: #8888aa;
+    --fear: #c44569;
+    --presence: #44bd88;
+    --corruption: #e8a838;
+    --weave: #4ba3d4;
+    --dormant-color: #c49a5a;
+    --damage: #e05c5c;
+    --rout: #d67c3a;
+    --move: #5ac4a4;
+    --tag-bg: #2a2a3a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+  header {
+    background: linear-gradient(135deg, #1a0e2e, #0d1a1a);
+    border-bottom: 1px solid var(--accent);
+    padding: 20px 32px;
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 1.6rem; color: var(--accent-light); letter-spacing: 0.05em; }
+  header p { color: var(--text-muted); font-size: 0.82rem; }
+  .source-hint { margin-left: auto; color: var(--text-muted); font-size: 0.75rem; font-family: monospace; }
+
+  .controls {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    padding: 14px 32px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+  }
+  .controls label { color: var(--text-muted); font-size: 0.82rem; }
+  select, input[type=text] {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 5px 10px; border-radius: 6px; font-size: 0.82rem; outline: none;
+  }
+  select:focus, input:focus { border-color: var(--accent-light); }
+  .count { color: var(--text-muted); font-size: 0.82rem; margin-left: auto; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(284px, 1fr));
+    gap: 14px;
+    padding: 20px 32px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition: border-color 0.15s, transform 0.1s, box-shadow 0.15s;
+  }
+  .card:hover { border-color: var(--accent-light); transform: translateY(-2px); box-shadow: 0 4px 20px #6a4c9322; }
+
+  .card-header {
+    background: linear-gradient(135deg, #1f1030, #0f1f1f);
+    padding: 11px 14px 9px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-num { font-size: 0.68rem; color: var(--text-muted); font-family: monospace; }
+  .card-name { font-size: 0.98rem; font-weight: 600; color: var(--accent-light); margin-top: 2px; line-height: 1.2; }
+  .card-tags { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }
+  .tag {
+    font-size: 0.62rem; padding: 2px 7px; border-radius: 12px;
+    background: var(--tag-bg); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .tag.fear       { background: #2a0e16; color: var(--fear); }
+  .tag.presence   { background: #0e2a1c; color: var(--presence); }
+  .tag.corruption { background: #2a1e0e; color: var(--corruption); }
+  .tag.weave      { background: #0e1e2a; color: var(--weave); }
+  .tag.dormant    { background: #1e140a; color: var(--dormant-color); }
+  .tag.damage     { background: #2a0e0e; color: var(--damage); }
+  .tag.rout       { background: #2a1a0e; color: var(--rout); }
+  .tag.move       { background: #0a1e18; color: var(--move); }
+
+  .card-body { padding: 11px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+
+  .effect-block {
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 7px 10px;
+    border-left: 3px solid var(--border);
+  }
+  .effect-block.vigil   { border-left-color: #6a8caf; }
+  .effect-block.dusk    { border-left-color: #8c6aaf; }
+  .effect-block.dissolve{ border-left-color: #7c5c3a; }
+
+  .effect-label {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--text-muted); margin-bottom: 2px;
+  }
+  .effect-label.vigil   { color: #6a8caf; }
+  .effect-label.dusk    { color: #a08abf; }
+  .effect-label.dissolve{ color: var(--dormant-color); }
+
+  .effect-text { font-size: 0.8rem; color: var(--text); }
+  .effect-meta { font-size: 0.68rem; color: var(--text-muted); margin-top: 1px; }
+  .ef-fear       { color: var(--fear); font-weight: 600; }
+  .ef-presence   { color: var(--presence); font-weight: 600; }
+  .ef-corruption { color: var(--corruption); font-weight: 600; }
+  .ef-weave      { color: var(--weave); font-weight: 600; }
+  .ef-dormant    { color: var(--dormant-color); font-weight: 600; }
+  .ef-damage     { color: var(--damage); font-weight: 600; }
+  .ef-rout       { color: var(--rout); font-weight: 600; }
+  .ef-move       { color: var(--move); font-weight: 600; }
+  .ef-default    { color: var(--text); font-weight: 600; }
+
+  .design-note-toggle {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 14px;
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+    background: none; border-left: none; border-right: none; border-bottom: none;
+    width: 100%; text-align: left; color: var(--text-muted); font-size: 0.72rem;
+  }
+  .design-note-toggle:hover { color: var(--accent-light); }
+  .design-note-toggle span.arrow { transition: transform 0.15s; display: inline-block; }
+  .design-note-toggle.open span.arrow { transform: rotate(90deg); }
+
+  .design-note-body {
+    display: none;
+    padding: 8px 14px 10px;
+    font-size: 0.78rem;
+    color: #9aaa8a;
+    line-height: 1.5;
+    border-top: 1px solid #2a3a1a;
+    background: #0e150a;
+  }
+  .design-note-body.open { display: block; }
+
+  .card-footer { padding: 6px 14px 8px; color: var(--text-muted); font-size: 0.68rem; font-family: monospace; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .tres-link { color: var(--text-muted); text-decoration: none; font-size: 0.65rem; }
+  .tres-link:hover { color: var(--accent-light); text-decoration: underline; }
+
+  .no-results { padding: 48px; text-align: center; color: var(--text-muted); grid-column: 1/-1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>The Root — Card Catalog</h1>
+    <p>Hollow Wardens · 30 starting cards</p>
+  </div>
+  <span class="source-hint">Source: data/cards-{warden}.json → run tools/generate-cards.py to sync</span>
+</header>
+
+<div class="controls">
+  <label>Search:</label>
+  <input type="text" id="search" placeholder="Name, effect, note…" oninput="render()">
+  <label>Warden:</label>
+  <select id="wardenFilter" onchange="render()">
+    <option value="">All</option>
+    <option value="root">The Root</option>
+    <option value="ember">The Ember</option>
+    <option value="veil">The Veil</option>
+  </select>
+  <label>Category:</label>
+  <select id="catFilter" onchange="render()">
+    <option value="">All</option>
+    <option value="corruption">Corruption</option>
+    <option value="fear">Fear</option>
+    <option value="presence">Presence</option>
+    <option value="dormant">Dormant (Awaken)</option>
+    <option value="damage">Combat</option>
+    <option value="weave">Weave</option>
+    <option value="move">Move Presence</option>
+  </select>
+  <label>Sort:</label>
+  <select id="sortBy" onchange="render()">
+    <option value="num">Card #</option>
+    <option value="name">Name A→Z</option>
+  </select>
+  <span class="count" id="countLabel"></span>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<!-- BEGIN CARDS DATA (auto-generated — edit data/cards-{warden}.json instead) -->
+<script id="cards-data" type="application/json">
+[
+  {
+    "num": "001",
+    "id": "root_001",
+    "name": "Tendrils of Reclamation",
+    "cost": 0,
+    "vigil": {
+      "type": "ReduceCorruption",
+      "value": 1,
+      "range": 1,
+      "desc": "Reduce Corruption by 1 in range 1"
+    },
+    "dusk": {
+      "type": "ReduceCorruption",
+      "value": 2,
+      "range": 1,
+      "desc": "Reduce Corruption by 2 in range 1"
+    },
+    "dissolve": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 3,
+      "desc": "Place 1 Presence in range 3"
+    },
+    "design_note": "Good opener — efficient cleansing at Vigil and Dusk. Custom dissolve with range 3 is excellent burst reach. Consider if rng3 dissolve is too reliable as a dissolve-pump.",
+    "warden": "root"
+  },
+  {
+    "num": "002",
+    "id": "root_002",
+    "name": "Deep Roots",
+    "cost": 0,
+    "vigil": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 1,
+      "desc": "Place 1 Presence in range 1"
+    },
+    "dusk": {
+      "type": "ReduceCorruption",
+      "value": 1,
+      "range": 0,
+      "desc": "Reduce Corruption by 1 anywhere"
+    },
+    "dissolve": null,
+    "design_note": "Flexible card: grow network (Vigil) or cleanse anywhere (Dusk). Range 0 on Dusk means it works with presence anywhere on board.",
+    "warden": "root"
+  },
+  {
+    "num": "003",
+    "id": "root_003",
+    "name": "Earthen Mending",
+    "cost": 0,
+    "vigil": {
+      "type": "ReduceCorruption",
+      "value": 1,
+      "range": 0,
+      "desc": "Reduce Corruption by 1 anywhere"
+    },
+    "dusk": {
+      "type": "ReduceCorruption",
+      "value": 1,
+      "range": 2,
+      "desc": "Reduce Corruption by 1 in range 2"
+    },
+    "dissolve": null,
+    "design_note": "Pure corruption cleanse. Vigil at range 0 is safe setup; Dusk at range 2 gives reach.",
+    "warden": "root"
+  },
+  {
+    "num": "004",
+    "id": "root_004",
+    "name": "Ancient Cleansing",
+    "cost": 0,
+    "vigil": {
+      "type": "ReduceCorruption",
+      "value": 1,
+      "range": 1,
+      "desc": "Reduce Corruption by 1 in range 1"
+    },
+    "dusk": {
+      "type": "ReduceCorruption",
+      "value": 2,
+      "range": 0,
+      "desc": "Reduce Corruption by 2 anywhere"
+    },
+    "dissolve": null,
+    "design_note": "Strong cleanse burst on Dusk (2 corruption anywhere). Good for late-game Sacred Site protection.",
+    "warden": "root"
+  },
+  {
+    "num": "005",
+    "id": "root_005",
+    "name": "Subterranean Surge",
+    "cost": 0,
+    "vigil": {
+      "type": "ReduceCorruption",
+      "value": 1,
+      "range": 2,
+      "desc": "Reduce Corruption by 1 in range 2"
+    },
+    "dusk": {
+      "type": "ReduceCorruption",
+      "value": 1,
+      "range": 1,
+      "desc": "Reduce Corruption by 1 in range 1"
+    },
+    "dissolve": null,
+    "design_note": "Wide-reach cleanse on both phases. Useful for spreading coverage across the board.",
+    "warden": "root"
+  },
+  {
+    "num": "006",
+    "id": "root_006",
+    "name": "Healing Earth",
+    "cost": 0,
+    "vigil": {
+      "type": "RestoreWeave",
+      "value": 1,
+      "range": 0,
+      "desc": "Restore 1 Weave"
+    },
+    "dusk": {
+      "type": "ReduceCorruption",
+      "value": 1,
+      "range": 1,
+      "desc": "Reduce Corruption by 1 in range 1"
+    },
+    "dissolve": null,
+    "design_note": "Weave + cleanse combo. Weave recovery on Vigil means you can hold Dusk cleanse for threats. Only card in cleanse cluster with Weave.",
+    "warden": "root"
+  },
+  {
+    "num": "007",
+    "id": "root_007",
+    "name": "Reclaim the Soil",
+    "cost": 0,
+    "vigil": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 0,
+      "desc": "Place 1 Presence at existing Presence"
+    },
+    "dusk": {
+      "type": "ReduceCorruption",
+      "value": 2,
+      "range": 1,
+      "desc": "Reduce Corruption by 2 in range 1"
+    },
+    "dissolve": null,
+    "design_note": "Reinforce an existing Presence territory (Vigil), then cleanse 2 Corruption adjacent to it (Dusk rng1). Rewards planting near corruption hotspots.",
+    "warden": "root"
+  },
+  {
+    "num": "008",
+    "id": "root_008",
+    "name": "Verdant Restoration",
+    "cost": 0,
+    "vigil": {
+      "type": "ReduceCorruption",
+      "value": 1,
+      "range": 1,
+      "desc": "Reduce Corruption by 1 in range 1"
+    },
+    "dusk": {
+      "type": "ReduceCorruption",
+      "value": 1,
+      "range": 2,
+      "desc": "Reduce Corruption by 1 in range 2"
+    },
+    "dissolve": null,
+    "design_note": "Steady cleanse with increasing range across phases. Safe and consistent.",
+    "warden": "root"
+  },
+  {
+    "num": "009",
+    "id": "root_009",
+    "name": "Root Dominance",
+    "cost": 0,
+    "vigil": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 2,
+      "desc": "Place 1 Presence in range 2"
+    },
+    "dusk": {
+      "type": "ReduceCorruption",
+      "value": 2,
+      "range": 2,
+      "desc": "Reduce Corruption by 2 in range 2"
+    },
+    "dissolve": null,
+    "design_note": "High-reach power card. Place presence far out, then big cleanse. Rewarding if you build network first.",
+    "warden": "root"
+  },
+  {
+    "num": "010",
+    "id": "root_010",
+    "name": "Embrace the Earth",
+    "cost": 0,
+    "vigil": {
+      "type": "ReduceCorruption",
+      "value": 1,
+      "range": 0,
+      "desc": "Reduce Corruption by 1 anywhere"
+    },
+    "dusk": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 2,
+      "desc": "Place 1 Presence in range 2"
+    },
+    "dissolve": null,
+    "design_note": "Flipped from 002 — cleanse first, grow second. Interesting tempo choice depending on board state.",
+    "warden": "root"
+  },
+  {
+    "num": "011",
+    "id": "root_011",
+    "name": "Shiver of the Ancient",
+    "cost": 0,
+    "vigil": {
+      "type": "GenerateFear",
+      "value": 3,
+      "range": 0,
+      "desc": "Generate 3 Fear"
+    },
+    "dusk": {
+      "type": "GenerateFear",
+      "value": 2,
+      "range": 0,
+      "desc": "Generate 2 Fear"
+    },
+    "dissolve": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 2,
+      "desc": "Place 1 Presence in range 2"
+    },
+    "design_note": "Fear engine with network synergy. Dissolve expands reach to range 2. Synergizes with Network Fear passive.",
+    "warden": "root"
+  },
+  {
+    "num": "012",
+    "id": "root_012",
+    "name": "Dread Awakening",
+    "cost": 0,
+    "vigil": {
+      "type": "GenerateFear",
+      "value": 2,
+      "range": 0,
+      "desc": "Generate 2 Fear"
+    },
+    "dusk": {
+      "type": "GenerateFear",
+      "value": 4,
+      "range": 0,
+      "desc": "Generate 4 Fear"
+    },
+    "dissolve": null,
+    "design_note": "Massive Dusk fear spike (4). Good for threshold pushes. Weaker Vigil so consider card order carefully.",
+    "warden": "root"
+  },
+  {
+    "num": "013",
+    "id": "root_013",
+    "name": "Whisper of Roots",
+    "cost": 0,
+    "vigil": {
+      "type": "GenerateFear",
+      "value": 2,
+      "range": 0,
+      "desc": "Generate 2 Fear"
+    },
+    "dusk": {
+      "type": "GenerateFear",
+      "value": 3,
+      "range": 0,
+      "desc": "Generate 3 Fear"
+    },
+    "dissolve": null,
+    "design_note": "Balanced fear card. Steady 5 total fear across phases.",
+    "warden": "root"
+  },
+  {
+    "num": "014",
+    "id": "root_014",
+    "name": "The Forest Remembers",
+    "cost": 0,
+    "vigil": {
+      "type": "GenerateFear",
+      "value": 3,
+      "range": 0,
+      "desc": "Generate 3 Fear"
+    },
+    "dusk": {
+      "type": "GenerateFear",
+      "value": 2,
+      "range": 0,
+      "desc": "Generate 2 Fear"
+    },
+    "dissolve": null,
+    "design_note": "Mirror of 013 — heavier on Vigil. Good if you need threshold early in turn.",
+    "warden": "root"
+  },
+  {
+    "num": "015",
+    "id": "root_015",
+    "name": "Trembling Earth",
+    "cost": 0,
+    "vigil": {
+      "type": "GenerateFear",
+      "value": 2,
+      "range": 0,
+      "desc": "Generate 2 Fear"
+    },
+    "dusk": {
+      "type": "DamageInvaders",
+      "value": 2,
+      "range": 1,
+      "desc": "Deal 2 damage to invaders in range 1"
+    },
+    "dissolve": null,
+    "design_note": "Fear + combat hybrid. Dusk damage at range 1 needs network near invader. Consider if range 1 is too restrictive.",
+    "warden": "root"
+  },
+  {
+    "num": "016",
+    "id": "root_016",
+    "name": "Ancient Dread",
+    "cost": 0,
+    "vigil": {
+      "type": "GenerateFear",
+      "value": 4,
+      "range": 0,
+      "desc": "Generate 4 Fear"
+    },
+    "dusk": {
+      "type": "GenerateFear",
+      "value": 2,
+      "range": 0,
+      "desc": "Generate 2 Fear"
+    },
+    "dissolve": null,
+    "design_note": "Big Vigil fear (4). Strong opener for threshold timing. Similar to 012 but front-loaded.",
+    "warden": "root"
+  },
+  {
+    "num": "017",
+    "id": "root_017",
+    "name": "Root Terror",
+    "cost": 0,
+    "vigil": {
+      "type": "GenerateFear",
+      "value": 3,
+      "range": 0,
+      "desc": "Generate 3 Fear"
+    },
+    "dusk": {
+      "type": "RoutInvaders",
+      "value": 1,
+      "range": 1,
+      "desc": "Rout 1 invader in range 1"
+    },
+    "dissolve": null,
+    "design_note": "Fear + rout combo. Rout at Dusk buys time after fear burst at Vigil. Note: RoutInvaders is currently stubbed — needs Phase 6 implementation.",
+    "warden": "root"
+  },
+  {
+    "num": "018",
+    "id": "root_018",
+    "name": "Darkness Below",
+    "cost": 0,
+    "vigil": {
+      "type": "GenerateFear",
+      "value": 2,
+      "range": 0,
+      "desc": "Generate 2 Fear"
+    },
+    "dusk": {
+      "type": "GenerateFear",
+      "value": 3,
+      "range": 0,
+      "desc": "Generate 3 Fear"
+    },
+    "dissolve": null,
+    "design_note": "Same totals as 013 (5 fear) but reversed distribution. Consider differentiating — maybe add a small presence or corruption effect to one of 013/018.",
+    "warden": "root"
+  },
+  {
+    "num": "019",
+    "id": "root_019",
+    "name": "Spreading Growth",
+    "cost": 0,
+    "vigil": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 1,
+      "desc": "Place 1 Presence in range 1"
+    },
+    "dusk": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 2,
+      "desc": "Place 1 Presence in range 2"
+    },
+    "dissolve": null,
+    "design_note": "Pure network expansion. Escalating range Vigil→Dusk. Essential for Network Fear passive and Assimilation reach.",
+    "warden": "root"
+  },
+  {
+    "num": "020",
+    "id": "root_020",
+    "name": "Vast Network",
+    "cost": 0,
+    "vigil": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 2,
+      "desc": "Place 1 Presence in range 2"
+    },
+    "dusk": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 1,
+      "desc": "Place 1 Presence in range 1"
+    },
+    "dissolve": null,
+    "design_note": "Reverse of 019. Useful for reaching distant territories at Vigil, then consolidating at Dusk.",
+    "warden": "root"
+  },
+  {
+    "num": "021",
+    "id": "root_021",
+    "name": "Creeping Vines",
+    "cost": 0,
+    "vigil": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 1,
+      "desc": "Place 1 Presence in range 1"
+    },
+    "dusk": {
+      "type": "MovePresence",
+      "value": 1,
+      "range": 2,
+      "desc": "Move 1 Presence in range 2"
+    },
+    "dissolve": null,
+    "design_note": "Place + move. MovePresence is stubbed in Phase 5 — will be powerful for repositioning once Phase 6 implements it.",
+    "warden": "root"
+  },
+  {
+    "num": "022",
+    "id": "root_022",
+    "name": "Lattice of Life",
+    "cost": 0,
+    "vigil": {
+      "type": "MovePresence",
+      "value": 1,
+      "range": 1,
+      "desc": "Move 1 Presence in range 1"
+    },
+    "dusk": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 1,
+      "desc": "Place 1 Presence in range 1"
+    },
+    "dissolve": null,
+    "design_note": "Move + place. Similar to 021 but reversed. Both MovePresence cards are future-facing (stubbed in Phase 5).",
+    "warden": "root"
+  },
+  {
+    "num": "023",
+    "id": "root_023",
+    "name": "Rootbound",
+    "cost": 0,
+    "vigil": {
+      "type": "PlacePresence",
+      "value": 2,
+      "range": 0,
+      "desc": "Place 2 Presence at existing Presence"
+    },
+    "dusk": {
+      "type": "ReduceCorruption",
+      "value": 1,
+      "range": 1,
+      "desc": "Reduce Corruption by 1 in range 1"
+    },
+    "dissolve": null,
+    "design_note": "Double down on an existing territory (Vigil rng0 = holy site reinforcement). Strong for creating a heavily-stacked sacred site to anchor Network Fear. Then cleanse adjacent (Dusk).",
+    "warden": "root"
+  },
+  {
+    "num": "024",
+    "id": "root_024",
+    "name": "Boundless Growth",
+    "cost": 0,
+    "vigil": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 1,
+      "desc": "Place 1 Presence in range 1"
+    },
+    "dusk": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 3,
+      "desc": "Place 1 Presence in range 3"
+    },
+    "dissolve": null,
+    "design_note": "Massive reach on Dusk (range 3 = almost anywhere on 3×3 grid). Key card for late network expansion.",
+    "warden": "root"
+  },
+  {
+    "num": "025",
+    "id": "root_025",
+    "name": "Stir the Sleeping",
+    "cost": 0,
+    "vigil": {
+      "type": "AwakeDormant",
+      "value": 1,
+      "range": 0,
+      "desc": "Awaken 1 dormant card in hand"
+    },
+    "dusk": {
+      "type": "AwakeDormant",
+      "value": 1,
+      "range": 0,
+      "desc": "Awaken 1 dormant card in hand"
+    },
+    "dissolve": null,
+    "design_note": "Pure hand recovery — awaken 1 on both phases. Synergizes with deliberate dissolution strategy. Consider if this is too efficient (2 awakenings per play).",
+    "warden": "root"
+  },
+  {
+    "num": "026",
+    "id": "root_026",
+    "name": "Call from Slumber",
+    "cost": 0,
+    "vigil": {
+      "type": "GenerateFear",
+      "value": 1,
+      "range": 0,
+      "desc": "Generate 1 Fear"
+    },
+    "dusk": {
+      "type": "AwakeDormant",
+      "value": 0,
+      "range": 0,
+      "desc": "Awaken all dormant cards in hand"
+    },
+    "dissolve": null,
+    "design_note": "Value=0 means awaken ALL dormant cards. Potentially explosive late-game recovery. Watch hand size limits when this fires.",
+    "warden": "root"
+  },
+  {
+    "num": "027",
+    "id": "root_027",
+    "name": "Rise, Ancient One",
+    "cost": 0,
+    "vigil": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 1,
+      "desc": "Place 1 Presence in range 1"
+    },
+    "dusk": {
+      "type": "AwakeDormant",
+      "value": 1,
+      "range": 0,
+      "desc": "Awaken 1 dormant card in hand"
+    },
+    "dissolve": null,
+    "design_note": "Grow network then recover a card. Balanced utility card. Good mid-game inclusion.",
+    "warden": "root"
+  },
+  {
+    "num": "028",
+    "id": "root_028",
+    "name": "Dream of the Root",
+    "cost": 0,
+    "vigil": {
+      "type": "AwakeDormant",
+      "value": 1,
+      "range": 0,
+      "desc": "Awaken 1 dormant card in hand"
+    },
+    "dusk": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 1,
+      "desc": "Place 1 Presence in range 1"
+    },
+    "dissolve": null,
+    "design_note": "Recover dormant card at Vigil, then use the freed-up hand slot to place presence at Dusk. Nice sequencing.",
+    "warden": "root"
+  },
+  {
+    "num": "029",
+    "id": "root_029",
+    "name": "Living Wall",
+    "cost": 0,
+    "vigil": {
+      "type": "PlacePresence",
+      "value": 1,
+      "range": 1,
+      "desc": "Place 1 Presence in range 1"
+    },
+    "dusk": {
+      "type": "DamageInvaders",
+      "value": 3,
+      "range": 1,
+      "desc": "Deal 3 damage to invaders in range 1"
+    },
+    "dissolve": null,
+    "design_note": "Presence + heavy damage (3 at range 1). Defensive card. Requires adjacency. Strong in Resolution phase combat.",
+    "warden": "root"
+  },
+  {
+    "num": "030",
+    "id": "root_030",
+    "name": "Ancient Pulse",
+    "cost": 0,
+    "vigil": {
+      "type": "RestoreWeave",
+      "value": 2,
+      "range": 0,
+      "desc": "Restore 2 Weave"
+    },
+    "dusk": {
+      "type": "GenerateFear",
+      "value": 2,
+      "range": 0,
+      "desc": "Generate 2 Fear"
+    },
+    "dissolve": null,
+    "design_note": "Weave recovery + fear generation. Good sustain card. Restores 2 Weave (significant in long encounters). One of only two Weave recovery cards in the deck.",
+    "warden": "root"
+  }
+]
+</script>
+<!-- END CARDS DATA -->
+
+<script>
+// ── Effect type metadata ───────────────────────────────────────────────────
+const EFFECT_META = {
+  PlacePresence:    { label: "Place Presence",    cls: "ef-presence",   tag: "presence",   needsTarget: true  },
+  MovePresence:     { label: "Move Presence",     cls: "ef-move",       tag: "move",       needsTarget: true  },
+  GenerateFear:     { label: "Generate Fear",     cls: "ef-fear",       tag: "fear",       needsTarget: false },
+  ReduceCorruption: { label: "Reduce Corruption", cls: "ef-corruption", tag: "corruption", needsTarget: true  },
+  Purify:           { label: "Purify",            cls: "ef-presence",   tag: "presence",   needsTarget: true  },
+  DamageInvaders:   { label: "Damage Invaders",   cls: "ef-damage",     tag: "damage",     needsTarget: true  },
+  PushInvaders:     { label: "Push Invaders",     cls: "ef-rout",       tag: "rout",       needsTarget: true  },
+  RoutInvaders:     { label: "Rout Invaders",     cls: "ef-rout",       tag: "rout",       needsTarget: true  },
+  RestoreWeave:     { label: "Restore Weave",     cls: "ef-weave",      tag: "weave",      needsTarget: false },
+  PredictTide:      { label: "Predict Tide",      cls: "ef-default",    tag: "",           needsTarget: false },
+  Conditional:      { label: "Conditional",       cls: "ef-default",    tag: "",           needsTarget: false },
+  Custom:           { label: "Custom",            cls: "ef-default",    tag: "",           needsTarget: false },
+  AwakeDormant:     { label: "Awaken Dormant",    cls: "ef-dormant",    tag: "dormant",    needsTarget: false },
+};
+
+// ── Load card data from embedded JSON block ────────────────────────────────
+const CARDS = JSON.parse(document.getElementById("cards-data").textContent || "[]");
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function effectSummary(eff) {
+  if (!eff) return { html: '<span class="ef-default">Default — Place 1 Presence (anywhere)</span>', meta: "" };
+  const m = EFFECT_META[eff.type] || { label: eff.type, cls: "ef-default", needsTarget: false };
+  let valStr = "";
+  if (eff.type === "AwakeDormant") valStr = eff.value === 0 ? " all" : ` ${eff.value}`;
+  else if (eff.value)              valStr = ` ${eff.value}`;
+  const html = `<span class="${m.cls}">${m.label}${valStr}</span>`;
+  const meta = eff.range > 0 ? `Range ${eff.range}` : (m.needsTarget ? "Range 0 (anywhere with presence)" : "");
+  return { html, meta };
+}
+
+function tagsOf(card) {
+  const seen = new Set();
+  const tags = [];
+  for (const eff of [card.vigil, card.dusk, card.dissolve]) {
+    if (!eff) continue;
+    const m = EFFECT_META[eff.type];
+    if (m && m.tag && !seen.has(m.tag)) { seen.add(m.tag); tags.push(m.tag); }
+  }
+  return tags;
+}
+
+function primaryCategory(card) {
+  // First non-empty tag determines primary category for filtering
+  return tagsOf(card)[0] || "";
+}
+
+function matchesCategory(card, cat) {
+  if (!cat) return true;
+  return tagsOf(card).includes(cat);
+}
+
+function renderEffectBlock(eff, phase) {
+  const { html, meta } = effectSummary(eff);
+  return `<div class="effect-block ${phase}">
+    <div class="effect-label ${phase}">${phase.toUpperCase()}</div>
+    <div class="effect-text">${html}</div>
+    ${meta ? `<div class="effect-meta">${meta}</div>` : ""}
+  </div>`;
+}
+
+function renderCard(card) {
+  const tags = tagsOf(card);
+  const tagHTML = tags.map(t => `<span class="tag ${t}">${t}</span>`).join("");
+  const noteId = `note-${card.num}`;
+  const noteBody = card.design_note
+    ? `<button class="design-note-toggle" onclick="toggleNote('${noteId}', this)">
+        <span class="arrow">▶</span> Design note
+       </button>
+       <div class="design-note-body" id="${noteId}">${escHtml(card.design_note)}</div>`
+    : "";
+  const tresPath = `hollow_wardens/resources/cards/root/root_${card.num}.tres`;
+  return `<div class="card">
+    <div class="card-header">
+      <div class="card-num">#${card.num}</div>
+      <div class="card-name">${escHtml(card.name)}</div>
+      <div class="card-tags">${tagHTML}</div>
+    </div>
+    <div class="card-body">
+      ${renderEffectBlock(card.vigil, "vigil")}
+      ${renderEffectBlock(card.dusk, "dusk")}
+      ${renderEffectBlock(card.dissolve, "dissolve")}
+    </div>
+    ${noteBody}
+    <div class="card-footer">
+      <span>${card.id}</span>
+      <span class="tres-link" title="${tresPath}">.tres</span>
+    </div>
+  </div>`;
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function toggleNote(id, btn) {
+  const el = document.getElementById(id);
+  el.classList.toggle("open");
+  btn.classList.toggle("open");
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function render() {
+  const search = document.getElementById("search").value.toLowerCase();
+  const cat    = document.getElementById("catFilter").value;
+  const sort   = document.getElementById("sortBy").value;
+
+  const warden = document.getElementById("wardenFilter").value;
+
+  let filtered = CARDS.filter(c => {
+    const matchSearch = !search
+      || c.name.toLowerCase().includes(search)
+      || (c.design_note || "").toLowerCase().includes(search)
+      || (c.vigil?.type  || "").toLowerCase().includes(search)
+      || (c.dusk?.type   || "").toLowerCase().includes(search);
+    const matchWarden = !warden || (c.warden || "") === warden;
+    return matchSearch && matchWarden && matchesCategory(c, cat);
+  });
+
+  if (sort === "name") filtered.sort((a, b) => a.name.localeCompare(b.name));
+
+  document.getElementById("countLabel").textContent = `${filtered.length} / ${CARDS.length} cards`;
+  const grid = document.getElementById("grid");
+  grid.innerHTML = filtered.length
+    ? filtered.map(renderCard).join("")
+    : `<div class="no-results">No cards match your filter.</div>`;
+}
+
+render();
+</script>
+</body>
+</html>
