@@ -1,0 +1,16 @@
+# Godot editor cache
+.godot/
+
+# Mono/C# build output
+.mono/
+bin/
+obj/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
