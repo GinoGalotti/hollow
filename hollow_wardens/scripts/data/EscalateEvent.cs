@@ -12,5 +12,5 @@ public partial class EscalateEvent : Resource
 
     [Export] public int TideStep { get; set; }          // Which Tide step triggers this
     [Export] public EscalateType Type { get; set; }
-    [Export] public string Description { get; set; } = "";
+    [Export] public string DescriptionKey { get; set; } = "";
 }

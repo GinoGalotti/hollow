@@ -8,19 +8,19 @@ script = ExtResource("2")
 Type = 12
 Value = 1
 Range = 0
-Description = "Awaken 1 dormant card in hand"
+DescriptionKey = "CARD_ROOT_025_VIGIL_DESC"
 
 [sub_resource type="CardEffect" id="CardEffect_d"]
 script = ExtResource("2")
 Type = 12
 Value = 1
 Range = 0
-Description = "Awaken 1 dormant card in hand"
+DescriptionKey = "CARD_ROOT_025_DUSK_DESC"
 
 [resource]
 script = ExtResource("1")
 Id = "root_025"
-CardName = "Stir the Sleeping"
+CardNameKey = "CARD_ROOT_025_NAME"
 WardenId = "root"
 Cost = 0
 IsDormant = false

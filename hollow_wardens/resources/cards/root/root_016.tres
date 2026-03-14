@@ -8,19 +8,19 @@ script = ExtResource("2")
 Type = 2
 Value = 4
 Range = 0
-Description = "Generate 4 Fear"
+DescriptionKey = "CARD_ROOT_016_VIGIL_DESC"
 
 [sub_resource type="CardEffect" id="CardEffect_d"]
 script = ExtResource("2")
 Type = 2
 Value = 2
 Range = 0
-Description = "Generate 2 Fear"
+DescriptionKey = "CARD_ROOT_016_DUSK_DESC"
 
 [resource]
 script = ExtResource("1")
 Id = "root_016"
-CardName = "Ancient Dread"
+CardNameKey = "CARD_ROOT_016_NAME"
 WardenId = "root"
 Cost = 0
 IsDormant = false

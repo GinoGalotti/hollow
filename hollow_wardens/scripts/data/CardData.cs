@@ -4,7 +4,7 @@ using Godot;
 public partial class CardData : Resource
 {
     [Export] public string Id { get; set; } = "";
-    [Export] public string CardName { get; set; } = "";
+    [Export] public string CardNameKey { get; set; } = "";
     [Export] public string WardenId { get; set; } = "";  // "root", "ember", "veil", "" (shared)
     [Export] public CardEffect? VigilEffect { get; set; }    // Top action
     [Export] public CardEffect? DuskEffect { get; set; }     // Bottom action

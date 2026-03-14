@@ -15,5 +15,5 @@ public partial class EffectCondition : Resource
 
     [Export] public ConditionType Type { get; set; }
     [Export] public int Threshold { get; set; }         // Minimum value to meet condition
-    [Export] public string Description { get; set; } = "";
+    [Export] public string DescriptionKey { get; set; } = "";
 }

@@ -1094,3 +1094,97 @@ Issues to resolve through playtesting or further design discussion:
 10. **Invader action speed relative to rest turns** — If players rest every 3rd turn, invaders act uncontested that often. Does The Tide need a slower cadence for Standard encounters, or is uncontested Tide damage the natural punishment for resting? Consider: Tide acts only on turns 2, 4, 6... (every other turn) in Standard; every turn in Elite/Boss.
 
 11. **Fear and Corruption interaction** — *[To address in next session]* How do Fear thresholds interact with Corruption ticks? Can Fear generation outpace Corruption spread? What happens when both hit critical values simultaneously?
+
+---
+
+## 13. Localization System
+
+### Architecture
+
+`CardData`, `WardenData`, `InvaderData`, `CardEffect`, `EffectCondition`, and `EscalateEvent` are all `Resource` subclasses (not `Node`). Resources cannot call `Tr()`. The convention is:
+
+- **Resources store translation keys** — e.g. `CardNameKey = "CARD_ROOT_001_NAME"`
+- **UI Nodes do the lookup** — `label.Text = Tr(card.CardNameKey)` at display time
+- `TranslationServer.Translate("KEY")` is available as a static fallback where needed
+
+All player-visible strings MUST go through this system. No hardcoded text on any Label.
+
+### Key naming convention
+
+```
+CARD_{WARDEN}_{NUM}_NAME          — card name
+CARD_{WARDEN}_{NUM}_VIGIL_DESC    — vigil effect description
+CARD_{WARDEN}_{NUM}_DUSK_DESC     — dusk effect description
+CARD_{WARDEN}_{NUM}_DISSOLVE_DESC — dissolve effect description (only when non-default)
+
+WARDEN_{ID}_NAME / _ARCHETYPE / _DISSOLVE_DESC / _RESOLUTION_DESC
+INVADER_{ID}_NAME / _DREAD_DESC
+ESCALATE_{FACTION}_{NUM}_DESC
+
+UI_PHASE_VIGIL / TIDE / DUSK / RESOLUTION
+UI_HUD_WEAVE / FEAR / TURN
+UI_ACTION_CONFIRM / CANCEL / REST / END_PHASE / INFO
+UI_TIER_STANDARD / ELITE / BOSS
+UI_REWARD_CLEAN / WEATHERED / BREACH
+UI_MENU_START / SETTINGS / QUIT
+UI_TERRITORY_E1 .. UI_TERRITORY_SS  (9 territory labels)
+```
+
+Rule: ALL_CAPS, underscores only. Card keys are derived deterministically from `warden_id + num` by the generation script.
+
+### CSV file
+
+`hollow_wardens/locale/translations.csv` — registered in `project.godot` under `[internationalization]`. Godot auto-imports `.csv` → `.translation`.
+
+- First row: `keys,en` (header)
+- Hand-authored UI strings come first
+- Card strings are auto-generated in a sentinel block: `# BEGIN CARDS DATA` / `# END CARDS DATA`
+- Run `python tools/generate-cards.py` to regenerate the card block
+
+### Adding a new language
+
+1. Add a new column to `translations.csv`: `keys,en,fr`
+2. Fill in translated values for each row
+3. Re-import in the Godot editor (or run `godot --headless --import`)
+4. The game will auto-detect the OS locale or allow manual override via `TranslationServer.SetLocale()`
+
+### Card pipeline integration
+
+`generate-cards.py` derives translation keys from `warden_id` + `card["num"]`, populates `CardNameKey` and `DescriptionKey` in `.tres` files, and regenerates the card block in `translations.csv` from `card["name"]` and `card["vigil/dusk/dissolve"]["desc"]` fields. The JSON source of truth is never modified.
+
+---
+
+## 14. Input Actions
+
+### Action vocabulary (9 actions)
+
+| Action | Purpose | Keyboard | Controller |
+|--------|---------|----------|-----------|
+| `ui_navigate_left` | Prev card / focus left | Left arrow | D-pad Left / L-stick |
+| `ui_navigate_right` | Next card / focus right | Right arrow | D-pad Right / L-stick |
+| `ui_navigate_up` | Territory / menu up | Up arrow | D-pad Up / L-stick |
+| `ui_navigate_down` | Territory / menu down | Down arrow | D-pad Down / L-stick |
+| `game_confirm` | Select card / confirm target | Enter / Z | A / Cross |
+| `game_cancel` | Deselect / back | Escape / X | B / Circle |
+| `game_rest` | Pass turn / recover discard | R | Y / Triangle |
+| `game_end_phase` | End Vigil or Dusk | Space | X / Square |
+| `game_toggle_info` | Card/territory detail overlay | Tab / I | LB / L1 |
+
+Custom actions (not reusing Godot's built-in `ui_left` etc.) so game navigation in HandView and TerritoryMapView can be handled independently of Control focus navigation.
+
+### Territory grid navigation
+
+The 3×3 territory grid maps directly to D-pad:
+- `ui_navigate_up/down` — move between rows (E-row → M-row → S-row)
+- `ui_navigate_left/right` — move within row (col 1 → col 2 → col 3)
+- `game_confirm` — select the focused territory
+
+### Phase 6 UI contracts
+
+These rules are enforced during Phase 6 implementation:
+
+- All interactive Controls: `FocusMode = All`
+- HandView: consume `ui_navigate_left/right` to cycle cards
+- TerritoryMapView: consume `ui_navigate_*` to move 3×3 grid focus
+- Modals: trap `game_cancel` to dismiss
+- No hardcoded text on any Label — always `Tr(someKey)` or `TranslationServer.Translate(key)`

@@ -8,19 +8,19 @@ script = ExtResource("2")
 Type = 3
 Value = 1
 Range = 1
-Description = "Reduce Corruption by 1 in range 1"
+DescriptionKey = "CARD_ROOT_004_VIGIL_DESC"
 
 [sub_resource type="CardEffect" id="CardEffect_d"]
 script = ExtResource("2")
 Type = 3
 Value = 2
 Range = 0
-Description = "Reduce Corruption by 2 anywhere"
+DescriptionKey = "CARD_ROOT_004_DUSK_DESC"
 
 [resource]
 script = ExtResource("1")
 Id = "root_004"
-CardName = "Ancient Cleansing"
+CardNameKey = "CARD_ROOT_004_NAME"
 WardenId = "root"
 Cost = 0
 IsDormant = false

@@ -59,6 +59,7 @@ ROOT_DIR   = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 DATA_DIR  = os.path.join(ROOT_DIR, "data")
 HTML_PATH = os.path.join(ROOT_DIR, "cards-catalog.html")
 TRES_ROOT = os.path.join(ROOT_DIR, "hollow_wardens", "resources", "cards")
+CSV_PATH  = os.path.join(ROOT_DIR, "hollow_wardens", "locale", "translations.csv")
 
 EFFECT_TYPE_INT = {
     "PlacePresence":    0,
@@ -77,23 +78,29 @@ EFFECT_TYPE_INT = {
 }
 
 
+# ── Key derivation ─────────────────────────────────────────────────────────────
+
+def card_key_prefix(warden_id: str, num: str) -> str:
+    """Derive the translation key prefix for a card, e.g. 'root','001' -> 'CARD_ROOT_001'."""
+    return f"CARD_{warden_id.upper()}_{num}"
+
+
 # ── .tres generation ──────────────────────────────────────────────────────────
 
-def effect_sub_resource(sub_id: str, eff: dict) -> str:
+def effect_sub_resource(sub_id: str, eff: dict, desc_key: str) -> str:
     type_name = eff["type"]
     if type_name not in EFFECT_TYPE_INT:
         sys.exit(f"ERROR: Unknown effect type '{type_name}' — valid values: {list(EFFECT_TYPE_INT)}")
     t = EFFECT_TYPE_INT[type_name]
     v = eff.get("value", 0)
     r = eff.get("range", 0)
-    d = eff.get("desc", "").replace('"', '\\"')
     return (
         f'[sub_resource type="CardEffect" id="{sub_id}"]\n'
         f'script = ExtResource("2")\n'
         f'Type = {t}\n'
         f'Value = {v}\n'
         f'Range = {r}\n'
-        f'Description = "{d}"\n'
+        f'DescriptionKey = "{desc_key}"\n'
     )
 
 
@@ -101,6 +108,8 @@ def generate_tres(card: dict, warden_id: str) -> str:
     has_dissolve = card.get("dissolve") is not None
     load_steps   = 5 if has_dissolve else 4
     cost         = card.get("cost", 0)
+    prefix       = card_key_prefix(warden_id, card["num"])
+    name_key     = f"{prefix}_NAME"
 
     parts = [
         f'[gd_resource type="CardData" load_steps={load_steps} format=3]',
@@ -108,18 +117,18 @@ def generate_tres(card: dict, warden_id: str) -> str:
         '[ext_resource type="Script" path="res://scripts/data/CardData.cs" id="1"]',
         '[ext_resource type="Script" path="res://scripts/data/CardEffect.cs" id="2"]',
         "",
-        effect_sub_resource("CardEffect_v", card["vigil"]),
-        effect_sub_resource("CardEffect_d", card["dusk"]),
+        effect_sub_resource("CardEffect_v", card["vigil"], f"{prefix}_VIGIL_DESC"),
+        effect_sub_resource("CardEffect_d", card["dusk"],  f"{prefix}_DUSK_DESC"),
     ]
 
     if has_dissolve:
-        parts.append(effect_sub_resource("CardEffect_dis", card["dissolve"]))
+        parts.append(effect_sub_resource("CardEffect_dis", card["dissolve"], f"{prefix}_DISSOLVE_DESC"))
 
     parts += [
         "[resource]",
         'script = ExtResource("1")',
         f'Id = "{card["id"]}"',
-        f'CardName = "{card["name"]}"',
+        f'CardNameKey = "{name_key}"',
         f'WardenId = "{warden_id}"',
         f"Cost = {cost}",
         "IsDormant = false",
@@ -159,6 +168,58 @@ def process_warden(json_path: str) -> list:
         card["warden"] = warden_id
 
     return cards
+
+
+# ── CSV locale update ─────────────────────────────────────────────────────────
+
+def generate_csv_rows(all_cards: list) -> str:
+    """Build CSV rows for all cards, grouped by warden."""
+    rows = []
+    for card in all_cards:
+        warden_id = card["warden"]
+        num       = card["num"]
+        prefix    = card_key_prefix(warden_id, num)
+        name_val  = card["name"].replace('"', '""')
+        vigil_val = card["vigil"].get("desc", "").replace('"', '""')
+        dusk_val  = card["dusk"].get("desc", "").replace('"', '""')
+        rows.append(f'{prefix}_NAME,"{name_val}"')
+        rows.append(f'{prefix}_VIGIL_DESC,"{vigil_val}"')
+        rows.append(f'{prefix}_DUSK_DESC,"{dusk_val}"')
+        if card.get("dissolve") is not None:
+            dissolve_val = card["dissolve"].get("desc", "").replace('"', '""')
+            rows.append(f'{prefix}_DISSOLVE_DESC,"{dissolve_val}"')
+    return "\n".join(rows)
+
+
+def update_csv(all_cards: list) -> None:
+    if not os.path.exists(CSV_PATH):
+        print(f"\nSKIP  CSV not found at {CSV_PATH}")
+        return
+
+    with open(CSV_PATH, encoding="utf-8") as f:
+        csv = f.read()
+
+    new_rows = generate_csv_rows(all_cards)
+    replacement = (
+        "# BEGIN CARDS DATA (auto-generated — edit data/cards-{warden}.json instead)\n"
+        + new_rows
+        + "\n# END CARDS DATA"
+    )
+
+    csv_new, n = re.subn(
+        r"# BEGIN CARDS DATA.*?# END CARDS DATA",
+        replacement,
+        csv,
+        flags=re.DOTALL,
+    )
+
+    if n == 0:
+        print("\nWARN  CSV sentinel block not found — CSV not updated")
+        return
+
+    with open(CSV_PATH, "w", encoding="utf-8", newline="\n") as f:
+        f.write(csv_new)
+    print(f"\nOK    Updated translations CSV ({len(all_cards)} cards) -> {os.path.basename(CSV_PATH)}")
 
 
 # ── HTML catalog update ───────────────────────────────────────────────────────
@@ -218,6 +279,7 @@ def main() -> None:
         all_cards.extend(process_warden(path))
 
     update_html(all_cards)
+    update_csv(all_cards)
     print(f"\nDone. {len(all_cards)} cards total across {len(json_paths)} warden(s).")
 
 

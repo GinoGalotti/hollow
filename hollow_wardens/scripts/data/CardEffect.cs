@@ -20,5 +20,5 @@ public partial class CardEffect : Resource
     [Export] public int Value { get; set; }
     [Export] public int Range { get; set; }             // Territory steps from nearest Presence
     [Export] public EffectCondition? Condition { get; set; } // Optional, for Dusk threshold effects
-    [Export] public string Description { get; set; } = "";
+    [Export] public string DescriptionKey { get; set; } = "";
 }

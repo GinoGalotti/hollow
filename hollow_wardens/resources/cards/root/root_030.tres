@@ -8,19 +8,19 @@ script = ExtResource("2")
 Type = 8
 Value = 2
 Range = 0
-Description = "Restore 2 Weave"
+DescriptionKey = "CARD_ROOT_030_VIGIL_DESC"
 
 [sub_resource type="CardEffect" id="CardEffect_d"]
 script = ExtResource("2")
 Type = 2
 Value = 2
 Range = 0
-Description = "Generate 2 Fear"
+DescriptionKey = "CARD_ROOT_030_DUSK_DESC"
 
 [resource]
 script = ExtResource("1")
 Id = "root_030"
-CardName = "Ancient Pulse"
+CardNameKey = "CARD_ROOT_030_NAME"
 WardenId = "root"
 Cost = 0
 IsDormant = false

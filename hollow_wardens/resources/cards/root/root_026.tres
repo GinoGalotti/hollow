@@ -8,19 +8,19 @@ script = ExtResource("2")
 Type = 2
 Value = 1
 Range = 0
-Description = "Generate 1 Fear"
+DescriptionKey = "CARD_ROOT_026_VIGIL_DESC"
 
 [sub_resource type="CardEffect" id="CardEffect_d"]
 script = ExtResource("2")
 Type = 12
 Value = 0
 Range = 0
-Description = "Awaken all dormant cards in hand"
+DescriptionKey = "CARD_ROOT_026_DUSK_DESC"
 
 [resource]
 script = ExtResource("1")
 Id = "root_026"
-CardName = "Call from Slumber"
+CardNameKey = "CARD_ROOT_026_NAME"
 WardenId = "root"
 Cost = 0
 IsDormant = false

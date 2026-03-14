@@ -104,7 +104,7 @@ public partial class TestRunner : Node
                 Type = CardEffect.EffectType.GenerateFear,
                 Value = 3,
                 Range = 1,
-                Description = "Generate 3 Fear"
+                DescriptionKey = "Generate 3 Fear"
             };
             Test("CardEffect can be instantiated", () => effect != null);
             Test("CardEffect.Type set correctly", () => effect.Type == CardEffect.EffectType.GenerateFear);
@@ -116,7 +116,7 @@ public partial class TestRunner : Node
             var card = new CardData
             {
                 Id = "root_001",
-                CardName = "Test Card",
+                CardNameKey = "Test Card",
                 WardenId = "root",
                 Cost = 2
             };
@@ -145,7 +145,7 @@ public partial class TestRunner : Node
             var invader = new InvaderData
             {
                 Id = "pale_march",
-                FactionName = "The Pale March",
+                FactionNameKey = "The Pale March",
                 MaxHp = 5,
                 MoveSpeed = 1
             };
@@ -158,7 +158,7 @@ public partial class TestRunner : Node
             var warden = new WardenData
             {
                 Id = "root",
-                WardenName = "The Root",
+                WardenNameKey = "The Root",
                 StartingHandSize = 6,
                 MaxHandSize = 10
             };
@@ -169,8 +169,8 @@ public partial class TestRunner : Node
         // --- Deck / Hand ---
         {
             var deck = new Deck();
-            var card1 = new CardData { Id = "c1", CardName = "Card One" };
-            var card2 = new CardData { Id = "c2", CardName = "Card Two" };
+            var card1 = new CardData { Id = "c1", CardNameKey = "Card One" };
+            var card2 = new CardData { Id = "c2", CardNameKey = "Card Two" };
             deck.Initialize(new[] { card1, card2 });
             Test("Deck initialized with 2 cards", () => deck.Count == 2);
             var drawn = deck.Draw();
@@ -262,7 +262,7 @@ public partial class TestRunner : Node
         {
             var hand = new Hand();
             var warden = new TestWarden(hand);
-            var card = new CardData { Id = "rest_card", CardName = "Rest Card" };
+            var card = new CardData { Id = "rest_card", CardNameKey = "Rest Card" };
             warden.Discard.Add(card);
             GameState.Instance!.CurrentWarden = warden;
             var tm = new TurnManager();
@@ -457,7 +457,7 @@ public partial class TestRunner : Node
             GameState.Instance!.CurrentWarden = warden;
             var card = new CardData
             {
-                Id = "g1_vigil", CardName = "G1 Vigil",
+                Id = "g1_vigil", CardNameKey = "G1 Vigil",
                 VigilEffect = new CardEffect { Type = CardEffect.EffectType.RestoreWeave, Value = 0 }
             };
             hand.AddCard(card);
@@ -479,7 +479,7 @@ public partial class TestRunner : Node
             GameState.Instance!.CurrentWarden = warden;
             var card = new CardData
             {
-                Id = "g1_dusk", CardName = "G1 Dusk",
+                Id = "g1_dusk", CardNameKey = "G1 Dusk",
                 DuskEffect = new CardEffect { Type = CardEffect.EffectType.RestoreWeave, Value = 0 }
             };
             hand.AddCard(card);
@@ -646,7 +646,7 @@ public partial class TestRunner : Node
             var hand = new Hand();
             var warden = new TestWarden(hand);
             GameState.Instance.CurrentWarden = warden;
-            var card = new CardData { Id = "g7_std", CardName = "G7 Std" };
+            var card = new CardData { Id = "g7_std", CardNameKey = "G7 Std" };
             new CardEngine().DissolveCard(card, "SS");
             Test("CardEngine_DissolveCard_Standard_GoesToDissolvedThisEncounter",
                 () => warden.DissolvedThisEncounter.Contains(card));
@@ -660,7 +660,7 @@ public partial class TestRunner : Node
             var hand = new Hand();
             var warden = new TestWarden(hand);
             GameState.Instance.CurrentWarden = warden;
-            var card = new CardData { Id = "g7_boss", CardName = "G7 Boss" };
+            var card = new CardData { Id = "g7_boss", CardNameKey = "G7 Boss" };
             new CardEngine().DissolveCard(card, "SS");
             Test("CardEngine_DissolveCard_Boss_GoesToPermanentlyRemoved",
                 () => warden.PermanentlyRemoved.Contains(card));
@@ -675,7 +675,7 @@ public partial class TestRunner : Node
             var hand = new Hand();
             var warden = new TestWarden(hand);
             GameState.Instance.CurrentWarden = warden;
-            var card = new CardData { Id = "g7_bypass", CardName = "G7 Bypass" };
+            var card = new CardData { Id = "g7_bypass", CardNameKey = "G7 Bypass" };
             new CardEngine { Graph = new TerritoryGraph() }.DissolveCard(card, "E1");
             Test("CardEngine_DissolveCard_BypassesRangeCheck",
                 () => warden.DissolvedThisEncounter.Contains(card) &&
@@ -800,7 +800,7 @@ public partial class TestRunner : Node
             var warden = new TestWarden(hand);
             GameState.Instance.CurrentWarden = warden;
             em.StartEncounter(enc);
-            var card = new CardData { Id = "h4_card", CardName = "H4 Card" };
+            var card = new CardData { Id = "h4_card", CardNameKey = "H4 Card" };
             warden.DissolvedThisEncounter.Add(card); // simulate a dissolution
             em.RunTideStep();        // no invaders → enters Resolution
             em.RunResolutionTurn(); // no invaders → EndEncounter
@@ -848,7 +848,7 @@ public partial class TestRunner : Node
             var deck = new Deck();
             var warden = new TestWardenRoot(hand, deck);
             GameState.Instance.CurrentWarden = warden;
-            var card = new CardData { Id = "i1_card", CardName = "I1 Card" };
+            var card = new CardData { Id = "i1_card", CardNameKey = "I1 Card" };
             new CardEngine().DissolveCard(card, "SS");
             Test("WardenRoot_Dormancy_CardBecomesIsDormant", () => card.IsDormant);
             Test("WardenRoot_Dormancy_CardReturnsToDecK", () => deck.Count == 1);
@@ -866,7 +866,7 @@ public partial class TestRunner : Node
             GameState.Instance!.CurrentWarden = warden;
             var card = new CardData
             {
-                Id = "i2_card", CardName = "I2 Card", IsDormant = true,
+                Id = "i2_card", CardNameKey = "I2 Card", IsDormant = true,
                 VigilEffect = new CardEffect { Type = CardEffect.EffectType.RestoreWeave, Value = 0 }
             };
             hand.AddCard(card);
@@ -884,7 +884,7 @@ public partial class TestRunner : Node
             var deck = new Deck();
             var warden = new TestWardenRoot(hand, deck);
             GameState.Instance.CurrentWarden = warden;
-            var card = new CardData { Id = "i3_card", CardName = "I3 Card" };
+            var card = new CardData { Id = "i3_card", CardNameKey = "I3 Card" };
             new CardEngine().DissolveCard(card, "SS"); // First dissolve → dormant
             new CardEngine().DissolveCard(card, "SS"); // Second dissolve → permanently removed
             Test("WardenRoot_DoubleDIssolve_DormantCardPermanentlyRemoved",
@@ -902,7 +902,7 @@ public partial class TestRunner : Node
             var deck = new Deck();
             var warden = new TestWardenRoot(hand, deck);
             GameState.Instance.CurrentWarden = warden;
-            var card = new CardData { Id = "i4_card", CardName = "I4 Card" };
+            var card = new CardData { Id = "i4_card", CardNameKey = "I4 Card" };
             new CardEngine().DissolveCard(card, "SS");
             Test("WardenRoot_BossEncounter_DormancyStillApplies_IsDormant", () => card.IsDormant);
             Test("WardenRoot_BossEncounter_DormancyStillApplies_NotPermanentlyRemoved",
@@ -975,7 +975,7 @@ public partial class TestRunner : Node
             var hand = new Hand();
             var warden = new TestWardenRoot(hand, new Deck());
             GameState.Instance!.CurrentWarden = warden;
-            var card = new CardData { Id = "i8_card", CardName = "I8 Card", IsDormant = true };
+            var card = new CardData { Id = "i8_card", CardNameKey = "I8 Card", IsDormant = true };
             hand.AddCard(card);
             new CardEngine().ResolveEffect(
                 new CardEffect { Type = CardEffect.EffectType.AwakeDormant, Value = 1 }, null);

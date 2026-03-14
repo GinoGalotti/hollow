@@ -1,0 +1,132 @@
+keys,en
+UI_PHASE_VIGIL,Vigil
+UI_PHASE_TIDE,The Tide
+UI_PHASE_DUSK,Dusk
+UI_PHASE_RESOLUTION,Resolution
+UI_HUD_WEAVE,Weave
+UI_HUD_FEAR,Fear
+UI_HUD_TURN,Turn
+UI_ACTION_CONFIRM,Confirm
+UI_ACTION_CANCEL,Cancel
+UI_ACTION_REST,Rest
+UI_ACTION_END_PHASE,End Phase
+UI_ACTION_INFO,Info
+UI_TIER_STANDARD,Standard
+UI_TIER_ELITE,Elite
+UI_TIER_BOSS,Boss
+UI_REWARD_CLEAN,Clean Victory
+UI_REWARD_WEATHERED,Weathered
+UI_REWARD_BREACH,Breach
+UI_MENU_START,Start Run
+UI_MENU_SETTINGS,Settings
+UI_MENU_QUIT,Quit
+WARDEN_ROOT_NAME,The Root
+WARDEN_ROOT_ARCHETYPE,Cleanse / Growth
+WARDEN_ROOT_DISSOLVE_DESC,"Cards dissolve into Dormancy; double-dissolve is permanent"
+WARDEN_ROOT_RESOLUTION_DESC,"Assimilation: Presence absorbs all adjacent invaders"
+INVADER_PALE_NAME,The Pale March
+INVADER_PALE_DREAD_DESC,"Pale March units drain Weave when 3 or more are present"
+ESCALATE_PALE_001_DESC,Pale March gains a new unit variant
+UI_TERRITORY_E1,Eastern Threshold 1
+UI_TERRITORY_E2,Eastern Threshold 2
+UI_TERRITORY_E3,Eastern Threshold 3
+UI_TERRITORY_M1,Midland 1
+UI_TERRITORY_M2,Midland 2
+UI_TERRITORY_M3,Midland 3
+UI_TERRITORY_S1,Inner Sanctum 1
+UI_TERRITORY_SS,Sacred Site
+UI_TERRITORY_S2,Inner Sanctum 2
+# BEGIN CARDS DATA (auto-generated — edit data/cards-{warden}.json instead)
+CARD_ROOT_001_NAME,"Tendrils of Reclamation"
+CARD_ROOT_001_VIGIL_DESC,"Reduce Corruption by 1 in range 1"
+CARD_ROOT_001_DUSK_DESC,"Reduce Corruption by 2 in range 1"
+CARD_ROOT_001_DISSOLVE_DESC,"Place 1 Presence in range 3"
+CARD_ROOT_002_NAME,"Deep Roots"
+CARD_ROOT_002_VIGIL_DESC,"Place 1 Presence in range 1"
+CARD_ROOT_002_DUSK_DESC,"Reduce Corruption by 1 anywhere"
+CARD_ROOT_003_NAME,"Earthen Mending"
+CARD_ROOT_003_VIGIL_DESC,"Reduce Corruption by 1 anywhere"
+CARD_ROOT_003_DUSK_DESC,"Reduce Corruption by 1 in range 2"
+CARD_ROOT_004_NAME,"Ancient Cleansing"
+CARD_ROOT_004_VIGIL_DESC,"Reduce Corruption by 1 in range 1"
+CARD_ROOT_004_DUSK_DESC,"Reduce Corruption by 2 anywhere"
+CARD_ROOT_005_NAME,"Subterranean Surge"
+CARD_ROOT_005_VIGIL_DESC,"Reduce Corruption by 1 in range 2"
+CARD_ROOT_005_DUSK_DESC,"Reduce Corruption by 1 in range 1"
+CARD_ROOT_006_NAME,"Healing Earth"
+CARD_ROOT_006_VIGIL_DESC,"Restore 1 Weave"
+CARD_ROOT_006_DUSK_DESC,"Reduce Corruption by 1 in range 1"
+CARD_ROOT_007_NAME,"Reclaim the Soil"
+CARD_ROOT_007_VIGIL_DESC,"Place 1 Presence at existing Presence"
+CARD_ROOT_007_DUSK_DESC,"Reduce Corruption by 2 in range 1"
+CARD_ROOT_008_NAME,"Verdant Restoration"
+CARD_ROOT_008_VIGIL_DESC,"Reduce Corruption by 1 in range 1"
+CARD_ROOT_008_DUSK_DESC,"Reduce Corruption by 1 in range 2"
+CARD_ROOT_009_NAME,"Root Dominance"
+CARD_ROOT_009_VIGIL_DESC,"Place 1 Presence in range 2"
+CARD_ROOT_009_DUSK_DESC,"Reduce Corruption by 2 in range 2"
+CARD_ROOT_010_NAME,"Embrace the Earth"
+CARD_ROOT_010_VIGIL_DESC,"Reduce Corruption by 1 anywhere"
+CARD_ROOT_010_DUSK_DESC,"Place 1 Presence in range 2"
+CARD_ROOT_011_NAME,"Shiver of the Ancient"
+CARD_ROOT_011_VIGIL_DESC,"Generate 3 Fear"
+CARD_ROOT_011_DUSK_DESC,"Generate 2 Fear"
+CARD_ROOT_011_DISSOLVE_DESC,"Place 1 Presence in range 2"
+CARD_ROOT_012_NAME,"Dread Awakening"
+CARD_ROOT_012_VIGIL_DESC,"Generate 2 Fear"
+CARD_ROOT_012_DUSK_DESC,"Generate 4 Fear"
+CARD_ROOT_013_NAME,"Whisper of Roots"
+CARD_ROOT_013_VIGIL_DESC,"Generate 2 Fear"
+CARD_ROOT_013_DUSK_DESC,"Generate 3 Fear"
+CARD_ROOT_014_NAME,"The Forest Remembers"
+CARD_ROOT_014_VIGIL_DESC,"Generate 3 Fear"
+CARD_ROOT_014_DUSK_DESC,"Generate 2 Fear"
+CARD_ROOT_015_NAME,"Trembling Earth"
+CARD_ROOT_015_VIGIL_DESC,"Generate 2 Fear"
+CARD_ROOT_015_DUSK_DESC,"Deal 2 damage to invaders in range 1"
+CARD_ROOT_016_NAME,"Ancient Dread"
+CARD_ROOT_016_VIGIL_DESC,"Generate 4 Fear"
+CARD_ROOT_016_DUSK_DESC,"Generate 2 Fear"
+CARD_ROOT_017_NAME,"Root Terror"
+CARD_ROOT_017_VIGIL_DESC,"Generate 3 Fear"
+CARD_ROOT_017_DUSK_DESC,"Rout 1 invader in range 1"
+CARD_ROOT_018_NAME,"Darkness Below"
+CARD_ROOT_018_VIGIL_DESC,"Generate 2 Fear"
+CARD_ROOT_018_DUSK_DESC,"Generate 3 Fear"
+CARD_ROOT_019_NAME,"Spreading Growth"
+CARD_ROOT_019_VIGIL_DESC,"Place 1 Presence in range 1"
+CARD_ROOT_019_DUSK_DESC,"Place 1 Presence in range 2"
+CARD_ROOT_020_NAME,"Vast Network"
+CARD_ROOT_020_VIGIL_DESC,"Place 1 Presence in range 2"
+CARD_ROOT_020_DUSK_DESC,"Place 1 Presence in range 1"
+CARD_ROOT_021_NAME,"Creeping Vines"
+CARD_ROOT_021_VIGIL_DESC,"Place 1 Presence in range 1"
+CARD_ROOT_021_DUSK_DESC,"Move 1 Presence in range 2"
+CARD_ROOT_022_NAME,"Lattice of Life"
+CARD_ROOT_022_VIGIL_DESC,"Move 1 Presence in range 1"
+CARD_ROOT_022_DUSK_DESC,"Place 1 Presence in range 1"
+CARD_ROOT_023_NAME,"Rootbound"
+CARD_ROOT_023_VIGIL_DESC,"Place 2 Presence at existing Presence"
+CARD_ROOT_023_DUSK_DESC,"Reduce Corruption by 1 in range 1"
+CARD_ROOT_024_NAME,"Boundless Growth"
+CARD_ROOT_024_VIGIL_DESC,"Place 1 Presence in range 1"
+CARD_ROOT_024_DUSK_DESC,"Place 1 Presence in range 3"
+CARD_ROOT_025_NAME,"Stir the Sleeping"
+CARD_ROOT_025_VIGIL_DESC,"Awaken 1 dormant card in hand"
+CARD_ROOT_025_DUSK_DESC,"Awaken 1 dormant card in hand"
+CARD_ROOT_026_NAME,"Call from Slumber"
+CARD_ROOT_026_VIGIL_DESC,"Generate 1 Fear"
+CARD_ROOT_026_DUSK_DESC,"Awaken all dormant cards in hand"
+CARD_ROOT_027_NAME,"Rise, Ancient One"
+CARD_ROOT_027_VIGIL_DESC,"Place 1 Presence in range 1"
+CARD_ROOT_027_DUSK_DESC,"Awaken 1 dormant card in hand"
+CARD_ROOT_028_NAME,"Dream of the Root"
+CARD_ROOT_028_VIGIL_DESC,"Awaken 1 dormant card in hand"
+CARD_ROOT_028_DUSK_DESC,"Place 1 Presence in range 1"
+CARD_ROOT_029_NAME,"Living Wall"
+CARD_ROOT_029_VIGIL_DESC,"Place 1 Presence in range 1"
+CARD_ROOT_029_DUSK_DESC,"Deal 3 damage to invaders in range 1"
+CARD_ROOT_030_NAME,"Ancient Pulse"
+CARD_ROOT_030_VIGIL_DESC,"Restore 2 Weave"
+CARD_ROOT_030_DUSK_DESC,"Generate 2 Fear"
+# END CARDS DATA

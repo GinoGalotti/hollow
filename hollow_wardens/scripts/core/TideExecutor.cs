@@ -102,7 +102,7 @@ public partial class TideExecutor : Node
         foreach (var e in EncounterData.EscalationSchedule)
         {
             if (e.TideStep == step)
-                GD.Print($"[Escalate] Step {step}: {e.Description}");
+                GD.Print($"[Escalate] Step {step}: {e.DescriptionKey}");
         }
     }
 }

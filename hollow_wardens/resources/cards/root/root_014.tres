@@ -8,19 +8,19 @@ script = ExtResource("2")
 Type = 2
 Value = 3
 Range = 0
-Description = "Generate 3 Fear"
+DescriptionKey = "CARD_ROOT_014_VIGIL_DESC"
 
 [sub_resource type="CardEffect" id="CardEffect_d"]
 script = ExtResource("2")
 Type = 2
 Value = 2
 Range = 0
-Description = "Generate 2 Fear"
+DescriptionKey = "CARD_ROOT_014_DUSK_DESC"
 
 [resource]
 script = ExtResource("1")
 Id = "root_014"
-CardName = "The Forest Remembers"
+CardNameKey = "CARD_ROOT_014_NAME"
 WardenId = "root"
 Cost = 0
 IsDormant = false
