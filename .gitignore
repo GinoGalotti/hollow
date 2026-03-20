@@ -8,8 +8,31 @@ hollow_wardens/export/
 
 # Godot mono/C# build output
 hollow_wardens/.mono/
+hollow_wardens/bin/
+hollow_wardens/obj/
 hollow_wardens/**/*.import
+
+# Python
+__pycache__/
+*.pyc
+
+# Secrets / local config
+.env
+.env.local
+*.key
+*.pem
+
+# Logs & reports
+*.log
+reports/
+
+# Temp / editor noise
+*.tmp
+*.bak
+*.orig
 
 # OS
 .DS_Store
 Thumbs.db
+
+temp-message.txt

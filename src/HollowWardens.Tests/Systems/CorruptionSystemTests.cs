@@ -65,6 +65,36 @@ public class CorruptionSystemTests : IDisposable
     }
 
     [Fact]
+    public void PurifyDesecrated_DropsToStartOfDefiled()
+    {
+        var t = MakeTerritory();
+        _sut.AddCorruption(t, 20); // Level 3
+        _sut.PurifyLevel(t);
+        Assert.Equal(8, t.CorruptionPoints); // start of Level 2, not top (14)
+        Assert.Equal(2, t.CorruptionLevel);
+    }
+
+    [Fact]
+    public void PurifyDefiled_DropsToStartOfTainted()
+    {
+        var t = MakeTerritory();
+        _sut.AddCorruption(t, 12); // Level 2
+        _sut.PurifyLevel(t);
+        Assert.Equal(3, t.CorruptionPoints); // start of Level 1, not top (7)
+        Assert.Equal(1, t.CorruptionLevel);
+    }
+
+    [Fact]
+    public void PurifyTainted_DropsToClean()
+    {
+        var t = MakeTerritory();
+        _sut.AddCorruption(t, 5); // Level 1
+        _sut.PurifyLevel(t);
+        Assert.Equal(0, t.CorruptionPoints); // fully clean, not 2
+        Assert.Equal(0, t.CorruptionLevel);
+    }
+
+    [Fact]
     public void PersistenceLevel1ResetsToZero()
     {
         var t = MakeTerritory();
