@@ -1,0 +1,12 @@
+D:\Workspace\hollow\src\HollowWardens.Core\bin\Debug\net8.0\HollowWardens.Core.deps.json
+D:\Workspace\hollow\src\HollowWardens.Core\bin\Debug\net8.0\HollowWardens.Core.dll
+D:\Workspace\hollow\src\HollowWardens.Core\bin\Debug\net8.0\HollowWardens.Core.pdb
+D:\Workspace\hollow\src\HollowWardens.Core\obj\Debug\net8.0\HollowWardens.Core.GeneratedMSBuildEditorConfig.editorconfig
+D:\Workspace\hollow\src\HollowWardens.Core\obj\Debug\net8.0\HollowWardens.Core.AssemblyInfoInputs.cache
+D:\Workspace\hollow\src\HollowWardens.Core\obj\Debug\net8.0\HollowWardens.Core.AssemblyInfo.cs
+D:\Workspace\hollow\src\HollowWardens.Core\obj\Debug\net8.0\HollowWardens.Core.csproj.CoreCompileInputs.cache
+D:\Workspace\hollow\src\HollowWardens.Core\obj\Debug\net8.0\HollowWardens.Core.sourcelink.json
+D:\Workspace\hollow\src\HollowWardens.Core\obj\Debug\net8.0\HollowWardens.Core.dll
+D:\Workspace\hollow\src\HollowWardens.Core\obj\Debug\net8.0\refint\HollowWardens.Core.dll
+D:\Workspace\hollow\src\HollowWardens.Core\obj\Debug\net8.0\HollowWardens.Core.pdb
+D:\Workspace\hollow\src\HollowWardens.Core\obj\Debug\net8.0\ref\HollowWardens.Core.dll
