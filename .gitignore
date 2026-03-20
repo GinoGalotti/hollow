@@ -1,0 +1,15 @@
+# .NET build artifacts
+src/**/bin/
+src/**/obj/
+
+# Godot build artifacts
+hollow_wardens/.godot/
+hollow_wardens/export/
+
+# Godot mono/C# build output
+hollow_wardens/.mono/
+hollow_wardens/**/*.import
+
+# OS
+.DS_Store
+Thumbs.db
