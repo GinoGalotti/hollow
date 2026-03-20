@@ -3,6 +3,7 @@ namespace HollowWardens.Core.Encounter;
 using HollowWardens.Core.Cards;
 using HollowWardens.Core.Models;
 using HollowWardens.Core.Systems;
+using HollowWardens.Core.Wardens;
 
 public class EncounterState
 {
@@ -16,6 +17,7 @@ public class EncounterState
     public ICombatSystem? Combat { get; set; }
     public IPresenceSystem? Presence { get; set; }
     public ICorruptionSystem? Corruption { get; set; }
+    public IWardenAbility? Warden { get; set; }
     public ActionCard? CurrentActionCard { get; set; }
     public int CurrentTide { get; set; }
     public TurnPhase CurrentPhase { get; set; }

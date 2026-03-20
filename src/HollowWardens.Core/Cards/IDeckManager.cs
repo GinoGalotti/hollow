@@ -14,4 +14,5 @@ public interface IDeckManager
     void PlayBottom(Card card, EncounterTier tier);
     void Rest();
     bool NeedsRest { get; }  // deck empty or near-empty
+    void AwakenAllDormant();
 }

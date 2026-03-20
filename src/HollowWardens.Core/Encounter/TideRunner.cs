@@ -1,0 +1,173 @@
+namespace HollowWardens.Core.Encounter;
+
+using HollowWardens.Core.Effects;
+using HollowWardens.Core.Events;
+using HollowWardens.Core.Invaders;
+using HollowWardens.Core.Models;
+
+/// <summary>
+/// Executes the full Tide sequence:
+/// FearActions → Activate → CounterAttack → Advance → Arrive → Escalate → Preview
+/// </summary>
+public class TideRunner
+{
+    private readonly ActionDeck _actionDeck;
+    private readonly CadenceManager _cadence;
+    private readonly SpawnManager _spawn;
+    private readonly InvaderFaction _faction;
+    private readonly EffectResolver _resolver;
+
+    // Card drawn during Preview for use in the next tide
+    private ActionCard? _previewedCard;
+
+    /// <summary>
+    /// Optional handler for player-assigned counter-attack damage.
+    /// Receives (territory, damagePool, state) and returns per-invader assignments.
+    /// When null, auto-assign (lowest HP first) is used.
+    /// </summary>
+    public Func<Territory, int, EncounterState, Dictionary<Invader, int>?>? CounterAttackHandler;
+
+    public TideRunner(
+        ActionDeck actionDeck,
+        CadenceManager cadence,
+        SpawnManager spawn,
+        InvaderFaction faction,
+        EffectResolver resolver)
+    {
+        _actionDeck = actionDeck;
+        _cadence = cadence;
+        _spawn = spawn;
+        _faction = faction;
+        _resolver = resolver;
+    }
+
+    /// <summary>
+    /// Runs one complete Tide and returns the action card used.
+    /// </summary>
+    public ActionCard ExecuteTide(int tideNumber, EncounterState state)
+    {
+        // ── Determine action card ───────────────────────────────────────────
+        ActionCard actionCard;
+        if (_previewedCard != null)
+        {
+            actionCard = _previewedCard;
+            _previewedCard = null;
+        }
+        else
+        {
+            actionCard = _actionDeck.Draw(_cadence.NextPool());
+        }
+        state.CurrentActionCard = actionCard;
+        GameEvents.ActionCardRevealed?.Invoke(actionCard);
+
+        // ── Step 1: Fear Actions ────────────────────────────────────────────
+        GameEvents.TideStepStarted?.Invoke(TideStep.FearActions);
+
+        // Warden passive fear (e.g., Root network fear) generates at Tide start
+        int passiveFear = state.Warden?.CalculatePassiveFear() ?? 0;
+        if (passiveFear > 0)
+        {
+            state.Dread?.OnFearGenerated(passiveFear);
+            GameEvents.FearGenerated?.Invoke(passiveFear);
+        }
+
+        // Reveal and resolve queued fear actions
+        var fearActions = state.FearActions?.RevealAndDequeue() ?? new List<FearActionData>();
+        foreach (var fa in fearActions)
+        {
+            try
+            {
+                var effect = _resolver.Resolve(fa.Effect);
+                effect.Resolve(state, new TargetInfo());
+            }
+            catch (NotImplementedException) { }
+        }
+
+        // ── Step 2: Activate ───────────────────────────────────────────────
+        GameEvents.TideStepStarted?.Invoke(TideStep.Activate);
+        foreach (var territory in state.TerritoriesWithInvaders().ToList())
+            state.Combat?.ExecuteActivate(actionCard, territory, state);
+
+        // ── Step 3: CounterAttack ──────────────────────────────────────────
+        GameEvents.TideStepStarted?.Invoke(TideStep.CounterAttack);
+        foreach (var territory in state.Territories
+            .Where(t => t.Natives.Any(n => n.IsAlive) && t.Invaders.Any(i => i.IsAlive))
+            .ToList())
+        {
+            int pool = state.Combat?.CalculateNativeDamagePool(territory) ?? 0;
+            GameEvents.CounterAttackReady?.Invoke(territory, pool);
+            if (pool > 0)
+            {
+                var assignments = CounterAttackHandler?.Invoke(territory, pool, state);
+                if (assignments != null)
+                    state.Combat?.ApplyCounterAttack(territory, assignments);
+                else
+                    state.Combat?.AutoAssignCounterAttack(territory);
+            }
+        }
+
+        // ── Step 4: Advance ────────────────────────────────────────────────
+        GameEvents.TideStepStarted?.Invoke(TideStep.Advance);
+        state.Combat?.ExecuteAdvance(actionCard, state);
+        state.Combat?.ExecuteHeartMarch(state);
+
+        // ── Step 5: Arrive ─────────────────────────────────────────────────
+        GameEvents.TideStepStarted?.Invoke(TideStep.Arrive);
+        SpawnWaveForTide(tideNumber, state);
+
+        // ── Step 6: Escalate ───────────────────────────────────────────────
+        GameEvents.TideStepStarted?.Invoke(TideStep.Escalate);
+        ApplyEscalation(tideNumber, state);
+
+        // ── Step 7: Preview ────────────────────────────────────────────────
+        GameEvents.TideStepStarted?.Invoke(TideStep.Preview);
+        _previewedCard = _actionDeck.Draw(_cadence.NextPool());
+        GameEvents.NextActionPreviewed?.Invoke(_previewedCard);
+        _spawn.PreviewWave(tideNumber + 1);
+
+        return actionCard;
+    }
+
+    private void SpawnWaveForTide(int tideNumber, EncounterState state)
+    {
+        // SpawnManager.PreviewWave returns the wave for this tide (fires WaveLocationsRevealed)
+        var wave = _spawn.PreviewWave(tideNumber);
+        if (wave == null) return;
+
+        var composition = _spawn.RevealComposition(wave);
+        if (composition == null) return;
+
+        foreach (var (territoryId, unitTypes) in composition.Units)
+        {
+            var territory = state.GetTerritory(territoryId);
+            if (territory == null) continue;
+            foreach (var unitType in unitTypes)
+            {
+                var invader = _faction.CreateUnit(unitType, territoryId);
+                territory.Invaders.Add(invader);
+                GameEvents.InvaderArrived?.Invoke(invader, territory);
+            }
+        }
+    }
+
+    private void ApplyEscalation(int tideNumber, EncounterState state)
+    {
+        foreach (var entry in state.Config.EscalationSchedule.Where(e => e.Tide == tideNumber))
+        {
+            // Build the escalation card from the faction or a generic card
+            var card = BuildEscalationCard(entry);
+            if (card != null)
+                _actionDeck.AddEscalationCard(card);
+        }
+    }
+
+    private static ActionCard? BuildEscalationCard(EscalationEntry entry) =>
+        new ActionCard
+        {
+            Id = entry.CardId,
+            Name = entry.CardId,
+            Pool = entry.Pool,
+            AdvanceModifier = 1,
+            IsEscalation = true
+        };
+}

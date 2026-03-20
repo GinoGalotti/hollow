@@ -8,6 +8,7 @@ public interface IElementSystem
     void AddElements(Element[] elements, int multiplier = 1);
     void Decay();
     void OnNewTurn();
+    void OnRestTurn();
     IReadOnlyList<(Element Element, int Tier)> GetBankedEffects();
     void ResolveBanked(Element element, int tier);
     void ClearBanked();
