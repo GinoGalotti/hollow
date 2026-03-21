@@ -2,6 +2,7 @@ namespace HollowWardens.Core.Encounter;
 
 using HollowWardens.Core;
 using HollowWardens.Core.Cards;
+using HollowWardens.Core.Data;
 using HollowWardens.Core.Models;
 using HollowWardens.Core.Systems;
 using HollowWardens.Core.Wardens;
@@ -24,6 +25,7 @@ public class EncounterState
     public TurnPhase CurrentPhase { get; set; }
     public GameRandom? Random { get; set; }
     public ActionLog ActionLog { get; set; } = new();
+    public WardenData? WardenData { get; set; }
 
     public Territory? GetTerritory(string id) => Territories.FirstOrDefault(t => t.Id == id);
     public IEnumerable<Territory> TerritoriesWithInvaders() => Territories.Where(t => t.Invaders.Any(i => i.IsAlive));

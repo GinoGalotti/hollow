@@ -4,6 +4,7 @@ using System.Text.Json;
 using HollowWardens.Core.Effects;
 using HollowWardens.Core.Models;
 
+[Obsolete("Use WardenLoader.LoadCards() instead. CardLoader will be removed in a future version.")]
 public static class CardLoader
 {
     private static readonly JsonSerializerOptions _opts = new() { PropertyNameCaseInsensitive = true };

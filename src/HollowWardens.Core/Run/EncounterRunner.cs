@@ -5,6 +5,7 @@ using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Events;
 using HollowWardens.Core.Invaders;
 using HollowWardens.Core.Models;
+using HollowWardens.Core.Systems;
 using HollowWardens.Core.Turn;
 
 /// <summary>
@@ -45,6 +46,8 @@ public class EncounterRunner
     public EncounterResult Run(EncounterState state, IPlayerStrategy strategy)
     {
         WireEvents(state);
+        if (state.Presence != null)
+            VulnerabilityWiring.WireEvents(state.Presence);
         GameEvents.EncounterStarted?.Invoke(state.Config);
 
         // ── §1 Initial board setup ──────────────────────────────────────────
@@ -56,9 +59,10 @@ public class EncounterRunner
             for (int i = 0; i < count; i++)
                 territory.Natives.Add(new Native { Hp = 2, MaxHp = 2, Damage = 3, TerritoryId = territoryId });
         }
-        // Place starting Presence on I1
-        var i1 = state.GetTerritory("I1");
-        if (i1 != null) i1.PresenceCount = 1;
+        // Place starting Presence from warden data
+        var startTerritory = state.GetTerritory(state.WardenData?.StartingPresence.Territory ?? "I1");
+        if (startTerritory != null)
+            startTerritory.PresenceCount = state.WardenData?.StartingPresence.Count ?? 1;
 
         var turnManager = new TurnManager(state, _resolver);
         var tideRunner = new TideRunner(_actionDeck, _cadence, _spawn, _faction, _resolver);
@@ -75,7 +79,9 @@ public class EncounterRunner
 
             if (turnManager.IsRestTurn)
             {
-                turnManager.Rest();
+                // D29: Rest Growth
+                var restTarget = strategy.ChooseRestGrowthTarget(state);
+                turnManager.Rest(restTarget);
                 // No Tide or Dusk on a rest turn
                 continue;
             }
@@ -104,6 +110,7 @@ public class EncounterRunner
         state.Warden?.OnResolution(state);
 
         UnwireEvents();
+        VulnerabilityWiring.UnwireEvents();
 
         GameEvents.EncounterEnded?.Invoke(RewardCalculator.Calculate(state));
         return RewardCalculator.Calculate(state);

@@ -401,9 +401,11 @@ public partial class GameBridge : Node
 
         var resDir   = ProjectSettings.GlobalizePath("res://");
         var jsonPath = System.IO.Path.GetFullPath(
-            System.IO.Path.Combine(resDir, "..", "data", "cards-root.json"));
-        var startingCards = CardLoader.Load(jsonPath).Where(c => c.IsStarting).ToList();
-        State.Deck = new DeckManager(warden, startingCards, random, shuffle: true);
+            System.IO.Path.Combine(resDir, "..", "data", "wardens", "root.json"));
+        var wardenData    = WardenLoader.Load(jsonPath);
+        var startingCards = wardenData.Cards.Where(c => c.IsStarting).ToList();
+        State.Deck        = new DeckManager(warden, startingCards, random, shuffle: true);
+        State.WardenData  = wardenData;
 
         _resolver   = new EffectResolver();
         var faction = new PaleMarchFaction();
@@ -430,9 +432,10 @@ public partial class GameBridge : Node
                 territory.Natives.Add(new Native { Hp = 2, MaxHp = 2, Damage = 3, TerritoryId = territoryId });
         }
 
-        // Place starting Presence on I1
-        var i1 = State.GetTerritory("I1");
-        if (i1 != null) i1.PresenceCount = 1;
+        // Place starting Presence from warden data
+        var startTerritory = State.GetTerritory(State.WardenData?.StartingPresence.Territory ?? "I1");
+        if (startTerritory != null)
+            startTerritory.PresenceCount = State.WardenData?.StartingPresence.Count ?? 1;
 
         // Preview first action card (Tide 1 will use it without re-drawing)
         var firstCard = _actionDeck.Draw(_cadence.NextPool());
@@ -579,7 +582,7 @@ public partial class GameBridge : Node
 
     private void StartCounterAttackPhase()
     {
-        _counterAttackTargets      = _tideRunner.GetCounterAttackTargets(State);
+        _counterAttackTargets      = _tideRunner.GetCounterAttackTargets(_currentActionCard!, State);
         _counterAttackTargetIndex  = 0;
         PresentNextCounterAttack();
     }
