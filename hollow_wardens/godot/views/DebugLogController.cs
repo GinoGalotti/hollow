@@ -77,6 +77,10 @@ public partial class DebugLogController : Control
         loadBtn.Pressed += OnLoadState;
         toolbar.AddChild(loadBtn);
 
+        var copyLogBtn = new Button { Text = "Copy Log" };
+        copyLogBtn.Pressed += OnCopyLog;
+        toolbar.AddChild(copyLogBtn);
+
         _copyStatusLabel = new Label { Text = "" };
         toolbar.AddChild(_copyStatusLabel);
 
@@ -131,6 +135,21 @@ public partial class DebugLogController : Control
         GameBridge.Instance?.ImportAndReplay(text);
         _importEdit.Text      = "";
         _copyStatusLabel.Text = "State loaded";
+        GetTree().CreateTimer(2.0).Timeout += () => _copyStatusLabel.Text = "";
+    }
+
+    private void OnCopyLog()
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var child in _logBox.GetChildren())
+        {
+            if (child is Label lbl)
+                sb.AppendLine(lbl.Text);
+        }
+        var logText = sb.ToString();
+        if (logText.Length == 0) { _copyStatusLabel.Text = "Log is empty"; return; }
+        DisplayServer.ClipboardSet(logText);
+        _copyStatusLabel.Text = "Log copied!";
         GetTree().CreateTimer(2.0).Timeout += () => _copyStatusLabel.Text = "";
     }
 

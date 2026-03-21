@@ -4,13 +4,13 @@ using System.Collections.Generic;
 /// <summary>
 /// Displays the warden's passive abilities in the bottom-left corner.
 /// Reads State.WardenData.Passives (from WardenLoader) and renders each
-/// passive as an icon + name row with a built-in tooltip showing the
-/// full description and flavor text. Static display — built once in _Ready().
+/// passive as an icon + name row with the description shown inline below.
+/// Tooltip contains flavor text only. Static display — built once in _Ready().
 /// </summary>
 public partial class PassivePanelController : VBoxContainer
 {
-    // Keyed by passive Id for future per-row state updates (Part D)
-    private readonly Dictionary<string, HBoxContainer> _passiveRows = new();
+    // Keyed by passive Id for future per-row state updates
+    private readonly Dictionary<string, VBoxContainer> _passiveRows = new();
 
     public override void _Ready()
     {
@@ -33,26 +33,27 @@ public partial class PassivePanelController : VBoxContainer
         header.AddThemeFontSizeOverride("font_size", 11);
         AddChild(header);
 
-        // One row per passive
+        // One entry per passive: VBoxContainer(HBoxContainer(icon+name) + description label)
         foreach (var passive in passives)
         {
-            var row = new HBoxContainer
+            var entry = new VBoxContainer
             {
-                TooltipText = $"{passive.Description}\n\n{passive.Flavor}"
+                TooltipText = passive.Flavor  // hover shows lore/flavor text
             };
+
+            // Icon + name row
+            var nameRow = new HBoxContainer();
 
             var icon = LoadPassiveIcon(passive.Icon);
             if (icon != null)
             {
-                var tex = new TextureRect
+                nameRow.AddChild(new TextureRect
                 {
                     Texture           = icon,
                     CustomMinimumSize = new Vector2(20, 20),
                     ExpandMode        = TextureRect.ExpandModeEnum.FitWidthProportional,
                     StretchMode       = TextureRect.StretchModeEnum.KeepAspectCentered,
-                    Modulate          = Colors.White
-                };
-                row.AddChild(tex);
+                });
             }
 
             var nameLabel = new Label
@@ -64,10 +65,22 @@ public partial class PassivePanelController : VBoxContainer
             };
             if (imFell != null) nameLabel.AddThemeFontOverride("font", imFell);
             nameLabel.AddThemeFontSizeOverride("font_size", 11);
-            row.AddChild(nameLabel);
+            nameRow.AddChild(nameLabel);
+            entry.AddChild(nameRow);
 
-            _passiveRows[passive.Id] = row;
-            AddChild(row);
+            // Inline description
+            var descLabel = new Label
+            {
+                Text         = passive.Description,
+                Modulate     = new Color(0.75f, 0.75f, 0.72f, 0.9f),
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            if (imFell != null) descLabel.AddThemeFontOverride("font", imFell);
+            descLabel.AddThemeFontSizeOverride("font_size", 9);
+            entry.AddChild(descLabel);
+
+            _passiveRows[passive.Id] = entry;
+            AddChild(entry);
         }
     }
 

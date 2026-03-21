@@ -212,6 +212,11 @@ public partial class GameBridge : Node
     /// <summary>Resolves a player-pending threshold action and emits card-play feedback.</summary>
     public void ResolveThreshold(int elementIdx, int tier)
     {
+        // TODO: threshold targeting needs proper implementation
+        // Effects like Root T1 (PlacePresence) and Gale T2 (PushAllInTerritory) should enter
+        // targeting mode so the player can pick the territory. For now they auto-resolve
+        // using built-in heuristics (first available adjacent, most-invaded, etc.).
+        GD.Print($"[Threshold] {(Element)elementIdx} T{tier} auto-resolved (targeting not yet implemented)");
         var element = (Element)elementIdx;
         _thresholdResolver.Resolve(element, tier, State);
         EmitSignal(SignalName.CardPlayFeedback, $"★ {element} T{tier}", "", 3);
@@ -455,6 +460,9 @@ public partial class GameBridge : Node
         // Fire the initial card preview now that subscriptions are active
         if (State.CurrentActionCard != null)
             GameEvents.NextActionPreviewed?.Invoke(State.CurrentActionCard);
+        // Announce Wave 1 pre-deployment (done during setup, before first Vigil)
+        // Emitted here rather than in InitialEncounterSetup so UI subscribers are ready.
+        EmitSignal(SignalName.CardPlayFeedback, "Wave 1 deployed to Arrival row", "", 2);
         BeginNextTurn();
     }
 
@@ -517,6 +525,21 @@ public partial class GameBridge : Node
         TideSubPhase = TideSubPhase.FearActions;
         GameEvents.FearActionRevealed?.Invoke(CurrentFearAction); // debug log
         bool needsTarget = CurrentFearAction.Effect.Range > 0;
+
+        // If targeted but no valid targets exist, skip this fear action (wasted)
+        if (needsTarget)
+        {
+            var validTargets = TargetValidator.GetValidTargets(State, CurrentFearAction.Effect.Range, CurrentFearAction.Effect.Type);
+            if (validTargets.Count == 0)
+            {
+                GD.Print($"[FearAction] No valid targets for '{CurrentFearAction.Description}' — skipped");
+                _fearActionIndex++;
+                CurrentFearAction = null;
+                AdvanceFearQueue();
+                return;
+            }
+        }
+
         EmitSignal(SignalName.FearActionPending, CurrentFearAction.Description, needsTarget);
         if (needsTarget)
             EnterFearTargetingMode(CurrentFearAction);
@@ -740,8 +763,8 @@ public partial class GameBridge : Node
         {
             EffectType.PlacePresence    => territoryId.Length > 0 ? $"Presence on {territoryId}" : "Place Presence",
             EffectType.GenerateFear     => $"+{effect.Value} Fear",
-            EffectType.DamageInvaders   => $"{effect.Value} Damage",
-            EffectType.ReduceCorruption => $"-{effect.Value} Corruption",
+            EffectType.DamageInvaders   => FormatAmplified("Damage", effect.Value, territoryId),
+            EffectType.ReduceCorruption => FormatAmplified("Cleanse", effect.Value, territoryId),
             EffectType.RestoreWeave     => $"+{effect.Value} Weave",
             EffectType.PushInvaders     => "Push Invaders",
             EffectType.Purify           => "Purify",
@@ -749,6 +772,15 @@ public partial class GameBridge : Node
         };
         string msg = cardName.Length > 0 ? $"{cardName} → {effectDesc}" : effectDesc;
         EmitSignal(SignalName.CardPlayFeedback, msg, territoryId, category);
+    }
+
+    private string FormatAmplified(string label, int baseValue, string territoryId)
+    {
+        if (territoryId.Length == 0) return $"{baseValue} {label}";
+        var territory = State.GetTerritory(territoryId);
+        if (territory == null || !territory.HasPresence) return $"{baseValue} {label}";
+        int amplified = baseValue + territory.PresenceCount;
+        return $"{amplified} {label} ({baseValue}+{territory.PresenceCount})";
     }
 
     // ── Event Subscriptions ──────────────────────────────────────────────────

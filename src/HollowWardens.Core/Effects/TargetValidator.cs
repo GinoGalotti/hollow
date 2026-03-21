@@ -29,8 +29,10 @@ public static class TargetValidator
     /// Returns the IDs of all territories reachable within <paramref name="range"/>
     /// steps from any territory that currently has at least one Presence token.
     /// Returns an empty list when no presence exists on the board.
+    /// When <paramref name="effectType"/> is <see cref="EffectType.ReduceCorruption"/>,
+    /// only territories with CorruptionPoints &gt; 0 are returned.
     /// </summary>
-    public static List<string> GetValidTargets(EncounterState state, int range)
+    public static List<string> GetValidTargets(EncounterState state, int range, EffectType? effectType = null)
     {
         var result = new HashSet<string>();
         foreach (var territory in state.Territories.Where(t => t.HasPresence))
@@ -41,6 +43,13 @@ public static class TargetValidator
                     result.Add(id);
             }
         }
-        return result.ToList();
+        var list = result.ToList();
+        if (effectType == EffectType.ReduceCorruption)
+            list = list.Where(id =>
+            {
+                var t = state.GetTerritory(id);
+                return t != null && t.CorruptionPoints > 0;
+            }).ToList();
+        return list;
     }
 }

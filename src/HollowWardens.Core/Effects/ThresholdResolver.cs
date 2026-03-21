@@ -39,7 +39,7 @@ public class ThresholdResolver
         [(Element.Void,   3)] = "Void T3: All invaders take 2 damage",
     };
 
-    private static string GetDescription(Element element, int tier)
+    public static string GetDescription(Element element, int tier)
         => Descriptions.TryGetValue((element, tier), out var d) ? d : $"{element} T{tier}";
 
     // ── Player-driven queue API ───────────────────────────────────────────────
@@ -123,6 +123,9 @@ public class ThresholdResolver
         switch (tier)
         {
             case 1:
+                // TODO: threshold targeting needs proper implementation
+                // Player should select which adjacent territory to place Presence in.
+                // For now, auto-selects first available adjacent territory as a heuristic.
                 PlacePresenceAdjacent(state);
                 break;
 

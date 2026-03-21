@@ -1,4 +1,5 @@
 using Godot;
+using HollowWardens.Core.Effects;
 using HollowWardens.Core.Models;
 
 /// <summary>
@@ -58,16 +59,20 @@ public partial class ElementTrackerController : VBoxContainer
             _barLabels[i] = new Label { Text = "0  [----:----:----]" };
             row.AddChild(_barLabels[i]);
 
+            int[] thresholdValues = { 4, 7, 11 };
             for (int t = 0; t < 3; t++)
             {
                 int capturedTier = t + 1;
                 int capturedElem = i;
+                string desc    = ThresholdResolver.GetDescription(e, capturedTier);
+                string tooltip = $"{desc}\nRequires: {thresholdValues[t]} {e}";
                 var btn = new Button
                 {
                     Text              = $"T{capturedTier}",
                     Disabled          = true,
                     CustomMinimumSize = new Vector2(30, 0),
                     Modulate          = t == 0 ? Colors.White : new Color(1f, 1f, 1f, 0.35f),
+                    TooltipText       = tooltip,
                 };
                 btn.Pressed += () =>
                 {

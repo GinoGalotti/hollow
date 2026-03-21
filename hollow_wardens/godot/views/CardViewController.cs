@@ -28,12 +28,12 @@ public partial class CardViewController : PanelContainer
         var imFell = GD.Load<Font>("res://godot/assets/fonts/IMFellEnglish-Regular.ttf");
 
         const string IconBase = "res://godot/assets/art/kenney_board-game-icons/PNG/Default (64px)/";
-        _elemIcons[Element.Root]   = GD.Load<Texture2D>(IconBase + "resource_wood.png");
-        _elemIcons[Element.Mist]   = GD.Load<Texture2D>(IconBase + "flask_half.png");
-        _elemIcons[Element.Shadow] = GD.Load<Texture2D>(IconBase + "skull.png");
-        _elemIcons[Element.Ash]    = GD.Load<Texture2D>(IconBase + "fire.png");
-        _elemIcons[Element.Gale]   = GD.Load<Texture2D>(IconBase + "arrow_right.png");
-        _elemIcons[Element.Void]   = GD.Load<Texture2D>(IconBase + "hexagon_outline.png");
+        _elemIcons[Element.Root]   = TryLoadIcon(IconBase + "token.png");
+        _elemIcons[Element.Mist]   = TryLoadIcon(IconBase + "flask_full.png");
+        _elemIcons[Element.Shadow] = TryLoadIcon(IconBase + "skull.png");
+        _elemIcons[Element.Ash]    = TryLoadIcon(IconBase + "fire.png");
+        _elemIcons[Element.Gale]   = TryLoadIcon(IconBase + "arrow_right.png");
+        _elemIcons[Element.Void]   = TryLoadIcon(IconBase + "hexagon_outline.png");
 
         var vbox = new VBoxContainer();
         AddChild(vbox);
@@ -177,4 +177,11 @@ public partial class CardViewController : PanelContainer
 
     private static string FormatEffect(HollowWardens.Core.Effects.EffectData e)
         => $"{e.Type} ×{e.Value}" + (e.Range > 0 ? $" r{e.Range}" : "");
+
+    private static Texture2D? TryLoadIcon(string path)
+    {
+        if (!ResourceLoader.Exists(path)) return null;
+        try { return GD.Load<Texture2D>(path); }
+        catch { return null; }
+    }
 }
