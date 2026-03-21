@@ -12,6 +12,10 @@ public class ReduceCorruptionEffect : IEffect
     {
         var territory = state.GetTerritory(target.TerritoryId);
         if (territory == null) return;
-        state.Corruption?.ReduceCorruption(territory, _data.Value);
+
+        // D28: Presence amplification — +1 cleanse per Presence in target territory
+        var amount = AmplificationHelper.GetAmplifiedValue(_data.Value, state, target.TerritoryId);
+
+        state.Corruption?.ReduceCorruption(territory, amount);
     }
 }

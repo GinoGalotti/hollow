@@ -2,6 +2,7 @@ namespace HollowWardens.Core.Turn;
 
 using HollowWardens.Core.Effects;
 using HollowWardens.Core.Encounter;
+using HollowWardens.Core.Events;
 using HollowWardens.Core.Models;
 using HollowWardens.Core.Systems;
 
@@ -35,9 +36,32 @@ public class TurnActions
             ResolveEffect(card.BottomSecondary, target);
     }
 
-    public void Rest() => _state.Deck?.Rest();
+    public void Rest(string? restGrowthTarget = null)
+    {
+        _state.Deck?.Rest();
+
+        // D29: Warden rest behavior (e.g., Root Rest Growth)
+        _state.Warden?.OnRest(_state, restGrowthTarget);
+    }
 
     public void SkipDusk() { }
+
+    /// <summary>
+    /// D28 Sacrifice: Remove 1 Presence from the target territory and cleanse 3 Corruption.
+    /// Free action — does not consume a play slot.
+    /// Returns false if territory has no Presence.
+    /// </summary>
+    public bool SacrificePresence(string territoryId)
+    {
+        var territory = _state.GetTerritory(territoryId);
+        if (territory == null || !territory.HasPresence) return false;
+
+        _state.Presence?.RemovePresence(territory, 1);
+        _state.Corruption?.ReduceCorruption(territory, 3);
+
+        GameEvents.PresenceSacrificed?.Invoke(territory, 1);
+        return true;
+    }
 
     public void AssignCounterDamage(Territory territory, Dictionary<Invader, int> assignments)
         => _state.Combat?.ApplyCounterAttack(territory, assignments);

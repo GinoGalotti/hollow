@@ -121,9 +121,9 @@ public class TurnManager
     /// Executes a Rest: shuffles discards back into draw with one rest-dissolve.
     /// ElementSystem.OnRestTurn() was already called in StartVigil.
     /// </summary>
-    public void Rest()
+    public void Rest(string? restGrowthTarget = null)
     {
-        _actions.Rest();
+        _actions.Rest(restGrowthTarget);
         RestCount++;
         GameEvents.PhaseChanged?.Invoke(TurnPhase.Rest);
     }
@@ -135,6 +135,20 @@ public class TurnManager
     /// <summary>True when a bottom play is currently allowed (Dusk phase, under the 1-play limit).</summary>
     public bool CanPlayBottom()
         => CurrentPhase == TurnPhase.Dusk && DuskPlaysThisTurn < 1;
+
+    /// <summary>D28: True when sacrifice is allowed — Vigil or Dusk phase only.</summary>
+    public bool CanSacrifice()
+        => CurrentPhase == TurnPhase.Vigil || CurrentPhase == TurnPhase.Dusk;
+
+    /// <summary>
+    /// D28 Sacrifice: Remove 1 Presence → cleanse 3 Corruption. Free action (no play slot consumed).
+    /// Returns false if wrong phase or territory has no Presence.
+    /// </summary>
+    public bool SacrificePresence(string territoryId)
+    {
+        if (!CanSacrifice()) return false;
+        return _actions.SacrificePresence(territoryId);
+    }
 
     public void AssignCounterDamage(Territory territory, Dictionary<Invader, int> assignments)
         => _actions.AssignCounterDamage(territory, assignments);

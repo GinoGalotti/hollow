@@ -58,6 +58,14 @@ public static class GameEvents
     public static Action<Territory>? HeartDamageDealt;              // invader marched on Heart
     public static Action<int>? WeaveChanged;                       // new weave value
 
+    // D28 Vulnerability: fired when a territory crosses into Desecrated (Level 3).
+    // Subscriber should destroy all Presence in that territory.
+    public static Action<Territory>? TerritoryDesecrated;
+
+    // D28 Sacrifice: fired after a player sacrifices Presence for emergency cleanse.
+    // UI layer can animate the sacrifice + cleanse.
+    public static Action<Territory, int>? PresenceSacrificed;  // (territory, presenceRemoved)
+
     // Threshold resolution
     public static Action<Element, int, string>? ThresholdPending;   // element, tier, description — awaiting player
     public static Action<Element, int>?         ThresholdExpired;   // element, tier — went unresolved at turn end
@@ -112,6 +120,9 @@ public static class GameEvents
         CorruptionChanged = null;
         HeartDamageDealt = null;
         WeaveChanged = null;
+
+        TerritoryDesecrated = null;
+        PresenceSacrificed = null;
 
         ThresholdPending = null;
         ThresholdExpired = null;

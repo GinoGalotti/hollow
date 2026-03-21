@@ -7,8 +7,15 @@ public class CorruptionSystem : ICorruptionSystem
 {
     public void AddCorruption(Territory territory, int points)
     {
+        // D28 Vulnerability: detect crossing into Desecrated (Level 3)
+        var levelBefore = territory.CorruptionLevel;
+
         territory.CorruptionPoints += points;
         GameEvents.CorruptionChanged?.Invoke(territory, territory.CorruptionPoints, territory.CorruptionLevel);
+
+        // If corruption just crossed into Level 3, presence is destroyed
+        if (levelBefore < 3 && territory.CorruptionLevel >= 3)
+            GameEvents.TerritoryDesecrated?.Invoke(territory);
     }
 
     public void ReduceCorruption(Territory territory, int points)

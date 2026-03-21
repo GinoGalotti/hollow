@@ -14,9 +14,12 @@ public class DamageInvadersEffect : IEffect
         var territory = state.GetTerritory(target.TerritoryId);
         if (territory == null) return;
 
+        // D28: Presence amplification — +1 damage per Presence in target territory
+        var damage = AmplificationHelper.GetAmplifiedValue(_data.Value, state, target.TerritoryId);
+
         foreach (var invader in territory.Invaders.Where(i => i.IsAlive).ToList())
         {
-            ApplyDamage(invader, _data.Value);
+            ApplyDamage(invader, damage);
             if (!invader.IsAlive)
                 GameEvents.InvaderDefeated?.Invoke(invader);
         }

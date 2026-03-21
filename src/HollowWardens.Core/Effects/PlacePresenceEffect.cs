@@ -12,6 +12,10 @@ public class PlacePresenceEffect : IEffect
     {
         var territory = state.GetTerritory(target.TerritoryId);
         if (territory == null) return;
+
+        // D28 Vulnerability: Defiled (Level 2, 8+ pts) blocks new Presence placement
+        if (territory.CorruptionLevel >= 2) return;
+
         state.Presence?.PlacePresence(territory, _data.Value > 0 ? _data.Value : 1);
     }
 }

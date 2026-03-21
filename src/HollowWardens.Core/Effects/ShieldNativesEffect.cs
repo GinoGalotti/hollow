@@ -13,8 +13,10 @@ public class ShieldNativesEffect : IEffect
         var territory = state.GetTerritory(target.TerritoryId);
         if (territory == null) return;
 
+        var shieldAmount = AmplificationHelper.GetAmplifiedValue(_data.Value, state, target.TerritoryId);
+
         // Shield does not stack — highest value wins.
         foreach (var native in territory.Natives.Where(n => n.IsAlive))
-            native.ShieldValue = Math.Max(native.ShieldValue, _data.Value);
+            native.ShieldValue = Math.Max(native.ShieldValue, shieldAmount);
     }
 }

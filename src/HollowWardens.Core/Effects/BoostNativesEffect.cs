@@ -13,7 +13,9 @@ public class BoostNativesEffect : IEffect
         var territory = state.GetTerritory(target.TerritoryId);
         if (territory == null) return;
 
+        var boostAmount = AmplificationHelper.GetAmplifiedValue(_data.Value, state, target.TerritoryId);
+
         foreach (var native in territory.Natives.Where(n => n.IsAlive))
-            native.Damage += _data.Value;
+            native.Damage += boostAmount;
     }
 }
