@@ -1,6 +1,6 @@
 # Hollow Wardens — Master Document
 > Game Design + Technical Architecture  
-> Version 0.4 — Working reference for Claude Code sessions
+> Version 0.5 — Working reference for Claude Code sessions
 
 ---
 
@@ -10,13 +10,17 @@
 3. [Encounter System](#3-encounter-system)
 4. [Invader System](#4-invader-system)
 5. [Card System](#5-card-system)
-6. [Warden Roster](#6-warden-roster)
-7. [Run Structure](#7-run-structure)
-8. [Balance Reference](#8-balance-reference)
-9. [Godot Architecture](#9-godot-architecture)
-10. [Class Definitions](#10-class-definitions)
-11. [V1 Scope & Build Order](#11-v1-scope--build-order)
-12. [Open Design Questions](#12-open-design-questions)
+6. [Elements System](#6-elements-system)
+7. [Natives System](#7-natives-system)
+8. [Warden Roster](#8-warden-roster)
+9. [Run Structure](#9-run-structure)
+10. [Balance Reference](#10-balance-reference)
+11. [Godot Architecture](#11-godot-architecture)
+12. [Class Definitions](#12-class-definitions)
+13. [V1 Scope & Build Order](#13-v1-scope--build-order)
+14. [Open Design Questions](#14-open-design-questions)
+15. [Localization System](#15-localization-system)
+16. [Input Actions](#16-input-actions)
 
 ---
 
@@ -27,15 +31,17 @@
 **Fantasy:** You are not a hero. You are something ancient trying not to be forgotten. The world is being unmade. You fight not to win — but to endure long enough to matter.
 
 **Inspirations:**
-- **Spirit Island** — Presence system (location = power), Fear as a resource, asymmetric spirit identities
+- **Spirit Island** — Presence system (location = power), Fear as a resource, asymmetric spirits, elemental innates
 - **Gloomhaven** — Hand exhaustion as stamina, card burning for power spikes, rest as a costly decision
-- **Slay the Spire** — Roguelike run structure, card drafting, meta-progression
+- **Slay the Spire** — Roguelike run structure, card drafting, meta-progression, rarity tiers
 
 **What's original:**
 - Split turn (Vigil / Tide / Dusk): you act before *and* after invaders
-- Dissolution: burn cards for territorial reach, with escalating permanence based on encounter type
+- Bottom-as-dissolve: playing a card's bottom half is powerful but removes it until next encounter
+- Element system: cards carry elemental affinities; hitting thresholds mid-turn triggers bonus effects
 - Encounter survival model: timed sieges, not kill-all puzzles
 - Breach system: losing slowly rather than dying suddenly
+- Natives as active counterattack board entities
 
 ---
 
@@ -51,33 +57,63 @@ VIGIL → THE TIDE → DUSK
 
 | Phase | Who acts | Cards played | Nature |
 |---|---|---|---|
-| Vigil | Player | 2 top cards | Proactive — setup, positioning, building Fear |
-| The Tide | Invaders | — | Invaders spawn, advance, ravage |
-| Dusk | Player | 1 bottom card | Reactive — respond with full information |
+| Vigil | Player | Up to 2 tops | Proactive — setup, positioning, building Fear |
+| The Tide | Invaders | — | Fear actions resolve → invaders spawn, advance, ravage |
+| Dusk | Player | Up to 1 bottom | Reactive — respond with full information |
 
-**Why 2 tops + 1 bottom:** Bottoms are stronger because they're played with information. The 2:1 ratio creates tension — you always want to play your powerful bottom effect, but you're spending two cards setting it up. The bottom justifies its existence by being worth at least two tops in the right situation.
+**Key principle:** Tops go to discard and return when you rest. Bottoms dissolve — they are gone until the next encounter (or permanently on bosses). This creates two distinct economies on a single card.
 
-**Dusk timing is the core strategic layer.** Knowing what the Tide did before playing your bottom card creates a completely different decision space from Gloomhaven, where all cards are committed simultaneously.
+**Playing options per turn (not hardcoded — rules can modify):**
+- Do nothing (rest — see §2.3)
+- Play 1 or 2 tops only (safe, conservative)
+- Play 1 bottom only in Dusk (dissolve one card for its powerful effect)
+- Play 1–2 tops in Vigil + 1 bottom in Dusk (full offensive turn, highest stamina cost)
 
 ### 2.2 Eclipse Events — Flipping the Ratio
 
 Certain encounters or Realm events invert the structure to **2 bottoms + 1 top**. The Tide resolves first. Your Vigil action becomes the disadvantaged one.
 
-This is not a stat modifier — it changes how the entire turn *feels*. Under Eclipse, you're in reactive mode from the start, with limited ability to set up. Reserved for late-zone encounters and special event types.
+This is not a stat modifier — it changes how the entire turn *feels*. Under Eclipse, you're in reactive mode from the start, with limited ability to set up.
 
 **Eclipse sources:**
 - Corrupted Zones (territory type)
 - The Long Night (Realm event, lasts multiple turns)
 - Herald-class Invaders (flip as a Ravage side-effect)
 
-### 2.3 Resting
+### 2.3 Card Draw — Refill Model
 
-At any point during your turn, instead of playing cards, you may **Rest**:
-- Recover full discard pile to hand
-- The Tide still runs — invaders advance uncontested
+Each turn, at the start of Vigil, draw from your deck until your hand reaches your hand limit (default 5) or the deck is empty. Unplayed cards stay in hand between turns. Played tops go to the discard pile. Played bottoms dissolve (removed from the encounter).
+
+This means your hand degrades gradually as the deck empties. After 3–4 play turns, draws start coming up short. The player can see the Rest approaching and plan for it.
+
+### 2.4 Resting
+
+When your deck is empty (or nearly so), you may **Rest** instead of playing cards:
+- Shuffle all discarded cards back into the deck
+- **Rest-dissolve:** remove 1 random card from the deck for the rest of this encounter (encounter-only — returns between encounters, like played bottoms)
+- The Tide still runs — invaders activate, advance, and arrive uncontested
 - You play 0 cards this turn
+- Element thresholds still check against carryover pool at Vigil start (see §6.3)
 
-Rest is always costly. The game is balanced so that an uncontested Tide is genuinely dangerous.
+**Rest is costly in three ways:** you lose a play turn, you lose a card to rest-dissolve, and the Tide runs unopposed. But your element engine persists — carryover from the previous turn means threshold effects can still fire during a Rest turn, rewarding players who built strong element pools before Resting.
+
+**Rest-dissolve design intent:** Each Rest taxes the deck by 1 card, creating a natural compression over the encounter. After 2 Rests, the deck is 2 cards thinner. Combined with bottoms played, a 10-card deck might be down to 5–6 cards by the final cycle. This is the stamina drain — the spirit is exhausting itself.
+
+**Rest-dissolve per encounter tier:**
+- Standard/Elite: rest-dissolved cards return between encounters (encounter-only loss)
+- Boss: rest-dissolved cards are permanently removed (adds to the Boss drain alongside permanently dissolved bottoms)
+
+**Rest is not always voluntary.** When the deck is empty and the hand is too small to act meaningfully, Rest becomes the only option. Aggressive bottom play accelerates this — more bottoms = faster deck depletion = earlier forced Rest = more rest-dissolve tax. The system self-balances against frontloading.
+
+### 2.5 Fear Actions
+
+Accumulating Fear generates **Fear Actions** — hidden effects that resolve at the start of each Tide, before invaders act. Every 5 Fear spent queues one Fear Action drawn from the current Dread Level's pool.
+
+- **Hidden:** queued actions appear as face-down cards. You know how many are coming but not which effects until the Tide starts.
+- **Dread-gated:** Dread Levels (every 15 total Fear generated in the run) unlock higher-tier pools — each level dramatically more powerful. When Dread advances, all queued (unrevealed) Fear Actions retroactively upgrade to the new pool.
+- **Timing:** Fear Actions resolve at the top of the Tide phase, before Activate/Advance/Arrive
+- **Pool:** Global fear deck mixed with adversary-specific fear cards
+- **Warden interaction:** Some wardens can preview upcoming fear actions, upgrade them to a higher tier, or choose between multiple options
 
 ---
 
@@ -85,11 +121,15 @@ Rest is always costly. The game is balanced so that an uncontested Tide is genui
 
 ### 3.1 What an Encounter Is
 
-An encounter is a contained invader wave — equivalent to a room in Slay the Spire. Each encounter has:
+An encounter is a contained invader wave. Each encounter has:
 - A defined invader group (type, count, pattern)
-- A fixed number of **Tide steps** (the wave duration)
+- A fixed number of **Tide steps** (wave duration)
 - An entry pattern (spawn locations, movement targets)
 - A readable spawn preview: you can see what's coming *one Tide step* before it arrives
+
+**Encounter setup:**
+- **Initial wave (Wave 0):** Before the player's first Vigil, a starting wave arrives at A-row positions per the encounter data. The board already has invaders in play when the game begins.
+- **Starting Presence:** The Root Warden begins with 1 Presence token placed on I1.
 
 ### 3.2 How Encounters End
 
@@ -97,50 +137,42 @@ An encounter is a contained invader wave — equivalent to a room in Slay the Sp
 
 - The encounter ends when all Tide steps are exhausted
 - After the final Tide step, you enter **Resolution turns**
-- During Resolution, invaders stop spawning and advancing — they only hold their positions
-- You spend Resolution turns dealing with whatever remains: destroy them, push them back, or absorb their presence
-- The number of Resolution turns you needed, and how far invaders penetrated, determines your reward tier
-
-**Resolution turn limit:** TBD during balancing, but likely 2–3 turns maximum. If invaders remain after Resolution, the encounter is a Breach.
+- During Resolution, invaders stop spawning and advancing — they hold positions
+- You spend Resolution turns dealing with whatever remains
+- **Resolution turn limit by tier:** Standard: 2 turns. Elite: 3 turns. Boss: 1 turn. If invaders remain after Resolution, the encounter is a Breach. Boss Resolution is intentionally brutal — one shot to clean up. Root's Assimilation fires automatically on Resolution start, making that single turn enough for a well-positioned Root player.
 
 ### 3.3 Resolution — Warden Flavor
 
-Different Wardens resolve encounters differently, even against identical invader states. This is where identity expresses itself:
+Different Wardens resolve encounters differently, even against identical invader states.
 
 | Warden | Resolution style |
 |---|---|
-| The Root | Assimilates — presence tokens absorb adjacent invaders, converting them to neutral terrain |
-| The Ember | Destroys — Resolution turns are pure damage output, burning what remains |
-| The Veil | Repels — pushes remaining invaders back toward spawn points, reduces Corruption |
-
-Resolution flavor is mechanical, not cosmetic — assimilation vs. destruction vs. repulsion each interact differently with Corruption tracks and Weave recovery.
+| The Root | Assimilation — Presence tokens absorb adjacent invaders, reducing Corruption in that territory by 1 per invader absorbed |
+| The Ember | Destruction — Resolution turns are uncapped damage output |
+| The Veil | Repulsion — pushes remaining invaders back toward spawn, reduces Corruption in vacated territories |
 
 ### 3.4 Reward Tiers
 
-Rewards scale based on encounter performance:
-
 | Result | Condition | Reward |
 |---|---|---|
-| **Clean** | No invaders in Resolution | Full reward: card draft + Aspect choice + Weave restore |
-| **Weathered** | 1–2 invaders cleared in Resolution | Partial: card draft OR Aspect (not both) |
-| **Breach** | Invaders remain after Resolution | Minimal: Weave restore only + Breach effect carries forward |
+| **Clean** | No invaders remain in Resolution | Full reward: card draft + Aspect choice + Weave restore |
+| **Weathered** | Cleared in 1–2 Resolution turns | Partial: card draft OR Aspect (player chooses) + Weave +1 |
+| **Breach** | Invaders remain after Resolution | Minimal: Weave +1 only + Breach effect carries into next encounter |
 
 **Breach effects (carry into next encounter):**
 - One territory enters next encounter pre-Tainted
 - One invader unit carries over (doesn't reset)
 - Next encounter's Escalate clock starts one step ahead
 
-Breach is losing slowly, not dying. The run continues but gets harder.
+### 3.5 Encounter Tiers and Dissolution Risk
 
-### 3.5 Encounter Tiers
-
-| Tier | Dissolution cost | Notes |
+| Tier | Bottom cost | Notes |
 |---|---|---|
-| **Standard** | Card removed until next encounter | Base cost, recovers between encounters |
-| **Elite** | Card *may* be permanently removed | Unknown at time of Dissolution — revealed at reward screen |
-| **Boss** | All dissolved cards permanently removed | Known upfront. Dissolution is a conscious sacrifice |
+| **Standard** | Card removed until next encounter | Base cost. Bottoms return between encounters. |
+| **Elite** | Card *may* be permanently removed | Unknown at time of playing the bottom — revealed at reward screen |
+| **Boss** | All played bottoms permanently removed | Known upfront. Every bottom you play is a conscious sacrifice. |
 
-This creates a clear risk gradient. Against standards you Dissolve freely. Against Elites you hesitate. Against Bosses you choose deliberately.
+This creates a clear risk gradient. In Standard encounters you use bottoms more freely. In Elites you hesitate. In Boss fights every bottom is a permanent decision.
 
 ---
 
@@ -148,79 +180,231 @@ This creates a clear risk gradient. Against standards you Dissolve freely. Again
 
 ### 4.1 The Weave — Run Health
 
-The Weave is the spiritual fabric of the Realm. It's the run-level health bar.
+The Weave is the spiritual fabric of the Realm. Run ends when Weave hits 0.
 
 - **Starting value:** 20
-- **Run ends:** when Weave hits 0
 
 **Weave drain events:**
-- Invader Ravages undefended territory: −1
+- Invader reaches the Sacred Heart: large hit (−3 to −5, scales with invader's remaining HP)
+- Desecrated territory (Corruption level 3): −1 per turn passively
 - Sacred Site falls: −3
-- Desecrated territory (Corruption 3): −1 per turn passively
 - Certain invader traits drain Weave passively
 
 **Weave restoration:**
-- Fear threshold events can restore Weave (see Fear system)
-- Between-encounter rewards restore 2–4 Weave
+- Fear threshold events
+- Between-encounter and between-Realm rewards (2–6 Weave depending on performance)
 
-### 4.2 Corruption — Territory Health
+### 4.2 Corruption — Territory Health (Points-Based)
 
-Each territory has a Corruption track: 0 → 1 → 2 → 3.
+Each territory has a **Corruption Points** counter that advances toward three levels. Levels have meaningful thresholds — level 1 happens easily, level 2 should be avoided, level 3 is lasting and severe.
 
-| State | Value | Effect |
-|---|---|---|
-| Clean | 0 | Full resource generation. Normal Presence rules. |
-| Tainted | 1 | Reduced resource output. Invaders +1 move speed in this territory. |
-| Defiled | 2 | No resources. Placing Presence here costs 1 additional card. |
-| Desecrated | 3 | Presence tokens here are removed. −1 Weave per turn passively. |
+| Level | Points to reach | Effect | Duration |
+|---|---|---|---|
+| Clean | 0 | Full resource generation. Normal Presence rules. | — |
+| Tainted (1) | 3 points | Reduced resource output. Invaders get bonus action effects. | Resets next encounter |
+| Defiled (2) | 5 additional points | No resources. Placing Presence costs 1 extra card. Invaders gain advanced actions. | Persists to next encounter as level 1 |
+| Desecrated (3) | 7 additional points | Presence tokens here are removed. −1 Weave per turn passively. | Permanent — persists all encounters |
 
-**Advancing Corruption:** Invaders in an undefended territory Ravage it — Corruption +1.  
-**Reducing Corruption:** Purification card effects. Expensive, powerful, high priority.  
-**Desecrated is not instant death** — it's a compounding liability. Let too many territories hit 3 and you lose the attrition war.
+**Advancing Corruption:** Invader Activate/Ravage actions add corruption points. Invaders outnumbering Natives in a territory at end of turn may also add points (to define during balancing).
+
+**Reducing Corruption:** Cleanse card effects reduce points. Point removal: small cleanse = −1 point. Large cleanse = −3 points. Full cleanse = drop one full level. Desecrated territories are harder to cleanse (require special effects).
+
+**Persistence rules:**
+- Level 1 resets to Clean between encounters
+- Level 2 persists as Level 1 corruption at the start of next encounter (i.e., 3 points already accumulated when encounter begins)
+- Level 3 is fully permanent — territories stay Desecrated for the rest of the run
 
 ### 4.3 The Tide — Step Sequence
 
 Every Tide phase follows this exact sequence:
 
-1. **Spawn** — New invaders arrive at entry points. Pattern was visible previous turn.
-2. **Advance** — Invaders move toward Presence tokens and Sacred Sites per faction rules.
-3. **Ravage** — Invaders in undefended territories: Corruption +1, Weave damage if applicable. Defended territories are contested but not Ravaged.
-4. **Escalate** — Every 3 turns, the faction escalates: adds unit type or behavior modifier. This is the encounter timer independent of The Weave.
+1. **Fear Actions resolve** — any queued Fear Actions fire before invaders act
+2. **Activate** — all invaders on the board execute the faction action card (with unit-type modifiers). After Activate, if the action was Ravage or Corrupt, surviving Natives in affected territories counter-attack (player-assigned).
+3. **Advance** — existing invaders move toward the Sacred Heart. Base movement: 1 step. The action card may modify movement (e.g., March = +1, Settle = 0). Invaders already in I1 with nowhere to advance **march on the Heart**: deal Weave damage equal to remaining HP (minimum 1). Invaders that entered I1 this Advance step stop — Heart marching starts next Tide (one-turn grace).
+4. **Arrive** — new invaders appear at arrival points. Location was previewed last Tide; unit composition is revealed now. Newly arrived units do nothing else this Tide.
+5. **Escalate** — every 3 Tides, the faction escalates: a new card is added to the Painful action pool (see §4.4).
+6. **Preview** — draw and reveal next Tide's action card from the appropriate pool (per cadence). Next wave's arrival locations revealed. Player enters Vigil with full action knowledge but unknown arrival composition.
 
-### 4.4 Fear System
+**Sub-phase pauses:** The Tide is not a single automated sequence. It pauses for player input:
+1. Fear Actions reveal one at a time — player resolves each (with targeting if needed)
+2. Player confirms → Activate runs
+3. Counter-attack prompt per territory if the action was Ravage or Corrupt — player assigns
+4. Player confirms → Advance + Arrive run
+5. Preview next action card
 
-Fear is generated by card effects and is the primary counter-resource to Weave drain.
+**Tide 1 — ramp-up:** The first Tide runs **Advance** and **Arrive** only. Fear Actions, Activate, Native counter-attack, Escalate, and Preview are all skipped. This gives the player one full turn to see the threat positions before invaders start acting. Tide 2 onwards runs the full sequence.
 
-Fear is a run-level counter. It accumulates across turns. Hitting thresholds triggers effects and then resets to 0.
+### 4.4 Faction Action System — Two-Pool Model
 
-| Threshold | Effect |
-|---|---|
-| 5 | Invaders hesitate — skip Advance step this Tide |
-| 12 | Restore 2 Weave. Rout one Invader group. |
-| 20 | Dread event — major faction-specific effect (unique per faction) |
+Each faction has two action pools: **Painful** (actions demanding a player response) and **Easy** (breathing room with minor effects). Each Tide draws from one pool based on the encounter's **cadence rules**.
 
-Fear generation is not optional — it's how you fight back against the Weave clock. Cards that generate Fear need to feel weighty, not incidental.
+#### Cadence Rules
 
-### 4.5 Invader Factions (V1 + Planned)
+Cadence is rule-based by default: each encounter tier defines a `max_painful_streak` and `easy_frequency`. After N consecutive Painful draws, force an Easy draw. This creates a guaranteed rhythm — harder encounters have longer painful streaks, easier ones alternate more frequently.
 
-**V1 — The Pale March** (Methodical)
-- High HP, slow movers
-- Extremely predictable spawn patterns — telegraph everything
-- Hard to stop once in place
-- Passive Weave drain scales with their presence count
-- Dread event: The Long Silence — all territories with Pale March present lose 1 Corruption resistance (Defiled acts as Desecrated) for 3 turns
+| Tier | Default cadence | Max painful streak | Feel |
+|------|----------------|-------------------|------|
+| Standard (early Realm 1) | P-E-P-E-P-E... | 1 | Steady, learnable. Every other Tide is relief. |
+| Standard (late Realm 1) | P-P-E-P-P-E... | 2 | Pressure builds. Two hits before a breather. |
+| Elite | P-P-P-E-P-P-P-E... | 3 | Relentless. Easy Tides are precious. |
+| Boss | Accelerating: starts at 2, increases to 4+ | 2→4 | Opens manageable, compresses into brutality. |
 
-**Planned — The Scorch** (Volatile)
-- Fast movers, low HP
-- Chain-Ravage: after Ravaging a territory, immediately move into the next and Ravage again
-- Can devastate 3 territories in a single Tide if unchecked
-- Dread event: Conflagration — all Tainted territories immediately become Defiled
+Designers can override the default with a hand-authored pattern array (e.g., `["P","E","P","P","P","E","P"]`) for specific encounters. Some encounters may pair a harder cadence with an easier arrival pattern, or vice versa — this is a deliberate balancing lever.
 
-**Planned — The Hollow** (Adaptive)
-- Grow stronger near Desecrated territories
-- Near-ignorable early, terrifying late
-- Reward you for losing ground — punish accumulated Corruption
-- Dread event: Unraveling — all Desecrated territories expand Corruption to adjacent territories
+#### Pool Draw Rules
+
+Within each pool, draw randomly without replacement. When a pool is empty, reshuffle all its cards back in. This creates short deduction windows: after seeing Ravage from the Painful pool, the player knows the remaining Painful cards, but not the order.
+
+Escalation adds cards to the Painful pool, making it larger and less predictable over time.
+
+#### Painful Pool (base)
+
+| Card | Activate effect | Advance modifier | Provokes counter-attack | Notes |
+|------|----------------|------------------|------------------------|-------|
+| **Ravage** | Deal 2 Corruption to territory. Deal 2 damage as a pool to Natives (auto-maximize kills, targeting lowest HP first). The corruption value IS the native damage pool. | 1 step (normal) | Yes | The primary threat. Most common painful action. |
+| **March** | Units at full HP gain Shield 1. Below-full units recover 1 HP. | +1 step (2 total) | No | Dangerous because it heals AND accelerates. |
+
+#### Painful Pool (added via Escalation)
+
+| Card | Activate effect | Advance modifier | Provokes counter-attack | Added at |
+|------|----------------|------------------|------------------------|----------|
+| **Corrupt** | Deal 1 Corruption + kill 1 Native outright. | 1 step (normal) | Yes | Escalation 1 (Tide ~3–4) |
+| **Fortify** | Place fortification token: all units in territory gain Shield 2. | 0 steps (hold) | No | Escalation 2 (Tide ~6–7) |
+
+#### Easy Pool
+
+| Card | Activate effect | Advance modifier | Provokes counter-attack | Notes |
+|------|----------------|------------------|------------------------|-------|
+| **Rest** | Recover half max HP (round up). | 1 step (normal) | No | Pure recovery. Still advances. |
+| **Settle** | Pioneer places Infrastructure if 2+ units present. All units gain Shield 1. | 0 steps (hold) | No | Shield 1 makes them slightly harder to kill, but they don't advance. Even without a Pioneer, units get a small shield. |
+| **Regroup** | Arrival-row units return to spawn point. Others hold position. | 0 steps (special) | No | Resets board positioning. Removed from easy pool at Escalation 3 (Boss only). |
+
+#### Escalation Schedule
+
+| Escalation | Trigger | Effect |
+|------------|---------|--------|
+| 1st | Tide 3–4 | **Corrupt** added to Painful pool (now 3 cards). |
+| 2nd | Tide 6–7 | **Fortify** added to Painful pool (now 4 cards). |
+| 3rd (Boss only) | Tide 9+ | **Regroup** removed from Easy pool (now 2 cards — relief gets worse). |
+
+#### Preview Timing
+
+At end of each Tide (after Arrive), two things are revealed for the next turn:
+- The **action card** for next Tide (drawn from the appropriate pool per cadence)
+- The **arrival locations** for next Tide's wave (which A-row points are active)
+
+The player enters Vigil knowing what invaders will do, and where new ones arrive — but NOT the unit composition of the arriving wave. Composition is revealed at Arrive.
+
+### 4.5 Territory Layout — Pyramid (V1: 3-2-1)
+
+The territory map is a pyramid with invaders arriving at the wide end and the Sacred Heart at the apex. Strategic depth: you can sacrifice outer territories to create a chokepoint.
+
+```
+[A1] [A2] [A3]   ← Arrival row (3 territories, invaders spawn here)
+   [M1] [M2]     ← Middle row (2 territories)
+     [I1]        ← Inner row (1 territory)
+      [H]        ← Sacred Heart (not a territory — invaders attack it from I1)
+```
+
+**Adjacency:**
+- A1↔A2, A2↔A3 (arrival row horizontal)
+- A1↔M1, A2↔M1, A2↔M2, A3↔M2 (arrival → middle)
+- M1↔M2 (middle row horizontal)
+- M1↔I1, M2↔I1 (middle → inner)
+- I1 → Heart (invaders in I1 can Activate against the Heart)
+
+**Sacred Heart:** Not a territory. Has no Corruption. During the Advance step, invaders in I1 that have been there since before this Tide's Activate **march on the Heart** instead of advancing (nowhere to go), dealing Weave damage equal to their remaining HP (minimum 1). Invaders that entered I1 during this Tide's Advance step stop there — Heart marching starts next Tide (one-turn grace period). Some invader types have multiplied Heart damage (e.g., double HP value).
+
+**Future expansion:** Larger pyramid (4-3-2-1 = 10 territories) for Realm 2+. Wider arrival rows create more strategic variance.
+
+### 4.6 Fear & Dread System
+
+Fear is a resource you generate and spend. Dread is the escalation track that makes Fear Actions more powerful over time. Two distinct systems, deliberately separated.
+
+**Fear** — the resource:
+- Generated by card effects, defeating invaders, and Native deaths
+- Every 5 Fear spent queues one **Fear Action** (hidden until Tide start)
+- Fear generation from combat: Small invader +1, Medium +2, Elite/Infrastructure +3
+
+**Dread** — the escalation track (Dread Level 1–4):
+- Tracks *total* Fear generated across the entire run (never decremented, even when Fear is spent)
+- Every 15 total Fear advances the Dread Level
+- Higher Dread = Fear Actions draw from stronger pools
+
+| Dread Level | Threshold | Fear Action pool quality |
+|---|---|---|
+| 1 | 0 Fear total | Basic actions (1 damage, push 1 invader) |
+| 2 | 15 Fear total | Improved actions (2 damage, push + corrupt reduction) |
+| 3 | 30 Fear total | Strong actions (3 damage, rout, weave restore) |
+| 4 | 45 Fear total | Powerful actions (AoE damage, multiple routs, fear cascades) |
+
+**Dread Level upgrade — retroactive:** When the Dread Level advances, ALL currently queued (unrevealed) Fear Actions are upgraded to the new level's pool. This means pushing past a Dread threshold mid-encounter upgrades pending actions — a huge incentive to frontload Fear generation. If you have 2 Fear Actions queued at Dread 1 and then hit 15 total Fear, both upgrade to Dread 2 quality before they reveal.
+
+**Fear Action UX:**
+- Queued Fear Actions appear as **face-down cards** in the Tide queue area. The player can count them but not see which effects they are.
+- At Tide start (before Activate), cards flip face-up one at a time (~0.5s each), revealing and resolving in sequence.
+- The Dread track is displayed as a **bar with threshold markers** at 15/30/45, showing current total Fear generated and how much is needed to reach the next Dread Level. Queued Fear Action cards sit above or beside this bar.
+- Phase 6 (functional UI): stack of face-down card rectangles with count badge + Dread bar with 4 segmented pips.
+
+### 4.7 Invader Factions
+
+#### V1 — The Pale March (Methodical)
+
+**Identity:** Slow, inevitable, escalating. They march in formation, build infrastructure, and grind territories down through sustained pressure. Their strength is inevitability, not speed.
+
+**Unit Types:**
+
+| Unit | HP | Identity | Activate modifier | Advance modifier |
+|------|-----|----------|-------------------|------------------|
+| **Marcher** | 3 | Grunt | None — executes action as printed. | Normal (1 step). |
+| **Ironclad** | 5 | Heavy | Ravage: +1 Corruption (3 total). Rest: recover to full HP. Corrupt: kills 2 Natives instead of 1. | Moves only every other Advance (alternates move/hold). |
+| **Outrider** | 2 | Runner | Ravage: only 1 Corruption, but deals 2 damage to 1 Native first. Rest: doesn't rest — advances 1 instead. Regroup: doesn't regroup — advances 1 instead. | Always +1 movement (2 steps total; 3 on March). |
+| **Pioneer** | 2 | Builder | After ANY Activate, if 2+ March units in territory: place 1 Infrastructure. Fortify: fortification also grants +1 Corruption on future Ravage. | Normal (1 step). |
+
+**Infrastructure:** Invader-placed token. All Pale March units in the same territory deal +1 Corruption on Ravage. Infrastructure has 2 HP, can be targeted by damage effects. Destroying Infrastructure generates 1 Fear.
+
+**Adversary-specific fear card:** "March Without End" — all Pale March in Tainted+ territories advance one extra step this Tide.
+
+**Spawn Waves — Randomized Composition:**
+
+Each wave defines 2–3 possible unit compositions. The player sees which arrival points are active (location preview from previous Tide) but unit composition is revealed at Arrive. Encounter data defines wave options with weights:
+
+```json
+{
+  "wave": 3,
+  "arrival_points": ["A1", "A3"],
+  "options": [
+    { "weight": 40, "units": { "A1": ["ironclad"], "A3": ["marcher"] } },
+    { "weight": 35, "units": { "A1": ["outrider", "outrider"], "A3": ["marcher"] } },
+    { "weight": 25, "units": { "A1": ["marcher"], "A3": ["pioneer", "outrider"] } }
+  ]
+}
+```
+
+Encounter designers control variance: early waves are mostly Marchers with occasional Outriders, mid-encounter waves introduce Ironclads, late waves bring Pioneers with escorts. The player can't memorize exact compositions across runs.
+
+**Fear generation from Pale March kills:**
+- Marcher defeated: +1 Fear
+- Outrider defeated: +1 Fear
+- Ironclad defeated: +2 Fear
+- Pioneer defeated: +1 Fear
+- Infrastructure destroyed: +1 Fear
+
+#### Planned — The Scorch (Volatile)
+
+**Identity:** Fast, fragile, explosive. They overwhelm through speed and numbers. Chain-Ravage if territories are undefended. Their easy pool is unusually weak (no Rest card — they never stop).
+
+**Unit types (to design):** Sparks (HP 1, fast), Blazes (HP 2, chain-ravage), Embers (HP 1, spawn more on death)
+
+**Element interaction:** Scorch units add Ash×1 to the element pool when they Arrive. The player can exploit this for Ash thresholds, but Ash T2 has a Corruption cost.
+
+#### Planned — The Hollow (Adaptive)
+
+**Identity:** Adaptive, parasitic. They grow stronger near Desecrated territories. Every card in their action deck is aggressive — including their "easy" pool, which is merely less aggressive. Self-destructive: Consume destroys their own Infrastructure for HP and Weave damage.
+
+**Unit types (to design):** Husks (HP 2, basic), Feeders (HP 3, scale with Corruption), Devourers (HP 4, Consume specialists)
+
+**Element interaction:** Hollow units add Void×1 when in Desecrated territories.
 
 ---
 
@@ -228,119 +412,264 @@ Fear generation is not optional — it's how you fight back against the Weave cl
 
 ### 5.1 Card Anatomy
 
-Every card has three layers:
+Every card has two halves and an element set. The bottom half is the dissolve action.
 
 ```
-┌──────────────────────────────┐
-│  [TOP — VIGIL ACTION]        │
-│  Played during Vigil phase   │
-│  Proactive, setup-oriented   │
-├──────────────────────────────┤
-│  [BOTTOM — DUSK ACTION]      │
-│  Played during Dusk phase    │
-│  Reactive, stronger, info-   │
-│  gated (played after Tide)   │
-├──────────────────────────────┤
-│  ◈ DISSOLVE EFFECT           │
-│  Sacrifice this card for     │
-│  a burst of Presence reach   │
-│  Cost: card removed per      │
-│  encounter tier rules        │
-└──────────────────────────────┘
+┌────────────────────────────────────┐
+│  [Elements]  ◈ Root  ◈ Mist        │  ← 1–3 elements shown as icons
+│                                    │
+│  Card Name                         │  ← Cinzel-Bold
+│  ─────────────────────────────     │
+│  [TOP — VIGIL ACTION]              │  ← Goes to DISCARD when played
+│  Played during Vigil phase.        │     Returns on Rest
+│  Proactive, setup-oriented.        │
+│  ─────────────────────────────     │
+│  [BOTTOM — DUSK ACTION]  ◈ DISSOLVE│  ← DISSOLVES when played
+│  Played during Dusk phase.         │     Gone until next encounter
+│  Reactive, stronger, played after  │     (or permanently on Boss)
+│  seeing the Tide.                  │
+└────────────────────────────────────┘
 ```
 
-### 5.2 Vigil Actions (Top)
-Design space: setup, positioning, resource generation, defensive preparation
+**Bottom doubling of elements:** When you play the bottom half of a card, the elements on *that card* count double toward threshold this turn. A card with [Root, Mist] contributes Root×2 + Mist×2 when its bottom is played.
+
+### 5.2 Top Actions (Vigil)
+Design space: setup, positioning, resource generation, defensive preparation. These are safe, repeatable effects.
 
 Examples:
-- Place 1 Presence in range. Generate 2 Fear.
-- Move 1 Presence token up to 2 territories.
-- Reduce Corruption by 1 in one adjacent territory.
-- Generate 4 Fear.
-- Predict: look at next Tide's spawn pattern.
+- Place 1 Presence in range 1
+- Reduce Corruption by 1 anywhere
+- Generate 3 Fear
+- Restore 1 Weave
+- Awaken 1 Dormant card (Root-specific)
 
-### 5.3 Dusk Actions (Bottom)
-Design space: reactive power, threshold effects, counter-attacks, consequence amplification
-
-The best bottoms react to what the Tide *just did*. They should feel like they were written for the situation you're now in.
+### 5.3 Bottom Actions (Dusk — Dissolve)
+Design space: stronger reactive effects. The best bottoms respond to what the Tide *just did*. They cost the card until next encounter, so they must justify the sacrifice.
 
 Examples:
-- Destroy all Invaders in one territory with 3+ Fear tokens on it.
-- If 2+ territories were Ravaged this Tide: restore 1 Corruption level in each.
-- Push all Invaders in range back 1 territory (toward spawn).
-- If a Sacred Site was threatened this Tide: generate 6 Fear.
-- Deal damage to all Invaders that Ravaged this turn.
+- Reduce Corruption by 3 in range 2 (big reactive cleanse)
+- Generate 8 Fear (threshold push)
+- Damage all Invaders in range 2 for 3 (wide defensive strike)
+- Restore 3 Weave + Place 1 Presence anywhere
+- Awaken ALL dormant cards (Root — explosive recovery)
 
-### 5.4 Dissolution
+**Default bottom (safety valve):** Cards without a strong thematic bottom get a weak default: *Place 1 Presence, range 1.* This is rarely worth dissolving for, but available in an emergency. In practice, well-designed cards should have a meaningful bottom — the interesting question is *when* the sacrifice is worth it.
 
-**Default Dissolution (all Wardens):**  
-Sacrifice this card. Place 1 Presence on any territory in range, bypassing normal distance limits. Card is removed until next encounter (or permanently, per encounter tier).
+### 5.4 Deckbuilding Layer
 
-**Why this is different from Gloomhaven burns:**  
-- GH: burn a card *for its specific printed burn effect*  
-- HW: burn any card *for territorial reach*  
-- The power is spatial, not textual  
-- The cost is endurance, not just one card's future use
+- **Starting deck:** 10 cards (baseline, varies by warden). Fixed per warden per run. Provides identity and early strategy.
+- **Draft pool:** 15–20 additional cards per warden across rarity tiers. Available to draft between encounters.
+- **Shared pool:** "Divine" cards (warden-agnostic, thematic name TBD) available in the draft pool regardless of warden.
+- **Rarity tiers:** Dormant (common), Awakened (uncommon), Ancient (rare). Starting deck is all Dormant-tier.
 
-**Warden-specific Dissolution modifications** — see Warden Roster section.
+### 5.5 Card Rarity Tiers
 
-### 5.5 Deckbuilding Layer
+| Tier | Name | Design role |
+|---|---|---|
+| Common | Dormant | Baseline effects. Reliable, predictable. Starting deck material. |
+| Uncommon | Awakened | Synergistic, stronger, slightly conditional. Draft material. |
+| Rare | Ancient | Build-defining. Powerful bottoms, unique effects, high risk-reward. |
 
-Between encounters (at reward screens), you draft Power cards:
-- Choose 1 from 3 options
-- Cards are permanent additions for the rest of the run
-- Dissolution does not affect your deck composition — it only costs you the card until the next encounter (or permanently on Elites/Bosses)
-- These are entirely separate systems and do not compete
+### 5.6 Card Upgrades (Future)
 
-Between Realms, you may also access Aspect upgrades (passive identity modifiers) and have a wider card selection.
+Two upgrade paths per card (to design post-V1):
+- **Enhance:** Add a secondary effect (e.g., add "and generate 1 Fear" to a cleanse card)
+- **Upgrade:** Predefined stronger version of the card (bigger values, better range, additional condition)
 
 ---
 
-## 6. Warden Roster
+## 6. Elements System
 
-### 6.1 The Root (V1 — Starter)
+### 6.1 The Six Elements
+
+| Element | Thematic identity | Root warden affinity |
+|---|---|---|
+| **Root** 🌿 | Earth, growth, network, stability | Primary |
+| **Mist** 🌫 | Water, memory, reach, healing | Secondary |
+| **Shadow** 🌑 | Darkness, fear, hidden power | Tertiary |
+| **Ash** 🔥 | Fire, destruction, transformation | Rare |
+| **Gale** 💨 | Wind, movement, disruption | Rare |
+| **Void** ⚫ | Decay, entropy, corruption | Rare |
+
+Each card carries 1–3 element icons. Most well-balanced cards carry 2. Cards that are under the power curve on effects may carry 3 elements to compensate — element fuel as a balancing lever.
+
+### 6.2 Accumulating Elements
+
+Elements accumulate in a pool during your turn as you play cards:
+- Playing a top: add that card's elements to the pool ×1
+- Playing a bottom: add that card's elements to the pool ×2 (bottom doubles)
+- Invaders arriving with elements: certain invader types bring their own elements to the pool (e.g., Scorch brings Ash on arrival, which the player can use to trigger fire-threshold events)
+
+**Example turn (turn 3 of encounter, with carryover):**
+1. Start of turn: carryover from last turn → Root×2, Mist×1 (decayed from Root×3, Mist×2)
+2. Play top of Card A [Root, Mist] → pool: Root×3, Mist×2
+3. Play top of Card B [Root, Root] → pool: Root×5, Mist×2 → Root Tier 1 (4) triggers! Place 1 Presence at range 1.
+4. Play bottom of Card C [Mist, Mist] → pool adds Mist×4 → pool: Root×5, Mist×6 — no new Mist threshold yet (Tier 1 is 4, triggers!)
+5. End of turn: decay −1 each → Root×4, Mist×5. Next turn starts with strong carryover.
+
+### 6.3 Thresholds — Universal Effects
+
+Thresholds are **universal** — every element does the same thing regardless of which warden triggers it. Wardens differentiate by how easily they *reach* thresholds (via affinity), not by what the thresholds do. Each threshold tier can trigger **once per turn**, checked after each card play. This means Tier 1 can fire in Vigil and Tier 2 can fire in Dusk on the same turn — bottoms accelerate you into higher tiers.
+
+**Threshold resolution — player-confirmed:** Thresholds do not auto-resolve. When a threshold triggers, the threshold button **lights up** in the element tracker UI. Targeted thresholds (e.g., Place Presence, Reduce Corruption in a territory) enter targeting mode when clicked — the player selects a valid target. Untargeted thresholds (e.g., Restore Weave, Generate Fear) show an OK button to confirm. A triggered threshold may be delayed until the other phase — for example, bank a Vigil-triggered threshold to use in Dusk. Unresolved thresholds are lost at end of turn. All three tiers (T1/T2/T3) are always visible with their descriptions in the UI — the player always knows what they're working toward. Future design space: some thresholds may be phase-restricted (e.g., "Vigil only" or "Dusk only") for balancing purposes.
+
+**Rest turns:** At the start of a Rest turn's Vigil, thresholds check against the element carryover pool (reduced by 1 from last turn's end). No cards are played, so no new elements enter — but if the carryover is still above a threshold, that threshold fires. This rewards building a strong element engine before Resting: a player at Root×5 who Rests still has Root×4 after decay, triggering Root Tier 1 (free Presence placement) even on their "empty" turn.
+
+| Element | Tier 1 (4) | Tier 2 (7) | Tier 3 (11) |
+|---|---|---|---|
+| **Root** 🌿 | Place 1 Presence at range 1 | Reduce Corruption by 3 in one territory with Presence | Place 2 Presence anywhere + reduce Corruption by 2 in each |
+| **Mist** 🌫 | Restore 1 Weave | Return 1 card from discard to hand | Restore 3 Weave + return all discarded cards to hand (full Rest effect without losing your turn) |
+| **Shadow** 🌑 | Generate 2 Fear | Next Fear Action draws from one Dread Level higher | Generate 5 Fear + preview and choose between 2 Fear Actions for the next queue |
+| **Ash** 🔥 | Deal 1 damage to all invaders in one territory | Deal 2 damage to all invaders in one territory; that territory gains 1 Corruption point | Deal 3 damage to ALL invaders on the board; each affected territory gains 1 Corruption |
+| **Gale** 💨 | Push 1 invader one territory toward spawn | Push all invaders in one territory toward spawn | Push all invaders on the board one territory toward spawn + they skip their next Advance |
+| **Void** ⚫ | Deal 1 damage to lowest-HP invader on board | All invaders take 1 damage | All invaders take 2 damage; invaders killed by this don't generate Corruption on death |
+
+**Design notes:**
+- Tier 1 (4): The "passive" — a warden with primary affinity hits this by turn 3 through consistent top play. For off-affinity wardens, requires dedicated draft picks or a bottom play.
+- Tier 2 (7): The "commitment" — even with primary affinity, this takes 5+ turns of pure consistency OR a bottom spike. This is where bottoms become element fuel, not just powerful effects.
+- Tier 3 (11): The "build-around" — near-impossible from tops alone within a standard 5-turn encounter. Requires sustained play + bottom spikes + possibly element-linger effects. Fires 0–1 times per encounter in a deck built for it.
+
+**Future: Adversary element interaction (post-V1)**
+- *Adversary element presence:* Certain factions add elements to the pool on spawn (e.g., Scorch brings Ash×1 per arriving unit). Players can use these, but threshold effects with downsides (Ash corruption) may fire unwantedly.
+- *Adversary element thresholds:* Adversary-specific effects that trigger against the player if certain elements are too high (e.g., "If Ash ≥ 7, The Hollow gains +1 Corruption dealt this Tide"). Printed on encounter card as visible information.
+
+Encounters can also have their own elemental threshold events (specific to that encounter's challenge card or adversary type).
+
+### 6.4 Element Decay — Reduce by 1
+
+At the end of each turn, each element count **reduces by 1** (minimum 0):
+- Pool after turn: Root×5, Mist×3, Shadow×1
+- Start of next turn: Root×4, Mist×2, Shadow×0
+
+This creates a rising-floor engine. Consistent play of the same element builds a pool that accumulates over turns — rewarding dedication to an element strategy. A warden generating Root×2 per turn from tops reaches a steady state of Root×4–5 by mid-encounter, keeping Tier 1 active as a passive.
+
+**Engine-building example (consistent Root×2 per turn from tops):**
+
+| Turn | Carryover | + Tops | = Pool | Decay | End |
+|------|-----------|--------|--------|-------|-----|
+| 1 | 0 | 2 | 2 | −1 | 1 |
+| 2 | 1 | 2 | 3 | −1 | 2 |
+| 3 | 2 | 2 | 4 ← Tier 1 | −1 | 3 |
+| 4 | 3 | 2 | 5 | −1 | 4 |
+| 5 | 4 | 2 | 6 | −1 | 5 |
+
+**Bottom spike example (turn 3, double-Root bottom = +4 instead of +2):**
+Turn 3: carryover 2 + bottom 4 = **6** → Tier 1 fires, close to Tier 2. End: 5.
+Turn 4: 5 + 2 = **7** → Tier 2 fires. End: 6.
+
+**Rest penalty:** Resting generates no elements but decay still applies. A rest turn costs 1 point off every element — engine builders must weigh rest timing carefully.
+
+Cards or effects that say "elements linger" prevent the decay for specific elements that turn.
+
+### 6.5 Display
+
+- Element icons shown on each card (1–3 icons, small, bottom-left of card)
+- Active element pool shown on the HUD as a counter bar (one per element, shows current value)
+- Threshold markers at 4, 7, and 11 shown on each counter so players can see how close they are
+- Previous turn's value shown in muted colour behind current value (shows the −1 decay)
+- When a threshold triggers, brief flash on the counter + effect resolves immediately
+
+---
+
+## 7. Natives System
+
+### 7.1 What Natives Are
+
+Natives are the indigenous inhabitants of the sacred territories. They're not passive — they actively fight back when protected. They are the board's counterattack layer and a key resource for certain warden playstyles.
+
+### 7.2 Native Stats (V1 baseline)
+
+| Unit | HP | Damage | Notes |
+|---|---|---|---|
+| Native | 2 | 3 | Knows the land; hits hard but fragile |
+| Invader (grunt) | 3 | 2 corruption | More durable but less efficient in combat |
+
+Natives deal *damage* (HP reduction) to invaders, not corruption. This distinction matters: invaders can be damaged without corruption advancing.
+
+### 7.3 Native Behavior
+
+- **Spawn:** Each territory starts with a fixed number of Natives defined in EncounterData. **Default baseline:** 0–1 on A-row (entry territories — most will die before you can protect them, max 1–2), 2 on M-row and I-row. This gives ~6 Natives total on a 3-2-1 pyramid. Encounter data and between-encounter events can override these defaults (e.g., a harder encounter starts with 1 per M-territory; a blessed territory event grants an extra Native on I1).
+- **Take damage (invader → native):** During Activate, invader damage to Natives is **auto-assigned to maximize kills**. The system distributes damage to kill as many Natives as possible (targeting lowest HP first, allocating exactly enough to kill each before moving to the next). Corruption from Ravage hits the territory simultaneously — Natives take HP damage and the territory takes Corruption points in the same step.
+- **Counter-attack (native → invader):** Natives only counter-attack when the invader action this Tide was **Ravage** or **Corrupt**. On all other actions (Rest, Settle, March, Regroup, Fortify), Natives stay passive. When counter-attack triggers, surviving Natives pool their damage and the **player assigns it** freely across invaders in that territory — focus fire, split, or skip entirely (assign 0). **Future:** `Arouse` effects (warden abilities, element thresholds) can force Natives to counter-attack on non-damage Tides.
+- **Death:** A Native reduced to 0 HP is removed from the board. Its death generates 1 Fear.
+
+### 7.4 Protecting Natives
+
+Cards that interact with Natives:
+- **Shield Natives** — give all Natives in range a temporary HP buffer (requires damage above threshold to kill)
+- **Boost Natives** — increase Native damage for this turn
+- **Heal Natives** — restore HP to Natives in range
+- **Entice** (future warden mechanic) — mark Natives with a special token; certain warden effects trigger off marked Natives
+
+### 7.5 Board Token System (Future-Proofed)
+
+Natives are the first board token type. The system is designed to support others:
+
+| Token type | Effect | Status |
+|---|---|---|
+| Native | Active counterattack unit | V1 |
+| Bramble | Slows/blocks invader movement | Planned |
+| Dangerous Terrain | Increases damage dealt to invaders in territory | Planned |
+| Animal | Territory-level passive effect | Planned |
+| Richness | Empowers invader Activate OR native damage, depending on control | Planned |
+| Infrastructure | Invader-placed: defends invaders, enables special actions | V1 (invader side) |
+
+All token types use a base `BoardToken` class with type, HP (optional), and `OnTidePhase()` hook.
+
+---
+
+## 8. Warden Roster
+
+### 8.1 The Root (V1 — Starter)
 **Archetype:** Tank / Control  
-**Playstyle:** Spreads Presence slowly, passively generates resources. Difficult to exhaust. Wins by blanketing the board over time.
+**Playstyle:** Spreads Presence slowly, passively generates Fear via network. Difficult to exhaust. Wins by blanketing the board and outlasting.
 
-**Presence mechanic:** Root Presence generates passive Fear each turn equal to the number of adjacent Presence tokens (network effect). Spreading wide is as valuable as spreading fast.
+**Element affinity:** Root (heavy), Mist (medium), Shadow (light)
 
-**Starting deck:** Heavy on Purification (Corruption reduction), moderate Fear generation, few direct damage effects. Survives by denying Corruption, not by killing.
+**Presence mechanic:** Root Presence generates passive Fear each turn equal to the number of *adjacent* Presence tokens (network effect — directed edges, each pair counted twice). Spreading wide is as valuable as spreading fast.
 
-**Dissolution — Dormancy:**  
-Instead of removing the card until next encounter, it enters a Dormant state — still in deck, still drawn, but inert. Cannot be played until Awakened by a specific card effect. Dormant cards can still be Dissolved again (paying nothing, since they're already spent).  
-*Design intent: The Root's power accumulates. Even its sacrifice state is a resource to manage.*
+**Starting deck:** 10 cards, all Dormant rarity. Heavy Corruption reduction, moderate Fear generation, some Presence placement, one Weave recovery. Full 28-card pool includes 10 starting + 18 more across Dormant/Awakened/Ancient rarities available as draft rewards.
 
-**Resolution style:** Assimilation — Presence tokens absorb adjacent invaders at end of encounter. Absorbed invaders reduce Corruption in that territory by 1.
+**Dissolution (bottom) — Dormancy:**  
+When Root plays the bottom of a card, the card enters a **Dormant** state rather than being fully removed. It goes to the **discard pile** (not the draw pile) — the player won't encounter it again until the next Rest shuffles discards back into the deck. While dormant, it is inert (cannot be played — top or bottom — until Awakened). On Boss encounters, double-dissolving a Dormant card removes it permanently.
 
-### 6.2 The Ember (Planned)
+**Rest-dissolve — also Dormancy:** When Root rests, the rest-dissolved card also goes dormant (not removed), but it **stays in the draw pile** (already shuffled in with the rest of the discards during Rest). Bottom-played dormant cards go to the discard pile and re-enter the deck on the next Rest; rest-dissolved dormant cards are already in the freshly-shuffled deck. In both cases the card is inert dead weight until Awakened. Awaken effects clean up both types. Root's deck never actually shrinks — it fills with dead draws instead.
+
+*Design intent: The Root's power accumulates. Even its sacrifice state is a resource to manage — Dormant cards are fuel for Awaken effects.*
+
+**Resolution style:** Assimilation — at end of encounter, for each Presence territory, all invaders in all adjacent territories are removed. Each removed invader reduces Corruption in that territory by 1 point.
+
+### 8.2 The Ember (Planned)
 **Archetype:** Burst / Aggressive  
-**Playstyle:** High damage, volatile. Burns through cards faster than any other Warden. Every turn is a risk calculation.
+**Element affinity:** Ash (heavy), Shadow (medium), Gale (light)
 
-**Presence mechanic:** Ember Presence in a territory generates bonus damage when cards affect that territory, but Ember Presence burns out after 3 turns and must be re-placed.
+**Dissolution (bottom) — Fear Pulse:** When Ember plays a bottom, it generates a Fear pulse equal to the card's cost before the card is removed. Higher-cost cards = bigger fear spike on sacrifice.
 
-**Dissolution — Fear Pulse:**  
-When dissolving, generates a Fear pulse equal to the card's cost before it's removed. The sacrifice fuels a spike of dread.  
-*Design intent: The Ember turns its desperation into power. High-cost cards become high-value sacrifices.*
+**Resolution style:** Destruction — pure damage output in Resolution turns.
 
-**Resolution style:** Destruction — straight damage output. Resolution turns are uncapped damage turns.
-
-### 6.3 The Veil (Planned)
+### 8.3 The Veil (Planned)
 **Archetype:** Control / Disruption  
-**Playstyle:** Manipulates Invader movement and timing. Can delay The Tide partially. High skill ceiling, low margin for error.
+**Element affinity:** Mist (heavy), Shadow (medium), Void (light)
 
-**Presence mechanic:** The Veil can place Presence tokens face-down (concealed). Invaders cannot target concealed Presence for their Advance logic. Revealing a concealed Presence is a Vigil action.
+**Dissolution (bottom) — Disruption:** Instead of the usual bottom effect, may choose to delay one Invader group's Advance this Tide. Reach vs. disruption choice.
 
-**Dissolution — Disruption:**  
-Instead of placing Presence, you may delay one Invader group's Advance action this Tide. You choose: territorial reach OR tactical disruption.  
-*Design intent: The Veil's burn is always a choice between two meaningful power types.*
+**Resolution style:** Repulsion — pushes remaining invaders toward spawn, reduces Corruption.
 
-**Resolution style:** Repulsion — pushes remaining invaders back toward spawn points. Reduces Corruption in vacated territories.
+### 8.4 Future Warden Concepts
+
+- **Volcano Warden:** Accumulates enemies via terrain manipulation, then blasts regions with explosive presence-sacrifice effects. Threshold-heavy Ash/Gale build.
+- **Teacher Warden:** Empowers Natives via knowledge tokens. Boosts Native stats and enables new Native behaviors. Mist/Root build.
+- **Seducer Warden:** Converts and lures invaders into temporary allies. Void/Shadow build.
+- **Weakener Warden:** Applies status effects (Weaken, Slow, Expose, Brittle) to let Natives do the killing. Void/Gale build.
+- **Pusher Warden:** Creates powerful territory clusters, herds invaders into them, retaliates with massive area effects. Gale/Root build.
+- **Seer Warden:** Sees invader arrivals one turn early (not which type, just where). Can preview fear actions or choose between multiple drawn fear cards. Mist/Shadow build.
+- **Enticing Warden:** Marks Natives with entice tokens; two enticed Natives in one territory create a new, weaker Native that grows over a turn. Cooldown prevents abuse. Root/Mist build.
 
 ---
 
-## 7. Run Structure
+## 9. Run Structure
 
-### 7.1 Overview
+### 9.1 Overview
 
 ```
 Realm 1               Realm 2               Realm 3
@@ -351,840 +680,634 @@ Realm 1               Realm 2               Realm 3
     Aspect, Weave restore)   Aspect, Weave restore)
 ```
 
-Each Realm contains 3 standard/elite encounters + 1 boss.  
-Between encounters: small rewards (see Encounter Reward Tiers).  
-Between Realms: full rewards (card draft, Aspect upgrade, significant Weave restore).
+Each Realm: 3 standard/elite encounters + 1 boss.
 
-### 7.2 Zone Difficulty Progression
+### 9.2 Zone Difficulty Progression
 
-| Zone | Factions | Starting state | Special |
+| Zone | Factions | Starting state | Territory layout |
 |---|---|---|---|
-| Realm 1 | 1 faction (Pale March) | All territories Clean | Tutorial pacing, no Eclipse |
-| Realm 2 | 2 factions | Some territories pre-Tainted | Eclipse events possible |
-| Realm 3 | 2–3 factions | Some territories pre-Defiled | The Hollow appears if Corruption is high |
+| Realm 1 | 1 faction (Pale March) | All territories Clean | 3-2-1 pyramid |
+| Realm 2 | 2 factions | Some territories pre-Tainted (3 pts) | 4-3-2-1 pyramid (10 territories) |
+| Realm 3 | 2–3 factions | Some territories pre-Defiled (8 pts) | 4-3-2-1 pyramid + side route |
 
-### 7.3 Between-Encounter Rewards
+### 9.3 Between-Encounter Rewards
 
 | Performance | Rewards |
 |---|---|
-| Clean | Card draft (1 of 3) + Aspect upgrade (1 of 2) + Weave +3 |
-| Weathered | Card draft OR Aspect upgrade (player chooses) + Weave +1 |
-| Breach | Weave +1 only + Breach carries forward |
+| Clean | Card draft (1 of 3, any rarity) + Aspect upgrade (1 of 2) + Weave +3 |
+| Weathered | Card draft OR Aspect (player chooses) + Weave +1 |
+| Breach | Weave +1 only + Breach effect carries forward |
 
-### 7.4 Between-Realm Rewards
+### 9.4 Between-Realm Rewards
 
-Always granted regardless of performance (Realm boss must be cleared):
-- Card draft: 1 of 4 options (wider pool)
+- Card draft: 1 of 4 options (wider pool, includes Ancient-tier)
 - Aspect upgrade: 1 of 3 options
 - Weave restore: 4–6 (scales with Fear generated in Realm)
-- Remove Corruption from 1 territory
-- Heal 1 territory from Tainted → Clean
+- Remove Corruption from 1 territory (points drop to 0 in that territory)
 
-### 7.5 Meta Progression
+### 9.5 Meta Progression
 
-Unlocks happen *between runs*, not during:
-- New **Wardens** (unlock by completing runs with current Warden)
-- New **Realm types** (map shapes, faction mixes, special rules)
-- New **Aspects** (appear in future runs' upgrade pools)
-- New **card variants** (alternate cards for existing Wardens, unlocked by specific achievements)
-
-The card pool per Warden is fixed. Variety comes from drafting, not unlocking.
+Unlocks happen between runs:
+- New Wardens (clear runs with current Warden)
+- New Realm types (map shapes, faction mixes)
+- New Aspects (appear in future runs' upgrade pools)
+- Warden Aspects/Variants (alternate starting decks — similar to Spirit Island aspects)
 
 ---
 
-## 8. Balance Reference
+## 10. Balance Reference
 
 *Working targets — all subject to playtesting*
 
-### 8.1 Hand Size
+### 10.1 Hand Size and Deck Size
 
-| Warden | Starting hand | Max hand |
-|---|---|---|
-| The Root | 6 | 10 |
-| The Ember | 5 | 8 |
-| The Veil | 7 | 9 |
+| Warden | Starting deck | Hand limit | Notes |
+|---|---|---|---|
+| The Root | 10 | 5 | Baseline. Dormancy keeps cards in deck (as dead draws) rather than removing. |
+| The Ember | 8 | 5 | Smaller deck = faster cycling, more Rests, more rest-dissolves. Matches burst identity. |
+| The Veil | 10 | 6 | Larger hand = more options per turn, slower cycling, fewer Rests. Matches control identity. |
 
-### 8.2 Turn Economy
+**Refill model:** At the start of each Vigil, draw from deck until hand = hand limit (or deck empty). Unplayed cards stay in hand. Played tops → discard. Played bottoms → dissolved.
 
-- Standard turn: 2 tops + 1 bottom = 3 cards spent
-- Rest turn: 0 cards played, full discard recovered (Tide still resolves — rest is costly)
-- Dissolution: 1 additional card removed until next encounter
-- A hand of 7 with no rests: 2 full turns before forced rest (7 → 4 → 1, can't play a third turn)
-- A hand of 10 (max, post-reward): 3 full turns between rests (10 → 7 → 4 → 1)
+**Deck growth across a run:** Players draft 1 card per encounter reward (Clean/Weathered). Expect 1–4 new cards per Realm. By Realm 3, deck size is roughly 13–16.
 
-**Rest rate target:** ~1 rest per 2–3 play turns. With starting hand 7: 33% of turns are rests. With hand 10: 25%. Card rewards directly reduce rest pressure — a meaningful, legible upgrade.
+### 10.2 Turn Economy (Refill + Rest-Dissolve)
 
-**Cycle math (starting deck 30 cards, hand 7):**
-- Pattern: P, P, Rest, P, P, Rest... (every 3rd turn is rest)
-- Each cycle through the hand = 6 cards played + 1 rest turn
-- 30-card deck → never fully cycled in a single encounter (see §8.3)
-- Dormancy (Root): dormant cards in hand reduce effective play cards without consuming a full rest slot — creates passive stamina pressure
+**Three resource drains per encounter:**
+- **Tops (discard):** Return on Rest. The cycling resource. Managed by hand limit and deck size.
+- **Bottoms (dissolve):** Return between encounters (permanent on Boss). The sacrifice resource.
+- **Rest-dissolve:** 1 random card removed per Rest (encounter-only on Standard/Elite; permanent on Boss). The stamina tax.
 
-### 8.3 Encounter Length
+**Rest rate target (10-card deck, hand 5, playing 2 tops/turn):**
 
-Target turn counts (Tide steps = total turns including rests):
+| Turn | Hand | Refill from deck | Deck remaining |
+|------|------|-----------------|----------------|
+| 1 | 5 | 0 (full) | 5 |
+| 2 | 3 | 2 | 3 |
+| 3 | 3 | 2 | 1 |
+| 4 | 3 | 1 (short draw) | 0 |
+| 5 | **Rest** | Shuffle 8 discard → deck. Dissolve 1 random. Deck: 7. Refill 5. | 2 |
 
-| Tier | Tide steps | Est. play turns | Est. rest turns | Cards played |
-|------|-----------|-----------------|-----------------|--------------|
-| Standard | 5–6 | 3–4 | 1–2 | 9–12 |
-| Elite | ~10 | 6–7 | 3–4 | 18–21 |
-| Boss | 12–13 | 8–9 | 4–5 | 24–27 |
+**Result: 4 play turns per cycle, Rest on turn 5.** With 1 bottom played per cycle, Rest hits on turn 4 instead (3 play turns). Aggressive bottom play compresses the cycle, accelerating rest-dissolve. This is the self-balancing anti-frontload mechanic.
 
-Boss fights nearly exhaust the starting 30-card deck. With reward cards (hand up to 10), the boss cycle extends: more turns between rests, more cards played total — the late-game deck feels meaningfully larger.
+**Bottom budget per encounter (Standard, 6–7 Tides):**
+- Starting deck: 10 cards, 10 bottoms available
+- Conservative play: 1–2 bottoms. 2 Rests. End deck: 6–7 cards.
+- Aggressive play: 3–4 bottoms. 2–3 Rests. End deck: 3–5 cards. Resolution turns are scraped-together.
+- Boss: every bottom and every rest-dissolve is permanent. Players face a real choice between using power now vs. preserving their run deck.
 
-Resolution turns: up to 3 (Standard), up to 2 (Elite), 1 (Boss — bosses are designed to be survived, not cleaned up).
+**Element engine during Rest:** Carryover pool (decayed by −1 from last turn) persists. If above a threshold, the threshold fires during the Rest turn. This rewards building elements before Resting — a Rest turn with Root×4 carryover still places 1 free Presence.
 
-### 8.4 Weave Economy
+### 10.3 Encounter Length
+
+| Tier | Tides | Est. play turns | Est. Rests | Est. total player turns |
+|------|-------|----------------|------------|------------------------|
+| Standard | 5–7 | 4–6 | 1–2 | 6–8 |
+| Elite | 8–10 | 6–8 | 2–3 | 9–11 |
+| Boss | 12–15 | 9–12 | 3–4 | 13–16 |
+
+### 10.4 Weave Economy
 
 - Starting Weave: 20
-- Target Weave at end of Realm 1: 14–17 (some damage taken)
-- Target Weave at end of Realm 2: 8–14 (meaningful pressure)
-- Target Weave at start of Realm 3: 6–12 (survival mode)
-- Average Weave drain per standard encounter (no breach): 2–4
-- Average Weave drain per breach: 5–8
+- Target Weave at end of Realm 1: 14–17
+- Target Weave at end of Realm 2: 8–14
+- Target Weave at start of Realm 3: 6–12
+- Sacred Heart hit: −3 to −5 per invader
 
-### 8.5 Fear Economy
+### 10.5 Fear & Dread Economy
 
-- Target Fear generation per encounter: 6–10 (hitting threshold 1 most encounters)
-- Threshold 2 (12 Fear): should be achievable once per Realm on good runs
-- Threshold 3 (20 Fear): boss fights or exceptional Fear-focused builds
+- Fear generation per Standard encounter: 8–12 (2–3 Fear Actions triggered at 5 each)
+- Dread Level 1 → 2 transition (15 Fear total): expect mid-Realm 1
+- Dread Level 2 → 3 transition (30 Fear total): expect mid-Realm 2
+- Fear Actions per encounter average: 2–3 in Standard, 4–6 in Boss
+- Dread upgrade timing: pushing past a Dread threshold upgrades all queued Fear Actions retroactively — incentivizes frontloading Fear generation to hit Dread 2 before queued actions reveal
 
 ---
 
-## 9. Godot Architecture
+## 11. Godot Architecture
 
-### 9.1 Engine Version
-Godot **4.6.1** — **.NET version** (C#). All architecture targets Godot 4 C# patterns.
-Use `.cs` files for all scripts. Do **not** mix GDScript and C# in the same project.
-Recommended IDE: **JetBrains Rider** or **VS Code** with the C# Dev Kit extension.
+### 11.1 Engine Version
+Godot **4.6.1** — **.NET version** (C#). All architecture targets Godot 4 C# patterns.  
+Use `.cs` files for all scripts. Do **not** mix GDScript and C# in the same project.  
+Recommended IDE: **JetBrains Rider** or **VS Code** with the C# Dev Kit extension.  
 Executable: `D:\Downloads\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64_console.exe`
 
-### 9.2 Project Structure
+### 11.2 Project Structure
 
 ```
 hollow_wardens/
 ├── project.godot
 ├── scenes/
 │   ├── game/
-│   │   ├── Game.tscn              # Root game scene
-│   │   ├── Encounter.tscn         # Single encounter scene
-│   │   └── RealmMap.tscn          # Between-encounter map/navigation
+│   │   ├── Game.tscn
+│   │   ├── Encounter.tscn
+│   │   └── RealmMap.tscn
 │   ├── entities/
 │   │   ├── Card.tscn
 │   │   ├── InvaderUnit.tscn
 │   │   ├── Territory.tscn
-│   │   └── PresenceToken.tscn
+│   │   ├── PresenceToken.tscn
+│   │   └── NativeUnit.tscn          ← NEW
 │   ├── ui/
-│   │   ├── Hand.tscn              # Player hand display
-│   │   ├── TideQueue.tscn         # Preview of next Tide step
+│   │   ├── Hand.tscn
+│   │   ├── TideQueue.tscn
 │   │   ├── WeaveBar.tscn
 │   │   ├── FearCounter.tscn
-│   │   ├── EncounterResult.tscn   # Post-encounter reward screen
-│   │   └── RealmReward.tscn      # Between-Realm reward screen
+│   │   ├── ElementTracker.tscn      ← NEW
+│   │   ├── EncounterResult.tscn
+│   │   └── RealmReward.tscn
 │   └── menus/
 │       ├── MainMenu.tscn
-│       └── RunStart.tscn          # Warden select
+│       └── RunStart.tscn
 ├── scripts/
 │   ├── core/
-│   │   ├── GameState.cs           # Singleton — run state
-│   │   ├── EncounterManager.cs    # Encounter loop controller
-│   │   ├── TurnManager.cs         # Phase sequencing
-│   │   ├── TideExecutor.cs        # Invader AI execution
-│   │   └── RewardManager.cs       # Post-encounter rewards
+│   │   ├── GameState.cs
+│   │   ├── EncounterManager.cs
+│   │   ├── TurnManager.cs
+│   │   ├── TideExecutor.cs
+│   │   ├── RewardManager.cs
+│   │   ├── ElementTracker.cs        ← NEW
+│   │   └── FearActionDeck.cs        ← NEW
 │   ├── data/
-│   │   ├── CardData.cs            # Resource class for card definitions
-│   │   ├── InvaderData.cs         # Resource class for invader types
-│   │   ├── TerritoryData.cs       # Resource class for territory state
-│   │   ├── EncounterData.cs       # Resource class for encounter definitions
-│   │   └── WardenData.cs          # Resource class for warden definitions
+│   │   ├── CardData.cs              ← MODIFIED (add Elements[], rename DuskEffect)
+│   │   ├── CardEffect.cs            ← MODIFIED (add new EffectTypes)
+│   │   ├── InvaderData.cs
+│   │   ├── InvaderActionCard.cs     ← NEW (invader activate action pool)
+│   │   ├── FearActionData.cs        ← NEW
+│   │   ├── TerritoryData.cs         ← MODIFIED (points-based corruption)
+│   │   ├── EncounterData.cs         ← MODIFIED (pyramid layout, native count)
+│   │   ├── WardenData.cs
+│   │   └── BoardToken.cs            ← NEW (abstract base for board tokens)
 │   ├── entities/
 │   │   ├── Card.cs
 │   │   ├── Deck.cs
 │   │   ├── Hand.cs
-│   │   ├── InvaderUnit.cs
-│   │   ├── Territory.cs
+│   │   ├── InvaderUnit.cs           ← MODIFIED (activate action card pool)
+│   │   ├── NativeUnit.cs            ← NEW
+│   │   ├── Territory.cs             ← MODIFIED (points corruption, token list)
 │   │   └── PresenceToken.cs
 │   ├── wardens/
-│   │   ├── Warden.cs              # Base class
-│   │   ├── WardenRoot.cs
-│   │   ├── WardenEmber.cs         # Planned
-│   │   └── WardenVeil.cs          # Planned
+│   │   ├── Warden.cs
+│   │   ├── WardenRoot.cs            ← MODIFIED (dormancy in new bottom model)
+│   │   ├── WardenEmber.cs
+│   │   └── WardenVeil.cs
 │   └── ui/
 │       ├── HandUI.cs
 │       ├── WeaveBarUI.cs
 │       ├── FearCounterUI.cs
+│       ├── ElementTrackerUI.cs      ← NEW
 │       └── TideQueueUI.cs
 ├── resources/
 │   ├── cards/
-│   │   ├── root/                  # Root's 30 card definitions (.tres)
-│   │   └── shared/                # Shared/drafted cards
+│   │   ├── root/                    ← 12 starting cards + 18 draft pool cards
+│   │   └── shared/
+│   ├── fear_actions/                ← NEW
+│   │   ├── global/
+│   │   └── pale_march/
 │   ├── encounters/
-│   │   ├── realm1/
-│   │   ├── realm2/
-│   │   └── realm3/
 │   ├── invaders/
-│   │   ├── pale_march.tres
-│   │   ├── scorch.tres
-│   │   └── hollow.tres
 │   └── wardens/
-│       └── root.tres
 └── assets/
-    ├── art/
-    │   └── kenney/                # Kenney placeholder art (see §9.5)
+    ├── art/kenney/
     ├── audio/
     ├── fonts/
-    │   ├── Cinzel-Regular.ttf     # Headings, card names, phase indicators
-    │   ├── Cinzel-Bold.ttf
-    │   ├── static/                # Cinzel weight variants
-    │   ├── IMFellEnglish-Regular.ttf  # Body text, card descriptions
-    │   └── IMFellEnglish-Italic.ttf
-    └── hollow_wardens_theme.tres  # Project-wide Godot Theme (set in Project Settings)
+    └── hollow_wardens_theme.tres
 ```
 
-### 9.3 Signal Architecture
+### 11.3 Signal Architecture
 
-Key signals that connect systems (use Godot signals, not direct calls between managers).  
-In Godot 4 C#, signals are declared as delegate types with `[Signal]`:
+New and modified signals:
 
 ```csharp
-// TurnManager.cs
-[Signal] public delegate void PhaseChangedEventHandler(TurnPhase phase);
-[Signal] public delegate void TurnStartedEventHandler(int turnNumber);
-[Signal] public delegate void TurnEndedEventHandler(int turnNumber);
+// ElementTracker.cs — NEW
+[Signal] public delegate void ElementAddedEventHandler(Element element, int newTotal);
+[Signal] public delegate void ElementThresholdReachedEventHandler(Element element, int threshold);
+[Signal] public delegate void ElementsDecayedEventHandler();
 
-// EncounterManager.cs
-[Signal] public delegate void EncounterStartedEventHandler(EncounterData encounterData);
-[Signal] public delegate void EncounterEndedEventHandler(EncounterResult result);
-[Signal] public delegate void TideStepCompletedEventHandler(int stepNumber);
-[Signal] public delegate void ResolutionPhaseStartedEventHandler(int turnsRemaining);
-[Signal] public delegate void BreachOccurredEventHandler(int severity);
+// FearActionDeck.cs — NEW
+[Signal] public delegate void FearActionQueuedEventHandler(FearActionData action);
+[Signal] public delegate void FearActionRevealedEventHandler(FearActionData action);
+[Signal] public delegate void DreadLevelAdvancedEventHandler(int newLevel);
 
-// GameState.cs
-[Signal] public delegate void WeaveChangedEventHandler(int newValue, int delta);
-[Signal] public delegate void FearChangedEventHandler(int newValue, int delta);
-[Signal] public delegate void FearThresholdReachedEventHandler(int threshold);
+// Territory — MODIFIED
+[Signal] public delegate void CorruptionPointsChangedEventHandler(Territory territory, int newPoints, int level);
+[Signal] public delegate void CorruptionLevelChangedEventHandler(Territory territory, int newLevel);
 
-// Card signals (on CardManager or EventBus)
-[Signal] public delegate void CardPlayedEventHandler(CardData card, TurnManager.TurnPhase phase);
-[Signal] public delegate void CardDissolvedEventHandler(CardData card, EncounterData.EncounterTier tier);
-[Signal] public delegate void CardPermanentlyRemovedEventHandler(CardData card);
+// NativeUnit — NEW
+[Signal] public delegate void NativeDefeatedEventHandler(NativeUnit native, Territory territory);
+[Signal] public delegate void NativeCounterAttackedEventHandler(NativeUnit native, InvaderUnit target, int damage);
 
-// Territory signals
-[Signal] public delegate void CorruptionChangedEventHandler(Territory territory, int newLevel);
-[Signal] public delegate void TerritoryDesecratedEventHandler(Territory territory);
-[Signal] public delegate void PresencePlacedEventHandler(Territory territory, Warden warden);
-
-// Invader signals
-[Signal] public delegate void InvaderSpawnedEventHandler(InvaderUnit unit, Territory territory);
-[Signal] public delegate void InvaderAdvancedEventHandler(InvaderUnit unit, Territory from, Territory to);
-[Signal] public delegate void InvaderRavagedEventHandler(InvaderUnit unit, Territory territory);
-[Signal] public delegate void InvaderDefeatedEventHandler(InvaderUnit unit);
+// CardEngine / TurnManager — MODIFIED
+// CardDissolved is now emitted when a bottom is played (not when explicit dissolve action)
+[Signal] public delegate void BottomPlayedEventHandler(CardData card, EncounterData.EncounterTier tier);
+// CardPermanentlyRemoved still emitted on Boss or double-dissolve (Root dormant)
 ```
 
-Emitting and connecting signals in C#:
-```csharp
-// Emit
-EmitSignal(SignalName.WeaveChanged, newValue, delta);
+### 11.4 Autoloads (Singletons)
 
-// Connect (lambda)
-gameState.WeaveChanged += (newValue, delta) => UpdateWeaveBar(newValue);
+- `GameState` — run state, Weave, Fear totals, Dread Level
+- `EventBus` — global signal relay
+- `ElementTracker` — NEW: current element pool, decay, threshold checking
+- `FearActionDeck` — NEW: fear action pool management, level tracking
 
-// Connect (method)
-gameState.WeaveChanged += OnWeaveChanged;
+### 11.5 Typography & Art Assets
+
+*(unchanged from v0.4 — see §9.5 in previous version)*
+
+**Card.tscn node structure (updated for elements + new anatomy):**
 ```
-
-### 9.4 Autoloads (Singletons)
-
-Registered in **Project > Project Settings > Autoload**. In C#, access them via:
-
-```csharp
-// Option A — direct node path (verbose but explicit)
-var gameState = GetNode<GameState>("/root/GameState");
-
-// Option B — static instance pattern (cleaner, set up in _Ready)
-// In GameState.cs:
-public static GameState Instance { get; private set; }
-public override void _Ready() => Instance = this;
-
-// Then anywhere:
-GameState.Instance.Weave -= 2;
-```
-
-**Autoload list:**
-- `GameState` — persists across scenes, holds full run state (Weave, Fear, deck, territories)
-- `EventBus` — global signal relay for signals that don't belong to one specific node
-
-### 9.5 Typography & Art Assets
-
-**Fonts** (already imported in `assets/fonts/`):
-
-| Font | Weight | Use |
-|---|---|---|
-| Cinzel | Bold | Card names, headings, phase indicator |
-| Cinzel | Regular / SemiBold | Secondary labels, UI chrome |
-| IM Fell English | Regular | Card effect descriptions (body text) |
-| IM Fell English | Italic | Dissolve text, flavour labels |
-
-Cinzel is unreadable below ~14px — never use it for dense body text. IM Fell English is the pairing for anything small.
-
-**Project Theme:** `assets/hollow_wardens_theme.tres` is registered as the custom theme in Project Settings. Set fonts and styles here once — do not override per-node except in exceptional cases.
-
-**Placeholder Art (Kenney — kenney.nl, free):**
-
-| Pack | Use |
-|---|---|
-| Card Kit | Card frame `PanelContainer` background (9-patch StyleBoxTexture) |
-| Hexagon Kit / Board Game Pack | Territory tile placeholders |
-| UI Pack (RPG or Space variant) | Buttons, bars, panel chrome |
-| Game Icons | Corruption pips, Fear counter icon, Weave bar icon |
-
-Files go in `assets/art/kenney/`. Import as-is; Godot auto-imports PNGs.
-
-**9-patch setup for card frames:**
-Select the Kenney card frame PNG → Inspector → Import tab → set **Repeat** to Disabled. Then in the node using it as a `StyleBoxTexture`, set the four margin values to match the border width of the PNG (e.g. 16px border → all margins = 16). This prevents corners from stretching.
-
-**Card.tscn node structure** (Phase 6 reference):
-
-```
-PanelContainer          ← Kenney card frame as StyleBoxTexture
+PanelContainer          ← Kenney card frame
 └── VBoxContainer
-    ├── Label           card name      — Cinzel-Bold, 16px
-    ├── TextureRect     card art       — placeholder ColorRect until art exists
+    ├── HBoxContainer   element icons      ← 1–3 small icons (16px each)
+    ├── Label           card name          — Cinzel-Bold, 16px
+    ├── TextureRect     card art           — placeholder ColorRect
     ├── HSeparator
-    ├── Label           vigil text     — Cinzel-Regular, 12px (or IM Fell English)
+    ├── Label           top text (vigil)   — IM Fell English, 12px
     ├── HSeparator
-    ├── Label           dusk text      — same
-    └── Label           dissolve text  — IM Fell English Italic, tertiary colour
+    └── Label           bottom text (dusk) — IM Fell English Italic + dissolve marker
 ```
 
-This scene is the first thing to build in Phase 6 — everything else (Hand display, reward screen) follows the same pattern.
-
-### 9.6 Card Data Authoring
-
-Card definitions live in two layers: **design data** (editable) and **Godot resources** (generated).
-
-```
-data/
-├── cards-root.tres          ← Root warden card definitions (source of truth)
-├── cards-ember.json         ← Ember (when created)
-└── cards-veil.json          ← Veil (when created)
-
-hollow_wardens/resources/cards/
-├── root/   root_001.tres … root_030.tres   ← auto-generated, do not edit
-├── ember/  (generated when ember JSON exists)
-└── veil/   (generated when veil JSON exists)
-
-cards-catalog.html           ← browsable card viewer (auto-updated)
-tools/generate-cards.py      ← migration script
-```
-
-**Rule: never edit `.tres` files by hand. Always edit `data/cards-{warden}.json` then run the script.**
-
-#### Card JSON schema
+### 11.6 Card Data Authoring (Revised Schema)
 
 ```json
 {
   "warden": "root",
-  "version": "1.0",
+  "version": "2.0",
   "cards": [
     {
-      "num":     "001",
-      "id":      "root_001",
-      "name":    "Card Name",
-      "cost":    0,
-      "vigil":   { "type": "ReduceCorruption", "value": 1, "range": 1, "desc": "..." },
-      "dusk":    { "type": "GenerateFear",     "value": 2, "range": 0, "desc": "..." },
-      "dissolve": null,
-      "design_note": "Balance notes and open questions."
+      "num": "001",
+      "id": "root_001",
+      "name": "Tendrils of Reclamation",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Root", "Mist"],
+      "top":    { "type": "ReduceCorruption", "value": 1, "range": 1, "desc": "Reduce Corruption by 1 point in range 1" },
+      "bottom": { "type": "ReduceCorruption", "value": 3, "range": 2, "desc": "Reduce Corruption by 3 points in range 2 and restore 1 Weave" },
+      "design_note": "Starter cleanse card. Top is safe and repeatable. Bottom is worth dissolving when a territory is close to Tainted and you need Weave back."
     }
   ]
 }
 ```
 
-- `"dissolve": null` → uses the engine default (PlacePresence 1, range bypasses check)
-- Custom dissolve overrides with any `EffectType` and specific value/range
-- `design_note` is display-only — shown in the catalog viewer, not written to .tres
+**Schema changes from v1.0:**
+- `"vigil"` → `"top"` (renamed)
+- `"dusk"` → `"bottom"` (renamed, this IS the dissolve action)
+- `"dissolve"` → **removed** (bottom IS the dissolve)
+- Added `"rarity"`: `"dormant"` | `"awakened"` | `"ancient"`
+- Added `"starting"`: `true` for starting deck cards, `false` for draft pool only
+- Added `"elements"`: array of element names (1–3)
 
-#### Running the migration
+**Valid EffectType strings (updated):**
 
-```bash
-python tools/generate-cards.py           # regenerate ALL wardens
-python tools/generate-cards.py root      # regenerate root only
-python tools/generate-cards.py root ember  # explicit list
-```
+| String | Notes |
+|---|---|
+| `PlacePresence` | Requires target territory, range applies |
+| `MovePresence` | Stubbed Phase 5 |
+| `GenerateFear` | No target needed |
+| `ReduceCorruption` | Value = corruption POINTS removed |
+| `Purify` | Remove one full corruption level |
+| `DamageInvaders` | Requires target territory, range applies |
+| `PushInvaders` | Push invaders toward spawn |
+| `RoutInvaders` | Stubbed Phase 5 |
+| `RestoreWeave` | No target needed |
+| `PredictTide` | Show next Tide spawns — stubbed |
+| `Conditional` | Requires EffectCondition |
+| `Custom` | Warden-specific |
+| `AwakeDormant` | Root only. Value=0 = all dormant. |
+| `DamageNatives` | NEW — invader side only |
+| `ShieldNatives` | NEW — protect natives in range |
+| `BoostNatives` | NEW — increase native damage this turn |
+| `HealNatives` | NEW — restore HP to natives in range |
+| `WeakenInvaders` | NEW — reduce invader damage/action power |
+| `SlowInvaders` | NEW — reduce invader movement |
+| `ExposeInvaders` | NEW — invaders take increased damage |
+| `BrittleInvaders` | NEW — reduce invader Shield value |
 
-This rewrites all `.tres` files and updates the embedded JSON in `cards-catalog.html`.
-Open `cards-catalog.html` in any browser to review cards (works offline, no server needed).
+### 11.7 Seeded Randomness & Action Log
 
-#### Adding a new Warden's cards
+All randomness in an encounter flows through a single **`GameRandom`** instance seeded at encounter start. The seed is logged alongside the action log and is exportable for replay.
 
-1. Create `data/cards-{warden}.json` (copy root as template, change `"warden"` field)
-2. Run `python tools/generate-cards.py {warden}`
-3. New `.tres` files appear in `hollow_wardens/resources/cards/{warden}/`
-4. Catalog HTML gains a warden filter entry for the new warden
+**Seed:** A single integer, set when the encounter begins. All RNG calls (wave composition, cadence draws, rest-dissolve selection) use this shared instance. Same seed + same actions = identical game state.
 
-#### Valid `EffectType` strings
+**Action Log:** Every player action is recorded with:
+- Turn number and phase (Vigil / Dusk)
+- Action type (PlayTop, PlayBottom, Rest, Confirm)
+- Card ID (where applicable)
+- Target territory (where applicable)
 
-| String | Enum | Notes |
-|---|---|---|
-| `PlacePresence` | 0 | Requires target territory, range applies |
-| `MovePresence` | 1 | Requires target territory, range applies |
-| `GenerateFear` | 2 | No target needed |
-| `ReduceCorruption` | 3 | Requires target territory, range applies |
-| `Purify` | 4 | Requires target territory |
-| `DamageInvaders` | 5 | Requires target territory, range applies |
-| `PushInvaders` | 6 | Requires target territory |
-| `RoutInvaders` | 7 | Requires target territory — **stubbed, Phase 6** |
-| `RestoreWeave` | 8 | No target needed |
-| `PredictTide` | 9 | No target needed — **stubbed** |
-| `Conditional` | 10 | Threshold/if-then — needs EffectCondition |
-| `Custom` | 11 | Warden-specific, resolved in Warden subclass |
-| `AwakeDormant` | 12 | Root only. Value=0 means all dormant cards. |
+The log is exportable as a compact string: `seed:actions`. This string fully describes the game state from encounter start — sufficient for bug reporting and future undo support (truncate log to N entries, replay from seed).
+
+**Export:** Press **P** to print the full seed + action sequence to the output console.
+
+**Future: Undo support.** The action log is the foundation. Undo = truncate the log by 1 entry, replay from seed. Not V1 scope, but the architecture supports it.
+
+### 11.8 Debug Overlay
+
+A toggleable full-screen event log for playtesting. Press **D** to show/hide.
+
+**Logged events (color-coded by type):**
+- Card plays (top and bottom)
+- Element changes and threshold triggers
+- Fear generation and Fear Action reveals
+- Tide steps (Activate, Advance, Arrive, Escalate)
+- Combat: invader damage to Natives, Native counter-attacks
+- Territory Corruption changes
+- Targeting mode entered/resolved
+
+**Display:** Maximum 200 entries, auto-scrolling to the latest. Events are color-coded so the designer can visually distinguish card play, combat, element activity, and system events at a glance.
+
+**Purpose:** Playtest debugging and design validation. Lets the designer see exactly what the system is doing on each step — essential for verifying that damage models, tide ramp-up, and threshold resolution are behaving as intended.
 
 ---
 
-## 10. Class Definitions
+## 12. Class Definitions
 
-### CardData (Resource)
+### CardData (Resource) — MODIFIED
 ```csharp
-// CardData.cs — define card definitions as .tres resources in Godot editor
-using Godot;
-
 [GlobalClass]
 public partial class CardData : Resource
 {
     [Export] public string Id { get; set; }
     [Export] public string CardName { get; set; }
-    [Export] public string WardenId { get; set; }    // "root", "ember", "veil", "" (shared)
-    [Export] public CardEffect VigilEffect { get; set; }    // Top action
-    [Export] public CardEffect DuskEffect { get; set; }     // Bottom action
-    [Export] public CardEffect DissolveEffect { get; set; } // Default: place presence bypassing range
-    [Export] public int Cost { get; set; }                  // Used for Ember's Fear pulse on dissolve
-    [Export] public bool IsDormant { get; set; } = false;   // Root-specific state
+    [Export] public string WardenId { get; set; }
+    [Export] public CardEffect TopEffect { get; set; }      // Vigil — goes to discard
+    [Export] public CardEffect BottomEffect { get; set; }   // Dusk — dissolves when played
+    [Export] public Element[] Elements { get; set; }        // 1–3 elements
+    [Export] public CardRarity Rarity { get; set; }
+    [Export] public bool IsStartingCard { get; set; }
+    [Export] public bool IsDormant { get; set; } = false;   // Root runtime state
     [Export] public Texture2D ArtTexture { get; set; }
+    // Localization keys
+    [Export] public string CardNameKey { get; set; }
+    [Export] public string TopDescKey { get; set; }
+    [Export] public string BottomDescKey { get; set; }
 }
+
+public enum CardRarity { Dormant, Awakened, Ancient }
+public enum Element { Root, Mist, Shadow, Ash, Gale, Void }
 ```
 
-### CardEffect (Resource)
+### ElementTracker (Singleton) — NEW
 ```csharp
-// CardEffect.cs
-using Godot;
-
-[GlobalClass]
-public partial class CardEffect : Resource
+public partial class ElementTracker : Node
 {
-    public enum EffectType
+    public static ElementTracker Instance { get; private set; }
+
+    private Dictionary<Element, int> _pool = new();
+
+    [Signal] public delegate void ElementThresholdReachedEventHandler(Element element, int threshold);
+    [Signal] public delegate void ElementsDecayedEventHandler();
+
+    public void AddElements(Element[] elements, int multiplier = 1)
     {
-        PlacePresence, MovePresence,
-        GenerateFear,
-        ReduceCorruption, Purify,
-        DamageInvaders, PushInvaders, RoutInvaders,
-        RestoreWeave,
-        PredictTide,
-        Conditional,    // Threshold/if-then effects — needs EffectCondition
-        Custom          // Warden-specific, resolved in Warden subclass
-    }
-
-    [Export] public EffectType Type { get; set; }
-    [Export] public int Value { get; set; }
-    [Export] public int Range { get; set; }             // Territory steps from nearest Presence
-    [Export] public EffectCondition Condition { get; set; } // Optional, for Dusk threshold effects
-    [Export] public string Description { get; set; }
-}
-```
-
-### EncounterData (Resource)
-```csharp
-// EncounterData.cs
-using Godot;
-using Godot.Collections;
-
-[GlobalClass]
-public partial class EncounterData : Resource
-{
-    public enum EncounterTier { Standard, Elite, Boss }
-
-    [Export] public string Id { get; set; }
-    [Export] public EncounterTier Tier { get; set; }
-    [Export] public InvaderData Faction { get; set; }
-    [Export] public int TideSteps { get; set; }         // Total Tide steps before Resolution
-    [Export] public int ResolutionTurns { get; set; }   // Max Resolution turns allowed
-    [Export] public Array<SpawnEvent> SpawnPattern { get; set; }
-    [Export] public Array<EscalateEvent> EscalationSchedule { get; set; }
-    [Export] public bool IsEclipse { get; set; } = false;
-    [Export] public Dictionary StartingCorruption { get; set; } // territoryId → corruptionLevel
-}
-```
-
-### TerritoryState
-```csharp
-// TerritoryState.cs — plain C# class, not a Godot Resource (lives in GameState)
-using System.Collections.Generic;
-
-public class TerritoryState
-{
-    public string Id { get; set; }
-    public int Corruption { get; set; } = 0;       // 0–3
-    public int PresenceCount { get; set; } = 0;
-    public List<InvaderUnit> InvaderUnits { get; set; } = new();
-    public bool IsSacredSite { get; set; } = false;
-    public bool IsEntryPoint { get; set; } = false;
-
-    public bool IsDefended => PresenceCount > 0;
-
-    public void Ravage()
-    {
-        Corruption = Math.Min(Corruption + 1, 3);
-        // GameState.Instance will emit CorruptionChanged signal
-    }
-}
-```
-
-### Warden (Base Class)
-```csharp
-// Warden.cs
-using Godot;
-using System.Collections.Generic;
-
-public partial class Warden : Node
-{
-    [Export] public WardenData WardenData { get; set; }
-
-    public Hand Hand { get; protected set; }
-    public Deck Deck { get; protected set; }
-    public List<CardData> Discard { get; } = new();
-    public List<CardData> DissolvedThisEncounter { get; } = new();
-    public List<CardData> PermanentlyRemoved { get; } = new();
-
-    // Override in subclasses for Warden-specific Dissolution behavior
-    public virtual void OnDissolve(CardData card) { }
-
-    // Called at start of Resolution phase — override for Warden-specific resolution style
-    public virtual void OnResolutionStart(List<TerritoryState> territories) { }
-
-    // Override to apply passive presence bonuses (e.g. Root's network Fear)
-    public virtual Dictionary<string, int> GetPresenceBonus(TerritoryState territory)
-        => new();
-}
-```
-
-### GameState (Singleton / Autoload)
-```csharp
-// GameState.cs
-using Godot;
-using System.Collections.Generic;
-
-public partial class GameState : Node
-{
-    public static GameState Instance { get; private set; }
-
-    // Run-level state
-    public int Weave { get; private set; } = 20;
-    public int Fear { get; private set; } = 0;
-    public int RunTurn { get; private set; } = 0;
-    public int CurrentRealm { get; private set; } = 1;
-    public Warden CurrentWarden { get; set; }
-    public Dictionary<string, TerritoryState> Territories { get; } = new();
-    public List<InvaderUnit> ActiveInvaders { get; } = new();
-
-    // Encounter-level state
-    public EncounterData.EncounterTier EncounterTier { get; set; }
-    public int TideStep { get; set; } = 0;
-    public int BreachCount { get; set; } = 0;
-
-    // Signals
-    [Signal] public delegate void WeaveChangedEventHandler(int newValue, int delta);
-    [Signal] public delegate void FearChangedEventHandler(int newValue, int delta);
-    [Signal] public delegate void FearThresholdReachedEventHandler(int threshold);
-
-    public override void _Ready() => Instance = this;
-
-    public void ModifyWeave(int delta)
-    {
-        Weave = Math.Max(0, Weave + delta);
-        EmitSignal(SignalName.WeaveChanged, Weave, delta);
-    }
-
-    public void ModifyFear(int delta)
-    {
-        Fear += delta;
-        EmitSignal(SignalName.FearChanged, Fear, delta);
-        CheckFearThresholds();
-    }
-
-    private void CheckFearThresholds()
-    {
-        foreach (int threshold in new[] { 5, 12, 20 })
+        foreach (var e in elements)
         {
-            if (Fear >= threshold)
-            {
-                EmitSignal(SignalName.FearThresholdReached, threshold);
-                Fear -= threshold; // Reset after threshold hit
-                break;
-            }
+            _pool[e] = _pool.GetValueOrDefault(e) + multiplier;
+            CheckThresholds(e);
         }
     }
 
-    public TerritoryState GetTerritory(string id) => Territories[id];
-    public bool IsRunOver() => Weave <= 0;
-}
-```
-
-### TurnManager
-```csharp
-// TurnManager.cs
-using Godot;
-
-public partial class TurnManager : Node
-{
-    public enum TurnPhase { Vigil, Tide, Dusk, Resolution }
-
-    [Signal] public delegate void PhaseChangedEventHandler(TurnPhase phase);
-    [Signal] public delegate void TurnStartedEventHandler(int turnNumber);
-    [Signal] public delegate void TurnEndedEventHandler(int turnNumber);
-
-    public TurnPhase CurrentPhase { get; private set; }
-    public int CardsPlayedVigil { get; private set; } = 0;
-    public int CardsPlayedDusk { get; private set; } = 0;
-    public bool IsEclipse { get; set; } = false;
-
-    public int VigilLimit => IsEclipse ? 1 : 2;  // Eclipse flips the ratio
-    public int DuskLimit => IsEclipse ? 2 : 1;
-
-    public void StartTurn() { /* ... */ }
-    public void EndVigil() { /* transition to Tide */ }
-    public void EndTide() { /* transition to Dusk */ }
-    public void EndDusk() { /* transition to next Vigil or Resolution */ }
-
-    public bool CanPlayCard(TurnPhase phase) =>
-        phase == TurnPhase.Vigil
-            ? CardsPlayedVigil < VigilLimit
-            : CardsPlayedDusk < DuskLimit;
-
-    public void PlayerRest()
+    public void DecayAtTurnEnd()
     {
-        // Skip turn — recover discard, Tide still runs
-        GameState.Instance.CurrentWarden.RecoverDiscard();
+        foreach (var key in _pool.Keys.ToList())
+            _pool[key] = _pool[key] / 2; // halve, round down
+        EmitSignal(SignalName.ElementsDecayed);
+    }
+
+    private void CheckThresholds(Element e)
+    {
+        int val = _pool.GetValueOrDefault(e);
+        foreach (int threshold in new[] { 2, 3, 5 })
+            if (val == threshold)
+                EmitSignal(SignalName.ElementThresholdReached, (int)e, threshold);
     }
 }
 ```
 
-### TideExecutor
+### TerritoryState — MODIFIED
 ```csharp
-// TideExecutor.cs
-using Godot;
-using System.Threading.Tasks;
-
-public partial class TideExecutor : Node
+public class TerritoryState
 {
-    public EncounterData EncounterData { get; set; }
-
-    [Signal] public delegate void TideStepCompletedEventHandler(int step);
-
-    public async Task ExecuteTideStep(int step)
+    public string Id { get; set; }
+    public int CorruptionPoints { get; set; } = 0;  // Raw points
+    public int CorruptionLevel => CorruptionPoints switch
     {
-        await SpawnPhase(step);
-        await AdvancePhase();
-        await RavagePhase();
-        await EscalatePhase(step);
-        EmitSignal(SignalName.TideStepCompleted, step);
+        < 3 => 0,                    // Clean
+        < 8 => 1,                    // Tainted (3–7 pts)
+        < 15 => 2,                   // Defiled (8–14 pts)
+        _ => 3                       // Desecrated (15+ pts)
+    };
+    public int PresenceCount { get; set; } = 0;
+    public List<InvaderUnit> InvaderUnits { get; set; } = new();
+    public List<NativeUnit> NativeUnits { get; set; } = new();      // NEW
+    public List<BoardToken> Tokens { get; set; } = new();           // NEW
+    public bool IsSacredSite { get; set; } = false;
+    public bool IsEntryPoint { get; set; } = false;
+    public bool IsDefended => PresenceCount > 0;
+
+    public void AddCorruption(int points) { CorruptionPoints += points; }
+    public void ReduceCorruption(int points) { CorruptionPoints = Math.Max(0, CorruptionPoints - points); }
+    public void PurifyLevel() { /* drop one full level */ }
+}
+```
+
+### NativeUnit — NEW
+```csharp
+public partial class NativeUnit : Node
+{
+    public int MaxHp { get; set; } = 2;
+    public int CurrentHp { get; set; }
+    public int Damage { get; set; } = 3;
+    public bool IsShielded { get; set; } = false;
+    public int ShieldValue { get; set; } = 0;
+
+    [Signal] public delegate void NativeDefeatedEventHandler();
+
+    public void TakeDamage(int amount)
+    {
+        CurrentHp -= amount;
+        if (CurrentHp <= 0) EmitSignal(SignalName.NativeDefeated);
     }
 
-    private async Task SpawnPhase(int step) { /* spawn per pattern */ await Task.CompletedTask; }
-    private async Task AdvancePhase() { /* pathfind toward Presence/Sacred Sites */ await Task.CompletedTask; }
-    private async Task RavagePhase() { /* check defended, apply Corruption + Weave damage */ await Task.CompletedTask; }
-    private async Task EscalatePhase(int step) { /* check escalation schedule */ await Task.CompletedTask; }
+    public int CounterAttack() => CurrentHp > 0 ? Damage : 0;
+}
+```
+
+### FearActionDeck — NEW
+```csharp
+public partial class FearActionDeck : Node
+{
+    public static FearActionDeck Instance { get; private set; }
+
+    public int DreadLevel { get; private set; } = 1;
+    public int TotalFearGenerated { get; private set; } = 0;
+
+    private List<FearActionData>[] _levelPools;  // indexed by DreadLevel - 1
+    private Queue<FearActionData> _revealQueue = new();
+
+    [Signal] public delegate void FearActionQueuedEventHandler(FearActionData action);
+    [Signal] public delegate void FearActionRevealedEventHandler(FearActionData action);
+    [Signal] public delegate void DreadLevelAdvancedEventHandler(int newLevel);
+
+    public void OnFearGenerated(int amount)
+    {
+        TotalFearGenerated += amount;
+        CheckLevelAdvance();
+        // Every 5 fear spent → queue an action
+    }
+
+    public void RevealQueuedActions()  // called at start of Tide, before Spawn
+    {
+        while (_revealQueue.Count > 0)
+        {
+            var action = _revealQueue.Dequeue();
+            EmitSignal(SignalName.FearActionRevealed, action);
+            // Execute action
+        }
+    }
+
+    private void CheckLevelAdvance()
+    {
+        int newLevel = TotalFearGenerated / 15 + 1;
+        if (newLevel > DreadLevel && newLevel <= 4)
+        {
+            DreadLevel = newLevel;
+            EmitSignal(SignalName.DreadLevelAdvanced, DreadLevel);
+        }
+    }
+}
+```
+
+### TerritoryGraph — MODIFIED (Pyramid)
+```csharp
+public static class TerritoryGraph
+{
+    // V1: 3-2-1 pyramid
+    private static readonly Dictionary<string, List<string>> _adjacency = new()
+    {
+        ["A1"] = new() { "A2", "M1" },
+        ["A2"] = new() { "A1", "A3", "M1", "M2" },
+        ["A3"] = new() { "A2", "M2" },
+        ["M1"] = new() { "A1", "A2", "M2", "I1" },
+        ["M2"] = new() { "A2", "A3", "M1", "I1" },
+        ["I1"] = new() { "M1", "M2" },  // Can attack Heart from here
+    };
+
+    public static IReadOnlyList<string> GetNeighbors(string territoryId)
+        => _adjacency.TryGetValue(territoryId, out var neighbors) ? neighbors : Array.Empty<string>();
+
+    public static bool IsAdjacent(string a, string b)
+        => _adjacency.TryGetValue(a, out var n) && n.Contains(b);
+
+    public static bool CanAttackHeart(string territoryId) => territoryId == "I1";
 }
 ```
 
 ---
 
-## 11. V1 Scope & Build Order
+## 13. V1 Scope & Build Order
 
 ### V1 Target
-One Warden (The Root), 30 cards, 3-encounter Realm (2 standard + 1 boss), The Pale March only, no meta-progression. Core loop must feel good before expanding.
+One Warden (The Root), 10-card starting deck + 18-card draft pool, 3-2-1 pyramid territory layout, The Pale March only, no meta-progression. Core loop must feel good before expanding.
 
 ### Build Order
 
-**Phase 1 — Data Layer** ✅ Complete (41 tests)
-- [x] CardData, CardEffect, EffectCondition resources
-- [x] EncounterData, SpawnEvent, EscalateEvent resources
-- [x] TerritoryState model
-- [x] InvaderData for Pale March
-- [x] WardenData for The Root
-- [x] GameState singleton (weave, fear, territories)
-- [x] EventBus autoload
-- [x] Deck, Hand entity classes
-- [x] Headless test runner (`scenes/tests/TestRunner.tscn`)
-
-**Phase 2 — Turn Engine** ✅ Complete
-- [x] TurnManager with phase sequencing
-- [x] TideExecutor (spawn, advance, ravage)
-- [x] Territory grid (hardcoded 3×3, 9 territories, TerritoryGraph)
-- [x] Corruption system
-- [x] Weave drain and Fear counter
-
-**Phase 3 — Card Engine** ✅ Complete
-- [x] CardEngine: TryPlayCard with phase limits
-- [x] Effect resolution (PlacePresence, GenerateFear, ReduceCorruption, DamageInvaders, RestoreWeave)
-- [x] Dissolution logic (route to DissolvedThisEncounter or PermanentlyRemoved per tier)
-- [x] Rest mechanic (TurnManager.PlayerRest)
-
-**Phase 4 — Encounter Loop** ✅ Complete
-- [x] EncounterManager (start, run Tide steps, Resolution, end)
-- [x] Resolution turn logic
-- [x] Breach detection
-- [x] Reward tier evaluation (Clean / Weathered / Breach)
-- [x] Encounter-end state cleanup (dissolved cards per tier: Standard/Elite/Boss)
-
+**Phase 1 — Data Layer** ✅ Complete  
+**Phase 2 — Turn Engine** ✅ Complete  
+**Phase 3 — Card Engine** ✅ Complete  
+**Phase 4 — Encounter Loop** ✅ Complete  
 **Phase 5 — Root Warden** ✅ Complete (111/111 tests)
-- [x] AwakeDormant effect type (CardEffect.EffectType = 12)
-- [x] Dormancy Dissolution (OnDissolve override — first dissolve = dormant, second = permanent)
-- [x] Network Fear (OnTideStart — adjacency passive)
-- [x] Assimilation Resolution style (OnResolutionStart)
-- [x] 30 starting cards as .tres resources (generated from data/cards-root.json)
-- [x] Card data tooling: data/ folder + tools/generate-cards.py + cards-catalog.html
 
-**Phase 6 — UI (Functional, Not Pretty)**
-- [ ] `Card.tscn` — PanelContainer with VBox (see §9.5 for node structure + font spec)
-- [ ] Hand display (cards visible, playable)
-- [ ] Territory grid display (Corruption state, Presence, Invaders)
-- [ ] Weave bar + Fear counter
-- [ ] Tide preview (next step's spawn pattern)
-- [ ] Phase indicator (Vigil / Tide / Dusk)
+**Phase 5.5 — Architecture Migration** ✅ Complete
+- [x] Update `CardData.cs`: add `Element[]`, `CardRarity`, `IsStartingCard`; rename `DuskEffect` → `BottomEffect`; remove `DissolveEffect`
+- [x] Update `CardEffect.cs`: add new EffectType values (native interactions, status effects, element threshold effects)
+- [x] Update `TurnManager.cs`: refill draw model (draw to hand limit each Vigil); bottom play = dissolve; rest-dissolve (remove 1 random card per Rest)
+- [x] Replace `TerritoryGraph` with pyramid (3-2-1)
+- [x] Update `TerritoryState`: `CorruptionPoints` + level thresholds (3/8/15)
+- [x] Add `ElementTracker` singleton: 6 elements, reduce-by-1 decay, threshold checks at 4/7/11, once-per-tier-per-turn triggering, phase-flexible resolution
+- [x] Add `NativeUnit` entity
+- [x] Add `FearActionDeck` singleton + `FearActionData` resource
+- [x] Add `BoardToken` abstract base
+- [x] Add `InvaderActionCard` resource (pool tag, activate effect, advance modifier)
+- [x] Add `CadenceManager` (rule-based: max_painful_streak + easy_frequency, with hand-authored pattern override)
+- [x] Add `SpawnWaveOption` (weighted composition arrays per wave)
+- [x] Add 4 Pale March unit-type subclasses: Marcher, Ironclad, Outrider, Pioneer
+- [x] Rewrite `TideExecutor`: Fear Actions → Activate → Natives counter-attack → Advance → Arrive → Escalate → Preview
+- [x] Rewrite Root cards JSON (v2.0 schema, 10 starting + 18 draft — move 2 cards from starting to draft)
+- [x] Update `generate-cards.py` for new schema
+- [x] Update test suite (many existing tests will need rewriting — see CLAUDE-migration.md)
+
+**Phase 6 — UI (Functional, Not Pretty)** ← CURRENT
+- [ ] `Card.tscn` — updated node structure (element icons + top/bottom labels)
+- [ ] Hand display
+- [ ] Territory grid display (pyramid layout)
+- [ ] Element tracker HUD (6 element counters)
+- [ ] Weave bar + Fear counter + Dread Level indicator
+- [ ] Tide preview
+- [ ] Phase indicator
+- [ ] Fear action reveal animation (hidden → revealed at Tide start)
 - [ ] Reward screen
-- Note: fonts and theme already in place (see §9.5); Kenney placeholders go in `assets/art/kenney/`
 
 **Phase 7 — First Playtest**
-- Run through 3 encounters with The Root
-- Identify broken balance, missing feedback, unclear rules
-- Iterate before building more content
+Run through 3 encounters with The Root. Validate:
+- Is bottom-as-dissolve creating real decisions?
+- Are element thresholds triggering often enough to matter?
+- Is the pyramid map creating interesting spatial decisions?
+- Is Native counter-attack meaningful?
+- Does the refill model create visible deck depletion and natural Rest timing?
+- Does rest-dissolve feel like a fair tax or too punishing?
+- Is 10 cards the right starting deck size for 4 play turns before Rest?
+- Does the two-pool action cadence create the right pain/relief rhythm?
+- Are unit-type modifiers readable at a glance?
 
 ---
 
-## 12. Open Design Questions
+## 14. Open Design Questions
 
-Issues to resolve through playtesting or further design discussion:
+1. ~~**Element threshold effects**~~ — **RESOLVED (D20).** Universal thresholds at 4/7/11. See §6.3 for full table.
 
-1. **Invader group vs. individual targeting** — Do cards target single invader units, or invader groups per territory? Likely per-territory for simplicity, but individual targeting creates more interesting decisions. Start per-territory, revisit.
+2. ~~**Resolution turn count**~~ — **RESOLVED.** Standard: 2 turns. Elite: 3 turns. Boss: 1 turn. See §3.2.
 
-2. **Resolution turn count** — 2–3 turns currently estimated. Needs playtesting to feel neither too generous (always clean) nor too punishing (always breach).
+3. ~~**Corruption persistence**~~ — **CONFIRMED.** Level 2 persists as 3 points (Level 1) at next encounter start. Territory is fragile — one Ravage pushes to 5, two Ravages to 7 (one point from Defiled again). Intended as a scar, not a death sentence.
 
-3. **Presence placement rules** — What defines "range"? Number of territory steps from nearest Presence token. Needs a concrete number for V1. Starting proposal: range = 1 (adjacent territories only) without card/Aspect upgrades.
+4. ~~**Bottom budget feel**~~ — **RESOLVED (D22).** Refill draw model (draw to hand limit each turn, not draw-5). Starting deck 10 cards (down from 12). Rest-dissolve removes 1 random card per Rest (encounter-only on Standard/Elite, permanent on Boss). Self-balances against frontloading: more bottoms = faster deck depletion = earlier Rest = more rest-dissolve tax. See §2.3, §2.4, §10.2.
 
-4. **Territory grid shape** — V1 uses a hardcoded 9-territory grid. Shape (linear, branching, hub-and-spoke) significantly affects play feel. Decision deferred until Phase 2.
+5. ~~**Fear Action reveal UX**~~ — **RESOLVED.** Face-down cards in Tide queue area, flip face-up one at a time at Tide start. Dread track displayed as a bar with threshold markers at 15/30/45 showing progress to next Dread Level. See §4.6.
 
-5. **Elite dissolution reveal** — The moment of "this card is permanently removed" needs UX design. Too abrupt = frustrating. Too telegraphed = removes the tension. Options: audio sting + special animation at reward screen; or a "Devoured" trait visible on the Elite before encounter starts (knowing the risk, not the outcome).
+6. ~~**Native spawn count**~~ — **RESOLVED (D23).** Default: 0–1 on A-row, 2 on M/I-row (~6 total). Overridable per encounter via EncounterData. Between-encounter events can also modify Native counts. See §7.3.
 
-6. **Fear reset mechanics** — Does Fear reset to 0 after each threshold, or accumulate? Current design: resets after each threshold trigger. Means hitting threshold 1 five times is better than hitting threshold 3 once. May create perverse incentives. Review after first playtest.
+7. ~~**Invader activate action deck**~~ — **RESOLVED (D21).** Two-pool system (Painful/Easy) with rule-based cadence, unit-type modifiers, randomized wave composition. See §4.4 and §4.7.
 
-7. **Pale March passive Weave drain** — How much? Current proposal: 1 Weave per turn per 3+ Pale March units on the board simultaneously. Needs tuning.
+8. ~~**Element decay rate**~~ — **RESOLVED (D20).** Reduce by 1 per turn (not halving). Creates engine-building: consistent element play builds a rising floor. See §6.4 for model and math.
 
-8. **Deck size vs. hand size vs. encounter length** — With 30-card starting deck, hand of 7, and 3 cards/turn: players rest every 2 play turns (~33% rest rate). Boss fights at 12–13 turns consume ~24–27 cards total — almost the full deck. Questions to resolve through playtesting:
-   - Does 30 feel too many cards to absorb for a new player? Should starting deck be smaller (12–15)?
-   - Is 33% rest rate correct? Does the invader pacing need to account for rest turns being "free" damage turns for the board?
-   - With max hand 10 (post-reward), rests drop to 25% of turns — does this power curve feel right for a boss fight?
+9. ~~**Fear Level vs Fear actions**~~ — **RESOLVED.** Renamed to **Dread Level** (Dread 1–4). Fear = the resource you generate and spend. Dread = the escalation track (total Fear generated, advances every 15). When Dread advances, all queued Fear Actions retroactively upgrade to the new pool. See §4.6.
 
-9. **Card variety / anti-stagnation** — Risk: players always play the same top 2 + bottom regardless of situation (optimal rotation found early, no reason to deviate). Potential mitigations:
-   - Situational cards that are bad unless triggered (e.g., fear-threshold cards, adjacency-required damage)
-   - Hand diversity via draw mechanics (draw N, keep M — but loses stamina/rest feel)
-   - Forced dormancy as a stamina substitute: instead of resting, one card in hand becomes Dormant (Root-specific? or general mechanic?) — costs playable cards without full rest, keeps Tide active
-   - Deck thinning pressure: the deck naturally narrows via dissolution — old stagnant cards leave, new cards from rewards add variety
-
-10. **Invader action speed relative to rest turns** — If players rest every 3rd turn, invaders act uncontested that often. Does The Tide need a slower cadence for Standard encounters, or is uncontested Tide damage the natural punishment for resting? Consider: Tide acts only on turns 2, 4, 6... (every other turn) in Standard; every turn in Elite/Boss.
-
-11. **Fear and Corruption interaction** — *[To address in next session]* How do Fear thresholds interact with Corruption ticks? Can Fear generation outpace Corruption spread? What happens when both hit critical values simultaneously?
+10. ~~**Invader action preview**~~ — **RESOLVED (D21).** Action card revealed at end of previous Tide (alongside arrival locations). Player enters Vigil with full action knowledge. Arrival unit composition remains hidden until Arrive step. See §4.4 preview timing.
 
 ---
 
-## 13. Localization System
+## 15. Localization System
 
-### Architecture
+*(unchanged from v0.4 — schema same, new keys needed for elements, natives, fear actions)*
 
-`CardData`, `WardenData`, `InvaderData`, `CardEffect`, `EffectCondition`, and `EscalateEvent` are all `Resource` subclasses (not `Node`). Resources cannot call `Tr()`. The convention is:
-
-- **Resources store translation keys** — e.g. `CardNameKey = "CARD_ROOT_001_NAME"`
-- **UI Nodes do the lookup** — `label.Text = Tr(card.CardNameKey)` at display time
-- `TranslationServer.Translate("KEY")` is available as a static fallback where needed
-
-All player-visible strings MUST go through this system. No hardcoded text on any Label.
-
-### Key naming convention
-
+New key patterns:
 ```
-CARD_{WARDEN}_{NUM}_NAME          — card name
-CARD_{WARDEN}_{NUM}_VIGIL_DESC    — vigil effect description
-CARD_{WARDEN}_{NUM}_DUSK_DESC     — dusk effect description
-CARD_{WARDEN}_{NUM}_DISSOLVE_DESC — dissolve effect description (only when non-default)
-
-WARDEN_{ID}_NAME / _ARCHETYPE / _DISSOLVE_DESC / _RESOLUTION_DESC
-INVADER_{ID}_NAME / _DREAD_DESC
-ESCALATE_{FACTION}_{NUM}_DESC
-
-UI_PHASE_VIGIL / TIDE / DUSK / RESOLUTION
-UI_HUD_WEAVE / FEAR / TURN
-UI_ACTION_CONFIRM / CANCEL / REST / END_PHASE / INFO
-UI_TIER_STANDARD / ELITE / BOSS
-UI_REWARD_CLEAN / WEATHERED / BREACH
-UI_MENU_START / SETTINGS / QUIT
-UI_TERRITORY_E1 .. UI_TERRITORY_SS  (9 territory labels)
+ELEMENT_ROOT / MIST / SHADOW / ASH / GALE / VOID
+ELEMENT_THRESHOLD_{ELEMENT}_{N}   — e.g. ELEMENT_THRESHOLD_ROOT_2
+NATIVE_COUNTER_ATTACK
+NATIVE_DEFEATED
+DREAD_LEVEL_{N}
+FEAR_ACTION_{ID}_DESC
+INVADER_ACTION_{FACTION}_{NUM}_DESC
 ```
 
-Rule: ALL_CAPS, underscores only. Card keys are derived deterministically from `warden_id + num` by the generation script.
-
-### CSV file
-
-`hollow_wardens/locale/translations.csv` — registered in `project.godot` under `[internationalization]`. Godot auto-imports `.csv` → `.translation`.
-
-- First row: `keys,en` (header)
-- Hand-authored UI strings come first
-- Card strings are auto-generated in a sentinel block: `# BEGIN CARDS DATA` / `# END CARDS DATA`
-- Run `python tools/generate-cards.py` to regenerate the card block
-
-### Adding a new language
-
-1. Add a new column to `translations.csv`: `keys,en,fr`
-2. Fill in translated values for each row
-3. Re-import in the Godot editor (or run `godot --headless --import`)
-4. The game will auto-detect the OS locale or allow manual override via `TranslationServer.SetLocale()`
-
-### Card pipeline integration
-
-`generate-cards.py` derives translation keys from `warden_id` + `card["num"]`, populates `CardNameKey` and `DescriptionKey` in `.tres` files, and regenerates the card block in `translations.csv` from `card["name"]` and `card["vigil/dusk/dissolve"]["desc"]` fields. The JSON source of truth is never modified.
-
 ---
 
-## 14. Input Actions
+## 16. Input Actions
 
-### Action vocabulary (9 actions)
+*(unchanged from v0.4)*
 
-| Action | Purpose | Keyboard | Controller |
-|--------|---------|----------|-----------|
-| `ui_navigate_left` | Prev card / focus left | Left arrow | D-pad Left / L-stick |
-| `ui_navigate_right` | Next card / focus right | Right arrow | D-pad Right / L-stick |
-| `ui_navigate_up` | Territory / menu up | Up arrow | D-pad Up / L-stick |
-| `ui_navigate_down` | Territory / menu down | Down arrow | D-pad Down / L-stick |
-| `game_confirm` | Select card / confirm target | Enter / Z | A / Cross |
-| `game_cancel` | Deselect / back | Escape / X | B / Circle |
-| `game_rest` | Pass turn / recover discard | R | Y / Triangle |
-| `game_end_phase` | End Vigil or Dusk | Space | X / Square |
-| `game_toggle_info` | Card/territory detail overlay | Tab / I | LB / L1 |
-
-Custom actions (not reusing Godot's built-in `ui_left` etc.) so game navigation in HandView and TerritoryMapView can be handled independently of Control focus navigation.
-
-### Territory grid navigation
-
-The 3×3 territory grid maps directly to D-pad:
-- `ui_navigate_up/down` — move between rows (E-row → M-row → S-row)
-- `ui_navigate_left/right` — move within row (col 1 → col 2 → col 3)
-- `game_confirm` — select the focused territory
-
-### Phase 6 UI contracts
-
-These rules are enforced during Phase 6 implementation:
-
-- All interactive Controls: `FocusMode = All`
-- HandView: consume `ui_navigate_left/right` to cycle cards
-- TerritoryMapView: consume `ui_navigate_*` to move 3×3 grid focus
-- Modals: trap `game_cancel` to dismiss
-- No hardcoded text on any Label — always `Tr(someKey)` or `TranslationServer.Translate(key)`
+Same 9 custom actions. Territory grid navigation maps to pyramid layout:
+- Row navigation (`ui_navigate_up/down`): A-row ↔ M-row ↔ I-row
+- Column navigation (`ui_navigate_left/right`): within each row
+- `game_confirm`: select focused territory

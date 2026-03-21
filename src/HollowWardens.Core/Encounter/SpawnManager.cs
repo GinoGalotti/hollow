@@ -1,17 +1,18 @@
 namespace HollowWardens.Core.Encounter;
 
+using HollowWardens.Core;
 using HollowWardens.Core.Events;
 using HollowWardens.Core.Models;
 
 public class SpawnManager
 {
     private readonly List<SpawnWave> _waves;
-    private readonly Random _rng;
+    private readonly GameRandom _rng;
 
-    public SpawnManager(IEnumerable<SpawnWave> waves, Random? rng = null)
+    public SpawnManager(IEnumerable<SpawnWave> waves, GameRandom? rng = null)
     {
         _waves = waves.ToList();
-        _rng = rng ?? new Random();
+        _rng = rng ?? GameRandom.NewRandom();
     }
 
     /// <summary>

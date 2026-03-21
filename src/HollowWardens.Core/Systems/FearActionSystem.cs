@@ -1,5 +1,6 @@
 namespace HollowWardens.Core.Systems;
 
+using HollowWardens.Core;
 using HollowWardens.Core.Events;
 using HollowWardens.Core.Models;
 
@@ -7,13 +8,18 @@ public class FearActionSystem : IFearActionSystem
 {
     private readonly IDreadSystem _dread;
     private readonly Dictionary<int, List<FearActionData>> _pools;
+    private readonly GameRandom _rng;
     private readonly Queue<FearActionData> _queue = new();
     private int _fearBuffer = 0;
 
-    public FearActionSystem(IDreadSystem dread, Dictionary<int, List<FearActionData>> pools)
+    public FearActionSystem(
+        IDreadSystem dread,
+        Dictionary<int, List<FearActionData>> pools,
+        GameRandom? rng = null)
     {
         _dread = dread;
         _pools = pools;
+        _rng = rng ?? GameRandom.NewRandom();
     }
 
     public int QueuedCount => _queue.Count;
@@ -38,6 +44,14 @@ public class FearActionSystem : IFearActionSystem
         return revealed;
     }
 
+    /// <summary>Returns and clears the queue WITHOUT firing FearActionRevealed (for player-driven reveal).</summary>
+    public List<FearActionData> DrainQueue()
+    {
+        var drained = new List<FearActionData>(_queue);
+        _queue.Clear();
+        return drained;
+    }
+
     public void OnDreadAdvanced(int newLevel)
     {
         int count = _queue.Count;
@@ -52,7 +66,7 @@ public class FearActionSystem : IFearActionSystem
         for (int level = dreadLevel; level >= 1; level--)
         {
             if (_pools.TryGetValue(level, out var pool) && pool.Count > 0)
-                return pool[Random.Shared.Next(pool.Count)];
+                return pool[_rng.Next(pool.Count)];
         }
         return new FearActionData { DreadLevel = dreadLevel };
     }

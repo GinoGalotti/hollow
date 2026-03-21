@@ -58,6 +58,11 @@ public static class GameEvents
     public static Action<Territory>? HeartDamageDealt;              // invader marched on Heart
     public static Action<int>? WeaveChanged;                       // new weave value
 
+    // Threshold resolution
+    public static Action<Element, int, string>? ThresholdPending;   // element, tier, description — awaiting player
+    public static Action<Element, int>?         ThresholdExpired;   // element, tier — went unresolved at turn end
+    public static Action<Element, int, string>? ThresholdResolved;  // element, tier, description — resolved
+
     // Encounter lifecycle
     public static Action<EncounterConfig>? EncounterStarted;
     public static Action<EncounterResult>? EncounterEnded;
@@ -107,6 +112,10 @@ public static class GameEvents
         CorruptionChanged = null;
         HeartDamageDealt = null;
         WeaveChanged = null;
+
+        ThresholdPending = null;
+        ThresholdExpired = null;
+        ThresholdResolved = null;
 
         EncounterStarted = null;
         EncounterEnded = null;

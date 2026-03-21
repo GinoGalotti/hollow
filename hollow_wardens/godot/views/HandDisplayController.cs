@@ -4,6 +4,7 @@ using HollowWardens.Core.Models;
 /// <summary>
 /// Horizontal strip of CardViewControllers representing the player's hand.
 /// Subscribes to GameBridge.HandChanged and rebuilds card views on each update.
+/// Width is constrained at runtime so the Tide Preview panel always has 300 px.
 /// </summary>
 public partial class HandDisplayController : HBoxContainer
 {
@@ -15,8 +16,23 @@ public partial class HandDisplayController : HBoxContainer
         bridge.HandChanged            += Rebuild;
         bridge.PhaseChanged           += _ => RefreshButtons();
         bridge.ResolutionTurnStarted  += _ => RefreshButtons();
+        bridge.TargetingModeChanged   += _ => RefreshButtons();
+
+        // Prevent cards from visually overflowing
+        ClipChildren = ClipChildrenMode.Only;
+
+        // Constrain right edge to leave 300 px for TidePreview
+        Callable.From(UpdateWidth).CallDeferred();
+        GetViewport().SizeChanged += UpdateWidth;
 
         Rebuild();
+    }
+
+    private void UpdateWidth()
+    {
+        float maxRight = GetViewportRect().Size.X - 300f;
+        if (maxRight > OffsetLeft)
+            OffsetRight = maxRight;
     }
 
     private void Rebuild()

@@ -1,5 +1,6 @@
 namespace HollowWardens.Tests.Cards;
 
+using HollowWardens.Core;
 using HollowWardens.Core.Cards;
 using HollowWardens.Core.Models;
 using HollowWardens.Core.Wardens;
@@ -16,7 +17,7 @@ public class RootDormancyTests
 
     private static DeckManager MakeRootDeck(int cardCount = 10, int handLimit = 5)
         => new DeckManager(new RootAbility(), MakeCards(cardCount),
-            rng: new Random(42), handLimit: handLimit, shuffle: false);
+            rng: GameRandom.FromSeed(42), handLimit: handLimit, shuffle: false);
 
     // ── Tests ─────────────────────────────────────────────────────────────────
 
@@ -34,16 +35,17 @@ public class RootDormancyTests
     }
 
     [Fact]
-    public void DormantCardStaysInDeck()
+    public void DormantCardGoesToDiscard()
     {
         var dm = MakeRootDeck();
         dm.RefillHand(); // hand=5, draw=5
         var card = dm.Hand[0];
 
-        dm.PlayBottom(card, EncounterTier.Standard); // card → dormant, shuffled back into draw
+        dm.PlayBottom(card, EncounterTier.Standard); // card → dormant → discard
 
         Assert.Equal(4, dm.Hand.Count);
-        Assert.Equal(6, dm.DrawPileCount); // 5 remaining + 1 dormant shuffled back
+        Assert.Equal(5, dm.DrawPileCount);  // draw pile unchanged
+        Assert.Equal(1, dm.DiscardCount);   // dormant card is in discard
         Assert.Equal(0, dm.DissolvedCount);
         Assert.True(card.IsDormant);
     }
@@ -56,7 +58,7 @@ public class RootDormancyTests
 
         var dm = new DeckManager(new RootAbility(),
             new[] { dormantCard, normalCard },
-            rng: new Random(0), handLimit: 2, shuffle: false);
+            rng: GameRandom.FromSeed(0), handLimit: 2, shuffle: false);
 
         dm.RefillHand();
 
@@ -89,7 +91,7 @@ public class RootDormancyTests
 
         var dm = new DeckManager(new RootAbility(),
             new[] { dormantCard },
-            rng: new Random(0), handLimit: 1, shuffle: false);
+            rng: GameRandom.FromSeed(0), handLimit: 1, shuffle: false);
 
         dm.RefillHand();
         Assert.False(dm.IsPlayable(dm.Hand[0]));
@@ -112,7 +114,7 @@ public class RootDormancyTests
         };
 
         var dm = new DeckManager(new RootAbility(), cards,
-            rng: new Random(0), handLimit: 3, shuffle: false);
+            rng: GameRandom.FromSeed(0), handLimit: 3, shuffle: false);
 
         dm.RefillHand();
         Assert.Equal(3, dm.DormantCount);
@@ -131,7 +133,7 @@ public class RootDormancyTests
 
         var dm = new DeckManager(new RootAbility(),
             new[] { dormantCard },
-            rng: new Random(0), handLimit: 1, shuffle: false);
+            rng: GameRandom.FromSeed(0), handLimit: 1, shuffle: false);
 
         dm.RefillHand();
         dm.PlayBottom(dormantCard, EncounterTier.Boss);
@@ -155,15 +157,15 @@ public class RootDormancyTests
         // shuffle=false, draws from end: active3, active2, active1 drawn first
         var dm = new DeckManager(new RootAbility(),
             new[] { dormant1, dormant2, active1, active2, active3 },
-            rng: new Random(0), handLimit: 3, shuffle: false);
+            rng: GameRandom.FromSeed(0), handLimit: 3, shuffle: false);
 
         dm.RefillHand(); // hand=[active3, active2, active1], draw=[dormant1, dormant2]
 
         Assert.Equal(2, dm.DormantCount); // both in draw pile
 
-        // Play bottom of active1 → goes dormant, shuffled into draw
+        // Play bottom of active1 → goes dormant, moves to discard
         dm.PlayBottom(active1, EncounterTier.Standard);
 
-        Assert.Equal(3, dm.DormantCount); // dormant1, dormant2 in draw + active1(dormant) in draw
+        Assert.Equal(3, dm.DormantCount); // dormant1, dormant2 in draw + active1(dormant) in discard
     }
 }

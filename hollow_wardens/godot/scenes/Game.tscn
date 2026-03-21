@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://godot/bridge/InputHandler.cs" id="1"]
 [ext_resource type="Script" path="res://godot/views/TerritoryViewController.cs" id="2"]
@@ -9,6 +9,8 @@
 [ext_resource type="Script" path="res://godot/views/FearActionQueueController.cs" id="7"]
 [ext_resource type="Script" path="res://godot/views/TidePreviewController.cs" id="8"]
 [ext_resource type="Script" path="res://godot/views/CounterAttackController.cs" id="9"]
+[ext_resource type="Script" path="res://godot/views/DebugLogController.cs" id="10"]
+[ext_resource type="Script" path="res://godot/views/FearConfirmController.cs" id="11"]
 
 [node name="Game" type="Node"]
 
@@ -92,3 +94,13 @@ offset_top = 240.0
 offset_right = 760.0
 offset_bottom = 380.0
 script = ExtResource("9")
+
+[node name="DebugLogController" type="Control" parent="UI"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("10")
+
+[node name="FearConfirmController" type="Control" parent="UI"]
+visible = false
+script = ExtResource("11")

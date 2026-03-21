@@ -1,5 +1,6 @@
 namespace HollowWardens.Tests.Encounter;
 
+using HollowWardens.Core;
 using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Events;
 using HollowWardens.Core.Models;
@@ -35,7 +36,7 @@ public class SpawnManagerTests : IDisposable
     {
         // 10:1 odds in favour of Marcher
         var wave    = MakeWave(1, (10, UnitType.Marcher), (1, UnitType.Ironclad));
-        var manager = new SpawnManager(new[] { wave }, new Random(0));
+        var manager = new SpawnManager(new[] { wave }, GameRandom.FromSeed(0));
 
         int marcherCount = 0;
         for (int i = 0; i < 100; i++)

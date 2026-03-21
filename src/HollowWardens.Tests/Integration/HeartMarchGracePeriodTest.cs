@@ -1,5 +1,6 @@
 namespace HollowWardens.Tests.Integration;
 
+using HollowWardens.Core;
 using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Effects;
 using HollowWardens.Core.Events;
@@ -42,7 +43,7 @@ public class HeartMarchGracePeriodTest : IDisposable
 
         // Build action deck with only March (advanceModifier=2, moves invaders 2 steps)
         var marchCard = new ActionCard { Id = CombatSystem.MarchId, Name = "March", Pool = ActionPool.Painful, AdvanceModifier = 2 };
-        var actionDeck = new ActionDeck(new[] { marchCard }, new[] { marchCard }, rng: new Random(0), shuffle: false);
+        var actionDeck = new ActionDeck(new[] { marchCard }, new[] { marchCard }, rng: GameRandom.FromSeed(0), shuffle: false);
         var cadence = new CadenceManager(cadenceConfig);
         var tideRunner = new TideRunner(actionDeck, cadence, spawn, faction, new EffectResolver());
 
@@ -77,7 +78,7 @@ public class HeartMarchGracePeriodTest : IDisposable
         GameEvents.HeartDamageDealt += _ => heartDamageEvents++;
 
         var marchCard = new ActionCard { Id = CombatSystem.MarchId, Name = "March", Pool = ActionPool.Painful, AdvanceModifier = 1 };
-        var actionDeck = new ActionDeck(new[] { marchCard }, new[] { marchCard }, rng: new Random(0), shuffle: false);
+        var actionDeck = new ActionDeck(new[] { marchCard }, new[] { marchCard }, rng: GameRandom.FromSeed(0), shuffle: false);
         var cadence = new CadenceManager(cadenceConfig);
         var tideRunner = new TideRunner(actionDeck, cadence, spawn, faction, new EffectResolver());
 

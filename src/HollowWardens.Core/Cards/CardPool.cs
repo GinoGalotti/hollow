@@ -1,5 +1,6 @@
 namespace HollowWardens.Core.Cards;
 
+using HollowWardens.Core;
 using HollowWardens.Core.Models;
 using HollowWardens.Core.Wardens;
 
@@ -22,7 +23,7 @@ public class CardPool
     public int CardCount => _runDeck.Count;
 
     /// <summary>Creates a new DeckManager for an encounter from the current run deck.</summary>
-    public DeckManager CreateEncounterDeck(IWardenAbility warden, Random? rng = null, int handLimit = 5)
+    public DeckManager CreateEncounterDeck(IWardenAbility warden, GameRandom? rng = null, int handLimit = 5)
         => new DeckManager(warden, _runDeck, rng, handLimit);
 
     /// <summary>

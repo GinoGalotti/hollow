@@ -1,5 +1,6 @@
 namespace HollowWardens.Tests.Encounter;
 
+using HollowWardens.Core;
 using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Models;
 using Xunit;
@@ -33,7 +34,7 @@ public class ActionDeckTests
         var deck = new ActionDeck(
             new[] { MakePainful("p1") },
             new[] { MakeEasy("e1") },
-            rng: new Random(42),
+            rng: GameRandom.FromSeed(42),
             shuffle: false);
 
         deck.Draw(ActionPool.Painful);  // exhausts the draw pile → p1 in discard
@@ -50,7 +51,7 @@ public class ActionDeckTests
         var deck = new ActionDeck(
             new[] { MakePainful("p1") },
             new[] { MakeEasy("e1") },
-            rng: new Random(42),
+            rng: GameRandom.FromSeed(42),
             shuffle: false);
 
         deck.Draw(ActionPool.Easy);  // exhausts easy draw pile

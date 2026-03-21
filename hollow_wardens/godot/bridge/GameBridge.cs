@@ -1,5 +1,7 @@
 using Godot;
+using HollowWardens.Core;
 using HollowWardens.Core.Cards;
+using HollowWardens.Core.Data;
 using HollowWardens.Core.Effects;
 using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Events;
@@ -54,6 +56,16 @@ public partial class GameBridge : Node
     [Signal] public delegate void ResolutionTurnStartedEventHandler(int turn);
     [Signal] public delegate void EncounterEndedEventHandler(int result);
 
+    [Signal] public delegate void TargetingModeChangedEventHandler(bool active);
+    [Signal] public delegate void CardPlayFeedbackEventHandler(string message, string targetTerritoryId, int category);
+
+    [Signal] public delegate void ThresholdPendingEventHandler(int element, int tier, string description);
+    [Signal] public delegate void ThresholdExpiredEventHandler(int element, int tier);
+    [Signal] public delegate void ThresholdResolvedEventHandler(int element, int tier, string description);
+
+    [Signal] public delegate void FearActionPendingEventHandler(string description, bool needsTarget);
+    [Signal] public delegate void CounterAttackPendingGodotEventHandler(string territoryId, int pool);
+
     // ── Public State ─────────────────────────────────────────────────────────
     public static GameBridge? Instance { get; private set; }
 
@@ -68,26 +80,73 @@ public partial class GameBridge : Node
     /// <summary>True during the Resolution turns at the end of an encounter.</summary>
     public bool IsInResolution => _inResolution;
 
+    /// <summary>True while waiting for the player to select a territory target.</summary>
+    public bool IsWaitingForTarget { get; private set; }
+
+    /// <summary>Card awaiting target selection (valid when IsWaitingForTarget).</summary>
+    public Card? PendingCard { get; private set; }
+
+    /// <summary>Effect that requires targeting (valid when IsWaitingForTarget).</summary>
+    public EffectData? PendingEffect { get; private set; }
+
+    /// <summary>True when the pending play is a bottom half (Dusk), false for top half (Vigil).</summary>
+    public bool IsPendingBottom { get; private set; }
+
+    // ── Interactive Tide State ────────────────────────────────────────────────
+    /// <summary>Current sub-phase within an interactive Tide sequence.</summary>
+    public TideSubPhase TideSubPhase { get; private set; } = TideSubPhase.None;
+
+    /// <summary>The fear action currently awaiting player confirmation (valid during FearActions sub-phase).</summary>
+    public FearActionData? CurrentFearAction { get; private set; }
+
+    /// <summary>True while a fear action is being presented to the player.</summary>
+    public bool IsResolvingFearAction => TideSubPhase == TideSubPhase.FearActions && CurrentFearAction != null;
+
+    /// <summary>Territory ID for the current counter-attack assignment (valid during CounterAttack sub-phase).</summary>
+    public string? CounterAttackTerritory { get; private set; }
+
+    /// <summary>Damage pool available for counter-attack assignment.</summary>
+    public int CounterAttackPool { get; private set; }
+
+    /// <summary>True while waiting for the player to assign counter-attack damage.</summary>
+    public bool IsWaitingForCounterAttack { get; private set; }
+
     // ── Private Core Objects ─────────────────────────────────────────────────
-    private CoreTurnManager _turnManager = null!;
-    private TideRunner      _tideRunner  = null!;
-    private ActionDeck      _actionDeck  = null!;
-    private CadenceManager  _cadence     = null!;
-    private SpawnManager    _spawn       = null!;
-    private EffectResolver  _resolver    = null!;
+    private CoreTurnManager   _turnManager        = null!;
+    private TideRunner        _tideRunner         = null!;
+    private ActionDeck        _actionDeck         = null!;
+    private CadenceManager    _cadence            = null!;
+    private SpawnManager      _spawn              = null!;
+    private EffectResolver    _resolver           = null!;
+    private ThresholdResolver _thresholdResolver  = null!;
 
     // ── Loop State ───────────────────────────────────────────────────────────
     private int  _tidesExecuted;
     private bool _inResolution;
     private int  _resolutionTurn;
 
+    // ── Interactive Tide Fields ───────────────────────────────────────────────
+    private int                    _currentTideNumber;
+    private bool                   _isFirstTide;
+    private ActionCard?            _currentActionCard;
+    private List<FearActionData>   _pendingFearActions = new();
+    private int                    _fearActionIndex;
+    private bool                   _isFearTargeting;
+    private List<Territory>        _counterAttackTargets = new();
+    private int                    _counterAttackTargetIndex;
+
     // ── Event Handler Fields ──────────────────────────────────────────────────
+    private Action<Element, int, string>?      _hThresholdPending;
+    private Action<Element, int>?              _hThresholdExpired;
+    private Action<Element, int, string>?      _hThresholdResolved;
+
     private Action<CoreTurnPhase>?             _hPhaseChanged;
     private Action?                            _hTurnStarted, _hTurnEnded, _hRestStarted;
     private Action<Card, CoreTurnPhase>?       _hCardPlayed;
     private Action<Card>?                      _hCardDissolved, _hCardDormant, _hCardRestDissolved, _hCardAwakened;
     private Action<Element, int>?              _hElementChanged;
     private Action<Element, int>?              _hThresholdTriggered;
+    private Action<Element, int>?              _hThresholdAutoResolve;
     private Action?                            _hElementsDecayed;
     private Action<int>?                       _hFearGeneratedRelay;
     private Action<int>?                       _hFearGeneratedQueue;
@@ -127,11 +186,60 @@ public partial class GameBridge : Node
 
     // ── Public API ───────────────────────────────────────────────────────────
 
+    /// <summary>Returns a compact string encoding the current seed + all player actions for export/replay.</summary>
+    public string ExportEncounterState()
+    {
+        int seed = State?.Random?.Seed ?? 0;
+        return State?.ActionLog.ExportFull(seed) ?? $"SEED:{seed}|";
+    }
+
+    /// <summary>
+    /// Parses an exported state string and logs the seed + action count.
+    /// Full replay is not yet implemented — this is a stub for future use.
+    /// </summary>
+    public void ImportAndReplay(string data)
+    {
+        var (seed, rawActions) = ActionLog.ImportFull(data);
+        GD.Print($"[ImportAndReplay] seed={seed}  actions={rawActions.Length}");
+    }
+
+    /// <summary>True when a top-half play is currently permitted (Vigil under 2-play limit, or Resolution).</summary>
+    public bool CanPlayTop()    => _inResolution || _turnManager.CanPlayTop();
+
+    /// <summary>True when a bottom-half play is currently permitted (Dusk under 1-play limit).</summary>
+    public bool CanPlayBottom() => _turnManager.CanPlayBottom();
+
+    /// <summary>Resolves a player-pending threshold action and emits card-play feedback.</summary>
+    public void ResolveThreshold(int elementIdx, int tier)
+    {
+        var element = (Element)elementIdx;
+        _thresholdResolver.Resolve(element, tier, State);
+        EmitSignal(SignalName.CardPlayFeedback, $"★ {element} T{tier}", "", 3);
+    }
+
     public void PlayTop(Card card)
     {
-        bool canPlay = _turnManager.CurrentPhase == CoreTurnPhase.Vigil || _inResolution;
-        if (!canPlay) return;
-        _turnManager.PlayTop(card);
+        bool inVigil = _turnManager.CurrentPhase == CoreTurnPhase.Vigil;
+        if (!inVigil && !_inResolution) return;
+        if (IsWaitingForTarget) return;
+
+        if (TargetValidator.NeedsTarget(card.TopEffect))
+        {
+            EnterTargetingMode(card, card.TopEffect, isPendingBottom: false);
+            return;
+        }
+
+        if (!_inResolution && !_turnManager.CanPlayTop()) return; // play limit reached (2 tops per Vigil)
+
+        EmitCardPlayFeedback(card.TopEffect, card.Name, "", _inResolution ? 2 : 0);
+        State.ActionLog.Record(new GameAction
+        {
+            TurnNumber = State.CurrentTide,
+            Phase      = _turnManager.CurrentPhase,
+            Type       = GameActionType.PlayTop,
+            CardId     = card.Id
+        });
+        _turnManager.PlayTop(card); // effects fire here
         EmitSignal(SignalName.HandChanged);
         EmitDeckCounts();
     }
@@ -139,46 +247,141 @@ public partial class GameBridge : Node
     public void PlayBottom(Card card)
     {
         if (_turnManager.CurrentPhase != CoreTurnPhase.Dusk) return;
-        _turnManager.PlayBottom(card);
+        if (IsWaitingForTarget) return;
+
+        if (TargetValidator.NeedsTarget(card.BottomEffect))
+        {
+            EnterTargetingMode(card, card.BottomEffect, isPendingBottom: true);
+            return;
+        }
+
+        if (!_turnManager.CanPlayBottom()) return; // play limit reached (1 bottom per Dusk)
+
+        EmitCardPlayFeedback(card.BottomEffect, card.Name, "", 1);
+        State.ActionLog.Record(new GameAction
+        {
+            TurnNumber = State.CurrentTide,
+            Phase      = _turnManager.CurrentPhase,
+            Type       = GameActionType.PlayBottom,
+            CardId     = card.Id
+        });
+        _turnManager.PlayBottom(card); // effects fire here
         EmitSignal(SignalName.HandChanged);
         EmitDeckCounts();
+    }
+
+    /// <summary>
+    /// Completes a pending targeted play with the chosen territory.
+    /// No-op when not in targeting mode.
+    /// </summary>
+    public void CompleteTargetedPlay(string territoryId)
+    {
+        if (!IsWaitingForTarget) return;
+
+        // Fear action targeting takes priority over card play targeting
+        if (_isFearTargeting)
+        {
+            ResolveFearActionTargeted(territoryId);
+            return;
+        }
+
+        if (PendingCard == null || PendingEffect == null) return;
+
+        var card           = PendingCard;
+        var effect         = PendingEffect;
+        bool isPendingBot  = IsPendingBottom;
+        var target         = new TargetInfo { TerritoryId = territoryId, SourceCard = card };
+
+        bool canPlay = isPendingBot
+            ? _turnManager.CanPlayBottom()
+            : (_inResolution || _turnManager.CanPlayTop());
+
+        ExitTargetingMode();
+        if (!canPlay) return;
+
+        EmitCardPlayFeedback(effect, card.Name, territoryId, isPendingBot ? 1 : (_inResolution ? 2 : 0));
+        State.ActionLog.Record(new GameAction
+        {
+            TurnNumber = State.CurrentTide,
+            Phase      = _turnManager.CurrentPhase,
+            Type       = isPendingBot ? GameActionType.PlayBottom : GameActionType.PlayTop,
+            CardId     = card.Id
+        });
+        State.ActionLog.Record(new GameAction
+        {
+            TurnNumber        = State.CurrentTide,
+            Phase             = _turnManager.CurrentPhase,
+            Type              = GameActionType.SelectTarget,
+            TargetTerritoryId = territoryId
+        });
+        if (isPendingBot)
+            _turnManager.PlayBottom(card, target); // effects fire here
+        else
+            _turnManager.PlayTop(card, target);    // effects fire here
+        EmitSignal(SignalName.HandChanged);
+        EmitDeckCounts();
+    }
+
+    /// <summary>Cancels targeting mode without resolving the pending card or fear action.</summary>
+    public void CancelTargeting()
+    {
+        if (!IsWaitingForTarget) return;
+        if (_isFearTargeting)
+        {
+            // Reset fear targeting but stay in FearActions sub-phase (re-show overlay)
+            _isFearTargeting = false;
+            ExitTargetingMode();
+            if (CurrentFearAction != null)
+                EmitSignal(SignalName.FearActionPending, CurrentFearAction.Description, true);
+            return;
+        }
+        ExitTargetingMode();
     }
 
     public void EndCurrentPhase()
     {
         if (_inResolution) { AdvanceResolutionTurn(); return; }
 
+        State.ActionLog.Record(new GameAction
+        {
+            TurnNumber = State.CurrentTide,
+            Phase      = _turnManager.CurrentPhase,
+            Type       = GameActionType.SkipPhase
+        });
         switch (_turnManager.CurrentPhase)
         {
-            case CoreTurnPhase.Vigil: ExecuteTideAndDusk(); break;
-            case CoreTurnPhase.Dusk:  EndDusk();            break;
-            case CoreTurnPhase.Rest:  ExecuteRest();        break;
+            case CoreTurnPhase.Vigil: StartInteractiveTide(); break;
+            case CoreTurnPhase.Tide:  OnTideSpacePressed();   break;
+            case CoreTurnPhase.Dusk:  EndDusk();              break;
+            case CoreTurnPhase.Rest:  ExecuteRest();          break;
         }
     }
 
     public void TriggerRest()
     {
-        if (_turnManager.IsRestTurn) ExecuteRest();
+        if (!_turnManager.IsRestTurn) return;
+        State.ActionLog.Record(new GameAction
+        {
+            TurnNumber = State.CurrentTide,
+            Phase      = _turnManager.CurrentPhase,
+            Type       = GameActionType.Rest
+        });
+        ExecuteRest();
     }
 
     // ── Encounter Setup ──────────────────────────────────────────────────────
 
     private void BuildEncounter()
     {
+        var random = GameRandom.NewRandom();
+        GD.Print($"Encounter seed: {random.Seed}");
+
         var territories = BoardState.CreatePyramid().Territories.Values.ToList();
         var dread       = new DreadSystem();
-        var fearPools   = BuildFearPools();
         var presence    = new PresenceSystem(() => territories);
         var warden      = new RootAbility(presence);
 
-        var config = new EncounterConfig
-        {
-            Id       = "enc_01",
-            Tier     = EncounterTier.Standard,
-            FactionId = "pale_march",
-            TideCount = 7,
-            Cadence   = new CadenceConfig { Mode = "rule_based", MaxPainfulStreak = 1, EasyFrequency = 2 }
-        };
+        var config = EncounterLoader.CreatePaleMarchStandard();
 
         State = new EncounterState
         {
@@ -190,66 +393,65 @@ public partial class GameBridge : Node
             Combat      = new CombatSystem(),
             Presence    = presence,
             Corruption  = new CorruptionSystem(),
-            FearActions = new FearActionSystem(dread, fearPools),
-            Warden      = warden
+            FearActions = new FearActionSystem(dread, FearActionPool.Build(), random),
+            Warden      = warden,
+            Random      = random,
+            ActionLog   = new ActionLog()
         };
 
-        var rootCards = BuildRootStarterDeck();
-        State.Deck = new DeckManager(warden, rootCards, shuffle: true);
+        var resDir   = ProjectSettings.GlobalizePath("res://");
+        var jsonPath = System.IO.Path.GetFullPath(
+            System.IO.Path.Combine(resDir, "..", "data", "cards-root.json"));
+        var startingCards = CardLoader.Load(jsonPath).Where(c => c.IsStarting).ToList();
+        State.Deck = new DeckManager(warden, startingCards, random, shuffle: true);
 
-        _resolver    = new EffectResolver();
-        var faction  = new PaleMarchFaction();
-        _actionDeck  = new ActionDeck(faction.BuildPainfulPool(), faction.BuildEasyPool(), shuffle: true);
-        _cadence     = new CadenceManager(config.Cadence);
-        _spawn       = new SpawnManager(new List<SpawnWave>());
+        _resolver   = new EffectResolver();
+        var faction = new PaleMarchFaction();
+        _actionDeck = new ActionDeck(faction.BuildPainfulPool(), faction.BuildEasyPool(), random, shuffle: true);
+        _cadence    = new CadenceManager(config.Cadence);
+        _spawn      = new SpawnManager(config.Waves, random);
 
+        _thresholdResolver = new ThresholdResolver();
         _turnManager = new CoreTurnManager(State, _resolver);
         _tideRunner  = new TideRunner(_actionDeck, _cadence, _spawn, faction, _resolver);
         _tideRunner.CounterAttackHandler = (t, pool, s) => null;
+
+        InitialEncounterSetup();
     }
 
-    private static Dictionary<int, List<FearActionData>> BuildFearPools() => new()
+    private void InitialEncounterSetup()
     {
-        [1] = new List<FearActionData>
+        // Spawn natives per config
+        foreach (var (territoryId, count) in State.Config.NativeSpawns)
         {
-            new() { Id = "fa_ravage",  Description = "Invaders Ravage in place",          DreadLevel = 1, Effect = new() { Type = EffectType.GenerateFear, Value = 0 } },
-            new() { Id = "fa_corrupt", Description = "Corrupt: +1 to invader territory",  DreadLevel = 1, Effect = new() { Type = EffectType.GenerateFear, Value = 0 } },
-        },
-        [2] = new List<FearActionData>
-        {
-            new() { Id = "fa_surge",   Description = "Reinforcements: Marcher arrives",   DreadLevel = 2, Effect = new() { Type = EffectType.GenerateFear, Value = 0 } },
-        },
-    };
+            var territory = State.GetTerritory(territoryId);
+            if (territory == null || count <= 0) continue;
+            for (int i = 0; i < count; i++)
+                territory.Natives.Add(new Native { Hp = 2, MaxHp = 2, Damage = 3, TerritoryId = territoryId });
+        }
 
-    private static List<Card> BuildRootStarterDeck() => new()
-    {
-        MakeCard("root_001","Tendrils of Reclamation", EffectType.ReduceCorruption,1,1, EffectType.ReduceCorruption,2,1),
-        MakeCard("root_002","Deep Roots",              EffectType.PlacePresence,   1,1, EffectType.ReduceCorruption,1,0),
-        MakeCard("root_003","Earthen Mending",         EffectType.ReduceCorruption,1,0, EffectType.ReduceCorruption,1,2),
-        MakeCard("root_004","Ancient Cleansing",       EffectType.ReduceCorruption,1,1, EffectType.ReduceCorruption,2,0),
-        MakeCard("root_005","Subterranean Surge",      EffectType.ReduceCorruption,1,2, EffectType.PlacePresence,   1,1),
-        MakeCard("root_006","Root Network",            EffectType.PlacePresence,   1,2, EffectType.PlacePresence,   1,1),
-        MakeCard("root_007","Verdant Weave",           EffectType.RestoreWeave,    2,0, EffectType.PlacePresence,   1,0),
-        MakeCard("root_008","Thorn Ward",              EffectType.ShieldNatives,   1,1, EffectType.ReduceCorruption,1,1),
-        MakeCard("root_009","Warding Vines",           EffectType.ShieldNatives,   2,1, EffectType.DamageInvaders,  1,1),
-        MakeCard("root_010","Awakening Pulse",         EffectType.AwakeDormant,    0,0, EffectType.PlacePresence,   1,2),
-    };
+        // Place starting Presence on I1
+        var i1 = State.GetTerritory("I1");
+        if (i1 != null) i1.PresenceCount = 1;
 
-    private static Card MakeCard(string id, string name,
-        EffectType topType, int topVal, int topRange,
-        EffectType botType, int botVal, int botRange) => new()
-    {
-        Id = id, Name = name,
-        Elements     = Array.Empty<Element>(),
-        TopEffect    = new EffectData { Type = topType, Value = topVal, Range = topRange },
-        BottomEffect = new EffectData { Type = botType, Value = botVal, Range = botRange }
-    };
+        // Preview first action card (Tide 1 will use it without re-drawing)
+        var firstCard = _actionDeck.Draw(_cadence.NextPool());
+        State.CurrentActionCard = firstCard;
+        _tideRunner.PreloadPreview(firstCard);
+
+        // Spawn Wave 1 invaders before first Vigil so A-row is populated at game start
+        _tideRunner.SpawnInitialWave(State);
+        GD.Print($"[InitialSetup] A-row invaders: A1={State.GetTerritory("A1")?.Invaders.Count ?? 0} A2={State.GetTerritory("A2")?.Invaders.Count ?? 0} A3={State.GetTerritory("A3")?.Invaders.Count ?? 0}");
+    }
 
     // ── Game Loop ────────────────────────────────────────────────────────────
 
     private void StartFirstTurn()
     {
         GameEvents.EncounterStarted?.Invoke(State.Config);
+        // Fire the initial card preview now that subscriptions are active
+        if (State.CurrentActionCard != null)
+            GameEvents.NextActionPreviewed?.Invoke(State.CurrentActionCard);
         BeginNextTurn();
     }
 
@@ -261,22 +463,206 @@ public partial class GameBridge : Node
         EmitDeckCounts();
     }
 
-    private void ExecuteTideAndDusk()
+    // ── Interactive Tide State Machine ────────────────────────────────────────
+
+    private void StartInteractiveTide()
     {
         _turnManager.EndVigil();
-        _tideRunner.ExecuteTide(_tidesExecuted + 1, State);
+        _currentTideNumber = _tidesExecuted + 1;
+        _isFirstTide       = _currentTideNumber == 1;
+        _currentActionCard = _tideRunner.BeginTide(_currentTideNumber, State);
+
+        if (_isFirstTide)
+        {
+            RunTideAdvanceArrive(); // Tide 1: skip FearActions/Activate/CounterAttack
+        }
+        else
+        {
+            _tideRunner.ApplyPassiveFear(State);
+            _pendingFearActions = _tideRunner.DrainFearActions(State);
+            _fearActionIndex    = 0;
+            AdvanceFearQueue();
+        }
+    }
+
+    private void OnTideSpacePressed()
+    {
+        switch (TideSubPhase)
+        {
+            case TideSubPhase.FearActions:
+                ConfirmFearAction(); // Space confirms untargeted fear actions
+                break;
+            case TideSubPhase.WaitAfterCombat:
+                TideSubPhase = TideSubPhase.None;
+                _turnManager.StartDusk();
+                EmitSignal(SignalName.HandChanged);
+                EmitDeckCounts();
+                break;
+        }
+    }
+
+    // ── Fear Action Resolution ────────────────────────────────────────────────
+
+    private void AdvanceFearQueue()
+    {
+        if (_fearActionIndex >= _pendingFearActions.Count)
+        {
+            RunTideActivate();
+            return;
+        }
+        CurrentFearAction = _pendingFearActions[_fearActionIndex];
+        TideSubPhase = TideSubPhase.FearActions;
+        GameEvents.FearActionRevealed?.Invoke(CurrentFearAction); // debug log
+        bool needsTarget = CurrentFearAction.Effect.Range > 0;
+        EmitSignal(SignalName.FearActionPending, CurrentFearAction.Description, needsTarget);
+        if (needsTarget)
+            EnterFearTargetingMode(CurrentFearAction);
+    }
+
+    /// <summary>Confirms an untargeted fear action. No-op if the current fear action requires a target.</summary>
+    public void ConfirmFearAction()
+    {
+        if (TideSubPhase != TideSubPhase.FearActions || CurrentFearAction == null) return;
+        if (CurrentFearAction.Effect.Range > 0) return; // targeted: must use territory click
+        ExecuteCurrentFearAction(new TargetInfo());
+        _fearActionIndex++;
+        CurrentFearAction = null;
+        AdvanceFearQueue();
+    }
+
+    /// <summary>Completes a targeted fear action after the player clicks a territory.</summary>
+    public void ResolveFearActionTargeted(string territoryId)
+    {
+        if (!_isFearTargeting || CurrentFearAction == null) return;
+        _isFearTargeting = false;
+        ExitTargetingMode();
+        ExecuteCurrentFearAction(new TargetInfo { TerritoryId = territoryId });
+        _fearActionIndex++;
+        CurrentFearAction = null;
+        AdvanceFearQueue();
+    }
+
+    private void ExecuteCurrentFearAction(TargetInfo target)
+    {
+        if (CurrentFearAction == null) return;
+        try
+        {
+            var effect = _resolver.Resolve(CurrentFearAction.Effect);
+            effect.Resolve(State, target);
+        }
+        catch (NotImplementedException) { }
+    }
+
+    private void EnterFearTargetingMode(FearActionData fa)
+    {
+        _isFearTargeting = true;
+        IsWaitingForTarget = true;
+        PendingCard        = null;
+        PendingEffect      = fa.Effect;
+        IsPendingBottom    = false;
+        EmitSignal(SignalName.TargetingModeChanged, true);
+    }
+
+    // ── Activate + CounterAttack ──────────────────────────────────────────────
+
+    private void RunTideActivate()
+    {
+        TideSubPhase = TideSubPhase.Activate;
+        _tideRunner.RunActivate(_currentActionCard!, State);
+
+        bool isProvoked = !_isFirstTide && (State.Combat?.IsProvokedAction(_currentActionCard!) ?? false);
+        if (isProvoked)
+            StartCounterAttackPhase();
+        else
+            RunTideAdvanceArrive();
+    }
+
+    private void StartCounterAttackPhase()
+    {
+        _counterAttackTargets      = _tideRunner.GetCounterAttackTargets(State);
+        _counterAttackTargetIndex  = 0;
+        PresentNextCounterAttack();
+    }
+
+    private void PresentNextCounterAttack()
+    {
+        if (_counterAttackTargetIndex >= _counterAttackTargets.Count)
+        {
+            RunTideAdvanceArrive();
+            return;
+        }
+        var territory = _counterAttackTargets[_counterAttackTargetIndex];
+        int pool      = State.Combat?.CalculateNativeDamagePool(territory) ?? 0;
+
+        CounterAttackTerritory  = territory.Id;
+        CounterAttackPool       = pool;
+        IsWaitingForCounterAttack = true;
+        TideSubPhase = TideSubPhase.CounterAttack;
+
+        GameEvents.CounterAttackReady?.Invoke(territory, pool);
+        EmitSignal(SignalName.CounterAttackPendingGodot, territory.Id, pool);
+    }
+
+    /// <summary>Submits damage assignments for the current counter-attack territory.</summary>
+    public void SubmitCounterAttack(Dictionary<string, int> invaderIdToDamage)
+    {
+        if (!IsWaitingForCounterAttack || CounterAttackTerritory == null) return;
+        var territory = State.GetTerritory(CounterAttackTerritory);
+        if (territory != null && invaderIdToDamage.Count > 0)
+        {
+            var assignments = new Dictionary<Invader, int>();
+            foreach (var (id, dmg) in invaderIdToDamage)
+            {
+                var inv = territory.Invaders.FirstOrDefault(i => i.Id == id);
+                if (inv != null) assignments[inv] = dmg;
+            }
+            if (assignments.Count > 0)
+                State.Combat?.ApplyCounterAttack(territory, assignments);
+        }
+        ClearCounterAttackState();
+        _counterAttackTargetIndex++;
+        PresentNextCounterAttack();
+    }
+
+    /// <summary>Skips counter-attack for the current territory (assigns 0 damage).</summary>
+    public void SkipCounterAttack()
+    {
+        if (!IsWaitingForCounterAttack) return;
+        ClearCounterAttackState();
+        _counterAttackTargetIndex++;
+        PresentNextCounterAttack();
+    }
+
+    private void ClearCounterAttackState()
+    {
+        IsWaitingForCounterAttack = false;
+        CounterAttackTerritory    = null;
+        CounterAttackPool         = 0;
+    }
+
+    // ── Advance, Arrive, Preview ──────────────────────────────────────────────
+
+    private void RunTideAdvanceArrive()
+    {
+        TideSubPhase = TideSubPhase.AdvanceArrive;
+        _tideRunner.RunAdvance(_currentActionCard!, State);
+        _tideRunner.RunArrive(_currentTideNumber, State);
+        if (!_isFirstTide)
+            _tideRunner.RunEscalate(_currentTideNumber, State);
+        _tideRunner.RunPreview(_currentTideNumber, State);
+
         _tidesExecuted++;
 
         if (State.Weave?.IsGameOver == true) { EndEncounter(); return; }
         if (_tidesExecuted >= State.Config.TideCount) { BeginResolution(); return; }
 
-        _turnManager.StartDusk();
-        EmitSignal(SignalName.HandChanged);
-        EmitDeckCounts();
+        TideSubPhase = TideSubPhase.WaitAfterCombat;
+        // Player presses Space (EndCurrentPhase → OnTideSpacePressed) to enter Dusk
     }
 
     private void EndDusk()
     {
+        _thresholdResolver.ClearUnresolved();
         _turnManager.EndTurn();
         if (_tidesExecuted >= State.Config.TideCount) { BeginResolution(); return; }
         BeginNextTurn();
@@ -327,6 +713,41 @@ public partial class GameBridge : Node
             State.Deck.DissolvedCount, State.Deck.DormantCount);
     }
 
+    private void EnterTargetingMode(Card card, EffectData effect, bool isPendingBottom)
+    {
+        IsWaitingForTarget = true;
+        PendingCard        = card;
+        PendingEffect      = effect;
+        IsPendingBottom    = isPendingBottom;
+        EmitSignal(SignalName.TargetingModeChanged, true);
+    }
+
+    private void ExitTargetingMode()
+    {
+        IsWaitingForTarget = false;
+        PendingCard        = null;
+        PendingEffect      = null;
+        IsPendingBottom    = false;
+        EmitSignal(SignalName.TargetingModeChanged, false);
+    }
+
+    private void EmitCardPlayFeedback(EffectData effect, string cardName, string territoryId, int category = 0)
+    {
+        string effectDesc = effect.Type switch
+        {
+            EffectType.PlacePresence    => territoryId.Length > 0 ? $"Presence on {territoryId}" : "Place Presence",
+            EffectType.GenerateFear     => $"+{effect.Value} Fear",
+            EffectType.DamageInvaders   => $"{effect.Value} Damage",
+            EffectType.ReduceCorruption => $"-{effect.Value} Corruption",
+            EffectType.RestoreWeave     => $"+{effect.Value} Weave",
+            EffectType.PushInvaders     => "Push Invaders",
+            EffectType.Purify           => "Purify",
+            _                           => effect.Type.ToString()
+        };
+        string msg = cardName.Length > 0 ? $"{cardName} → {effectDesc}" : effectDesc;
+        EmitSignal(SignalName.CardPlayFeedback, msg, territoryId, category);
+    }
+
     // ── Event Subscriptions ──────────────────────────────────────────────────
 
     private void SubscribeToGameEvents()
@@ -361,12 +782,21 @@ public partial class GameBridge : Node
         GameEvents.CardRestDissolved += _hCardRestDissolved;
         GameEvents.CardAwakened      += _hCardAwakened;
 
-        _hElementChanged     = (e, v) => EmitSignal(SignalName.ElementChanged,    (int)e, v);
-        _hThresholdTriggered = (e, t) => EmitSignal(SignalName.ThresholdTriggered, (int)e, t);
-        _hElementsDecayed    = ()     => EmitSignal(SignalName.ElementsDecayed);
+        _hElementChanged      = (e, v) => EmitSignal(SignalName.ElementChanged,    (int)e, v);
+        _hThresholdTriggered  = (e, t) => EmitSignal(SignalName.ThresholdTriggered, (int)e, t);
+        _hThresholdAutoResolve = (e, t) => _thresholdResolver.OnThresholdTriggered(e, t, State);
+        _hElementsDecayed      = ()     => EmitSignal(SignalName.ElementsDecayed);
         GameEvents.ElementChanged     += _hElementChanged;
         GameEvents.ThresholdTriggered += _hThresholdTriggered;
+        GameEvents.ThresholdTriggered += _hThresholdAutoResolve;
         GameEvents.ElementsDecayed    += _hElementsDecayed;
+
+        _hThresholdPending  = (e, t, d) => EmitSignal(SignalName.ThresholdPending,  (int)e, t, d);
+        _hThresholdExpired  = (e, t)    => EmitSignal(SignalName.ThresholdExpired,  (int)e, t);
+        _hThresholdResolved = (e, t, d) => EmitSignal(SignalName.ThresholdResolved, (int)e, t, d);
+        GameEvents.ThresholdPending  += _hThresholdPending;
+        GameEvents.ThresholdExpired  += _hThresholdExpired;
+        GameEvents.ThresholdResolved += _hThresholdResolved;
 
         _hFearGeneratedRelay  = a  => EmitSignal(SignalName.FearGenerated,     a);
         _hFearActionQueued    = () => EmitSignal(SignalName.FearActionQueued);
@@ -422,7 +852,12 @@ public partial class GameBridge : Node
 
         GameEvents.ElementChanged     -= _hElementChanged;
         GameEvents.ThresholdTriggered -= _hThresholdTriggered;
+        GameEvents.ThresholdTriggered -= _hThresholdAutoResolve;
         GameEvents.ElementsDecayed    -= _hElementsDecayed;
+
+        GameEvents.ThresholdPending  -= _hThresholdPending;
+        GameEvents.ThresholdExpired  -= _hThresholdExpired;
+        GameEvents.ThresholdResolved -= _hThresholdResolved;
 
         GameEvents.FearGenerated      -= _hFearGeneratedRelay;
         GameEvents.FearActionQueued   -= _hFearActionQueued;

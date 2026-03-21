@@ -1,0 +1,116 @@
+namespace HollowWardens.Tests.Systems;
+
+using HollowWardens.Core.Encounter;
+using HollowWardens.Core.Events;
+using HollowWardens.Core.Models;
+using HollowWardens.Core.Systems;
+using Xunit;
+
+/// <summary>
+/// Verifies the new Ravage damage model: corruption = native damage pool,
+/// per-unit values: Marcher=2, Ironclad=3, Outrider=1, Pioneer=2.
+/// Outrider pre-hit is 2 damage.
+/// </summary>
+public class RavageDamageModelTests : IDisposable
+{
+    private readonly CombatSystem _sut = new();
+
+    public void Dispose() => GameEvents.ClearAll();
+
+    private static EncounterState CreateState() => new()
+    {
+        Territories = new List<Territory>
+        {
+            new() { Id = "A1", Row = TerritoryRow.Arrival },
+        },
+        Corruption = new CorruptionSystem(),
+        Weave      = new WeaveSystem(),
+    };
+
+    private static ActionCard RavageCard() => new() { Id = CombatSystem.RavageId, AdvanceModifier = 1 };
+
+    private static Invader MakeInvader(UnitType type, string tId) =>
+        new() { Id = $"{type}1", UnitType = type, Hp = 3, MaxHp = 3, TerritoryId = tId };
+
+    [Fact]
+    public void Marcher_CorruptionIs2()
+    {
+        var state     = CreateState();
+        var territory = state.GetTerritory("A1")!;
+        territory.Invaders.Add(MakeInvader(UnitType.Marcher, "A1"));
+
+        _sut.ExecuteActivate(RavageCard(), territory, state);
+
+        Assert.Equal(2, territory.CorruptionPoints);
+    }
+
+    [Fact]
+    public void Ironclad_CorruptionIs3()
+    {
+        var state     = CreateState();
+        var territory = state.GetTerritory("A1")!;
+        territory.Invaders.Add(MakeInvader(UnitType.Ironclad, "A1"));
+
+        _sut.ExecuteActivate(RavageCard(), territory, state);
+
+        Assert.Equal(3, territory.CorruptionPoints);
+    }
+
+    [Fact]
+    public void Outrider_CorruptionIs1()
+    {
+        var state     = CreateState();
+        var territory = state.GetTerritory("A1")!;
+        territory.Invaders.Add(MakeInvader(UnitType.Outrider, "A1"));
+        // No natives → only corruption counted
+
+        _sut.ExecuteActivate(RavageCard(), territory, state);
+
+        Assert.Equal(1, territory.CorruptionPoints);
+    }
+
+    [Fact]
+    public void Pioneer_CorruptionIs2()
+    {
+        var state     = CreateState();
+        var territory = state.GetTerritory("A1")!;
+        territory.Invaders.Add(MakeInvader(UnitType.Pioneer, "A1"));
+
+        _sut.ExecuteActivate(RavageCard(), territory, state);
+
+        Assert.Equal(2, territory.CorruptionPoints);
+    }
+
+    [Fact]
+    public void CorruptionEqualsNativeDamagePool()
+    {
+        // 1 Marcher = 2 corruption = 2 native damage
+        var state     = CreateState();
+        var territory = state.GetTerritory("A1")!;
+        territory.Invaders.Add(MakeInvader(UnitType.Marcher, "A1"));
+
+        var native = new Native { Hp = 3, MaxHp = 3, Damage = 3, TerritoryId = "A1" };
+        territory.Natives.Add(native);
+
+        _sut.ExecuteActivate(RavageCard(), territory, state);
+
+        Assert.Equal(1, native.Hp); // 3 - 2 = 1
+        Assert.Equal(2, territory.CorruptionPoints);
+    }
+
+    [Fact]
+    public void Outrider_PreHit2_DamagesNativeBeforeMainRavage()
+    {
+        var state     = CreateState();
+        var territory = state.GetTerritory("A1")!;
+        territory.Invaders.Add(MakeInvader(UnitType.Outrider, "A1"));
+
+        // Native with HP=3: pre-hit (2) → HP 1, then main damage (1) → HP 0 (killed)
+        var native = new Native { Hp = 3, MaxHp = 3, Damage = 3, TerritoryId = "A1" };
+        territory.Natives.Add(native);
+
+        _sut.ExecuteActivate(RavageCard(), territory, state);
+
+        Assert.False(native.IsAlive); // pre-hit 2 + main 1 = 3 total
+    }
+}

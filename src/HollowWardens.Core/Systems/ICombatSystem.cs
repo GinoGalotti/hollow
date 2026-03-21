@@ -5,6 +5,7 @@ using HollowWardens.Core.Encounter;
 
 public interface ICombatSystem
 {
+    bool IsProvokedAction(ActionCard action);
     void ExecuteActivate(ActionCard action, Territory territory, EncounterState state);
     int CalculateNativeDamagePool(Territory territory);
     void ApplyCounterAttack(Territory territory, Dictionary<Invader, int> damageAssignments);

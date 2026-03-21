@@ -1,5 +1,6 @@
 namespace HollowWardens.Core.Cards;
 
+using HollowWardens.Core;
 using HollowWardens.Core.Events;
 using HollowWardens.Core.Models;
 using HollowWardens.Core.Wardens;
@@ -15,21 +16,21 @@ public class DeckManager : IDeckManager
     private readonly List<Card> _dissolved = new();
     private readonly List<Card> _permanentlyRemoved = new();
     private readonly HandManager _handManager;
-    private readonly Random _rng;
+    private readonly GameRandom _rng;
     private readonly int _handLimit;
 
     /// <param name="shuffle">Set false for deterministic tests.</param>
     public DeckManager(
         IWardenAbility warden,
         IEnumerable<Card> deck,
-        Random? rng = null,
+        GameRandom? rng = null,
         int handLimit = 5,
         bool shuffle = true)
     {
         _warden = warden;
         _drawPile = deck.ToList();
         _handManager = new HandManager();
-        _rng = rng ?? new Random();
+        _rng = rng ?? GameRandom.NewRandom();
         _handLimit = handLimit;
         if (shuffle) Shuffle(_drawPile);
     }
@@ -143,7 +144,7 @@ public class DeckManager : IDeckManager
 
             case BottomResult.Dormant:
                 card.IsDormant = true;
-                InsertRandom(_drawPile, card);
+                _discardPile.Add(card);
                 GameEvents.CardDormant?.Invoke(card);
                 break;
 

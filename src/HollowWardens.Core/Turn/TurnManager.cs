@@ -23,6 +23,12 @@ public class TurnManager
     /// <summary>Number of Rest turns taken so far this encounter.</summary>
     public int RestCount { get; private set; }
 
+    /// <summary>Number of top-half plays made this Vigil. Resets at the start of each turn.</summary>
+    public int VigilPlaysThisTurn { get; private set; }
+
+    /// <summary>Number of bottom-half plays made this Dusk. Resets at the start of Dusk.</summary>
+    public int DuskPlaysThisTurn { get; private set; }
+
     public TurnManager(EncounterState state, EffectResolver resolver)
     {
         _state = state;
@@ -35,6 +41,7 @@ public class TurnManager
     /// </summary>
     public void StartVigil()
     {
+        VigilPlaysThisTurn = 0;
         _state.Deck?.RefillHand();
 
         if (_state.Deck?.NeedsRest == true)
@@ -54,8 +61,20 @@ public class TurnManager
         }
     }
 
-    public void PlayTop(Card card, TargetInfo? target = null)
-        => _actions.PlayTop(card, target);
+    /// <summary>
+    /// Plays the top half of a card. Returns false if the Vigil play limit (2) is reached.
+    /// Outside Vigil (e.g., Resolution) the limit does not apply.
+    /// </summary>
+    public bool PlayTop(Card card, TargetInfo? target = null)
+    {
+        if (CurrentPhase == TurnPhase.Vigil)
+        {
+            if (VigilPlaysThisTurn >= 2) return false;
+            VigilPlaysThisTurn++;
+        }
+        _actions.PlayTop(card, target);
+        return true;
+    }
 
     /// <summary>Signals end of Vigil. Caller should then run the Tide.</summary>
     public void EndVigil()
@@ -66,12 +85,25 @@ public class TurnManager
 
     public void StartDusk()
     {
+        DuskPlaysThisTurn = 0;
         CurrentPhase = TurnPhase.Dusk;
         GameEvents.PhaseChanged?.Invoke(TurnPhase.Dusk);
     }
 
-    public void PlayBottom(Card card, TargetInfo? target = null)
-        => _actions.PlayBottom(card, target);
+    /// <summary>
+    /// Plays the bottom half of a card. Returns false if the Dusk play limit (1) is reached.
+    /// Outside Dusk the limit does not apply.
+    /// </summary>
+    public bool PlayBottom(Card card, TargetInfo? target = null)
+    {
+        if (CurrentPhase == TurnPhase.Dusk)
+        {
+            if (DuskPlaysThisTurn >= 1) return false;
+            DuskPlaysThisTurn++;
+        }
+        _actions.PlayBottom(card, target);
+        return true;
+    }
 
     public void SkipDusk() => _actions.SkipDusk();
 
@@ -95,6 +127,14 @@ public class TurnManager
         RestCount++;
         GameEvents.PhaseChanged?.Invoke(TurnPhase.Rest);
     }
+
+    /// <summary>True when a top play is currently allowed (Vigil phase, under the 2-play limit).</summary>
+    public bool CanPlayTop()
+        => CurrentPhase == TurnPhase.Vigil && VigilPlaysThisTurn < 2;
+
+    /// <summary>True when a bottom play is currently allowed (Dusk phase, under the 1-play limit).</summary>
+    public bool CanPlayBottom()
+        => CurrentPhase == TurnPhase.Dusk && DuskPlaysThisTurn < 1;
 
     public void AssignCounterDamage(Territory territory, Dictionary<Invader, int> assignments)
         => _actions.AssignCounterDamage(territory, assignments);

@@ -1,7 +1,7 @@
 namespace HollowWardens.Core.Run;
 
-using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Effects;
+using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Events;
 using HollowWardens.Core.Invaders;
 using HollowWardens.Core.Models;
@@ -23,6 +23,7 @@ public class EncounterRunner
     private Action<int>? _onFearGenerated;
     private Action<int>? _onDreadAdvanced;
     private Action<Native, Territory>? _onNativeDefeated;
+    private Action<Element, int>? _onThresholdTriggered;
 
     public EncounterRunner(
         ActionDeck actionDeck,
@@ -45,6 +46,19 @@ public class EncounterRunner
     {
         WireEvents(state);
         GameEvents.EncounterStarted?.Invoke(state.Config);
+
+        // ── §1 Initial board setup ──────────────────────────────────────────
+        // Spawn natives per config
+        foreach (var (territoryId, count) in state.Config.NativeSpawns)
+        {
+            var territory = state.GetTerritory(territoryId);
+            if (territory == null || count <= 0) continue;
+            for (int i = 0; i < count; i++)
+                territory.Natives.Add(new Native { Hp = 2, MaxHp = 2, Damage = 3, TerritoryId = territoryId });
+        }
+        // Place starting Presence on I1
+        var i1 = state.GetTerritory("I1");
+        if (i1 != null) i1.PresenceCount = 1;
 
         var turnManager = new TurnManager(state, _resolver);
         var tideRunner = new TideRunner(_actionDeck, _cadence, _spawn, _faction, _resolver);
@@ -103,7 +117,7 @@ public class EncounterRunner
         {
             var card = strategy.ChooseTopPlay(state.Deck.Hand, state);
             if (card == null) break;
-            turnManager.PlayTop(card);
+            if (!turnManager.PlayTop(card)) break; // play limit reached
         }
     }
 
@@ -113,7 +127,7 @@ public class EncounterRunner
         {
             var card = strategy.ChooseBottomPlay(state.Deck.Hand, state);
             if (card == null) break;
-            turnManager.PlayBottom(card);
+            if (!turnManager.PlayBottom(card)) break; // play limit reached
         }
     }
 
@@ -127,7 +141,7 @@ public class EncounterRunner
         _onDreadAdvanced = level => state.FearActions?.OnDreadAdvanced(level);
         GameEvents.DreadAdvanced += _onDreadAdvanced;
 
-        // NativeDefeated → generates 1 Fear (does not route through FearGenerated to avoid Dread double-count)
+        // NativeDefeated → generates 1 Fear (Dread called directly; FearGenerated event queues FearActions)
         _onNativeDefeated = (native, territory) =>
         {
             const int fearPerNative = 1;
@@ -135,12 +149,18 @@ public class EncounterRunner
             GameEvents.FearGenerated?.Invoke(fearPerNative);
         };
         GameEvents.NativeDefeated += _onNativeDefeated;
+
+        // ThresholdTriggered → auto-resolve Tier 1 effects
+        var resolver = new ThresholdResolver();
+        _onThresholdTriggered = (element, tier) => resolver.AutoResolve(element, tier, state);
+        GameEvents.ThresholdTriggered += _onThresholdTriggered;
     }
 
     private void UnwireEvents()
     {
-        if (_onFearGenerated != null) GameEvents.FearGenerated -= _onFearGenerated;
-        if (_onDreadAdvanced != null) GameEvents.DreadAdvanced -= _onDreadAdvanced;
-        if (_onNativeDefeated != null) GameEvents.NativeDefeated -= _onNativeDefeated;
+        if (_onFearGenerated != null)     GameEvents.FearGenerated     -= _onFearGenerated;
+        if (_onDreadAdvanced != null)     GameEvents.DreadAdvanced     -= _onDreadAdvanced;
+        if (_onNativeDefeated != null)    GameEvents.NativeDefeated    -= _onNativeDefeated;
+        if (_onThresholdTriggered != null) GameEvents.ThresholdTriggered -= _onThresholdTriggered;
     }
 }

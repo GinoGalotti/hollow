@@ -1,5 +1,6 @@
 namespace HollowWardens.Core.Encounter;
 
+using HollowWardens.Core;
 using HollowWardens.Core.Models;
 
 public class ActionDeck
@@ -8,15 +9,15 @@ public class ActionDeck
     private readonly List<ActionCard> _painfulDiscard = new();
     private readonly List<ActionCard> _easyDraw;
     private readonly List<ActionCard> _easyDiscard = new();
-    private readonly Random _rng;
+    private readonly GameRandom _rng;
 
     public ActionDeck(
         IEnumerable<ActionCard> painful,
         IEnumerable<ActionCard> easy,
-        Random? rng = null,
+        GameRandom? rng = null,
         bool shuffle = true)
     {
-        _rng = rng ?? new Random();
+        _rng = rng ?? GameRandom.NewRandom();
         _painfulDraw = painful.ToList();
         _easyDraw = easy.ToList();
         if (shuffle)

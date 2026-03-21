@@ -7,9 +7,21 @@ using HollowWardens.Core.Encounter;
 
 public class CombatSystem : ICombatSystem
 {
-    public const string RavageId = "ravage";
-    public const string MarchId  = "march";
-    public const string SettleId = "settle";
+    public const string RavageId  = "ravage";
+    public const string CorruptId = "corrupt";
+    public const string MarchId   = "march";
+    public const string SettleId  = "settle";
+
+    /// <summary>
+    /// Returns true when the action provokes a native counter-attack.
+    /// Only Ravage and Corrupt actions (e.g. "pm_ravage", "pm_corrupt") provoke.
+    /// </summary>
+    public bool IsProvokedAction(ActionCard action)
+    {
+        string id = action.Id ?? string.Empty;
+        return id.Contains(RavageId,  StringComparison.OrdinalIgnoreCase)
+            || id.Contains(CorruptId, StringComparison.OrdinalIgnoreCase);
+    }
 
     // Invaders that were in I1 before the current Advance — eligible to march on Heart.
     private readonly HashSet<string> _preAdvanceI1Invaders = new();
@@ -20,12 +32,10 @@ public class CombatSystem : ICombatSystem
     {
         var alive = territory.Invaders.Where(i => i.IsAlive).ToList();
 
-        switch (action.Id)
-        {
-            case RavageId: ExecuteRavage(territory, alive, state); break;
-            case MarchId:  ExecuteMarch(territory, alive);         break;
-            case SettleId: ExecuteSettle(territory, alive);        break;
-        }
+        string id = action.Id ?? string.Empty;
+        if      (id.Contains(RavageId,  StringComparison.OrdinalIgnoreCase)) ExecuteRavage(territory, alive, state);
+        else if (id.Contains(MarchId,   StringComparison.OrdinalIgnoreCase)) ExecuteMarch(territory, alive);
+        else if (id.Contains(SettleId,  StringComparison.OrdinalIgnoreCase)) ExecuteSettle(territory, alive);
 
         // Pioneer modifier: build one Infrastructure token per Pioneer after any Activate.
         foreach (var inv in alive.Where(i => i.UnitType == UnitType.Pioneer))
@@ -35,13 +45,12 @@ public class CombatSystem : ICombatSystem
     private static void ExecuteRavage(Territory territory, List<Invader> invaders, EncounterState state)
     {
         int totalCorruption = 0;
-        int totalDamage     = 0;
 
         foreach (var inv in invaders)
         {
             GameEvents.InvaderActivated?.Invoke(inv, territory);
 
-            // Outrider pre-hit: 1 damage to lowest-HP alive native before main Ravage.
+            // Outrider pre-hit: 2 damage to lowest-HP alive native before main Ravage.
             if (inv.UnitType == UnitType.Outrider)
             {
                 var preTarget = territory.Natives
@@ -49,19 +58,22 @@ public class CombatSystem : ICombatSystem
                     .OrderBy(n => n.Hp)
                     .FirstOrDefault();
                 if (preTarget != null)
-                    ApplyDamageToNative(preTarget, 1, territory);
+                    ApplyDamageToNative(preTarget, 2, territory);
             }
 
-            // Corruption: base 1 per unit; Ironclad +1.
-            totalCorruption += inv.UnitType == UnitType.Ironclad ? 2 : 1;
-
-            // Native damage: Pioneer builds instead of fighting.
-            if (inv.UnitType != UnitType.Pioneer)
-                totalDamage += 1;
+            // Corruption pool = native damage pool (corruption IS the damage).
+            totalCorruption += inv.UnitType switch
+            {
+                UnitType.Marcher  => 2,
+                UnitType.Ironclad => 3,
+                UnitType.Outrider => 1,
+                UnitType.Pioneer  => 2,
+                _                 => 1,
+            };
         }
 
         state.Corruption?.AddCorruption(territory, totalCorruption);
-        DistributeDamageToNatives(territory, totalDamage);
+        DistributeDamageToNatives(territory, totalCorruption);
     }
 
     private static void ExecuteMarch(Territory territory, List<Invader> invaders)

@@ -1,5 +1,6 @@
 namespace HollowWardens.Tests.Cards;
 
+using HollowWardens.Core;
 using HollowWardens.Core.Cards;
 using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Models;
@@ -28,7 +29,7 @@ public class DeckManagerTests
 
     private static DeckManager MakeDeck(int cardCount = 10, int handLimit = 5)
         => new DeckManager(new GenericWarden(), MakeCards(cardCount),
-            rng: new Random(42), handLimit: handLimit, shuffle: false);
+            rng: GameRandom.FromSeed(42), handLimit: handLimit, shuffle: false);
 
     // ── Tests ─────────────────────────────────────────────────────────────────
 

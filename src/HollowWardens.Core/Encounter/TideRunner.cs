@@ -20,6 +20,9 @@ public class TideRunner
     // Card drawn during Preview for use in the next tide
     private ActionCard? _previewedCard;
 
+    // True after SpawnInitialWave has run — prevents wave 1 from spawning twice
+    private bool _initialWaveSpawned;
+
     /// <summary>
     /// Optional handler for player-assigned counter-attack damage.
     /// Receives (territory, damagePool, state) and returns per-invader assignments.
@@ -42,10 +45,30 @@ public class TideRunner
     }
 
     /// <summary>
+    /// Preloads the first action card so Tide 1 uses it without re-drawing.
+    /// Call this during initial encounter setup before the first Vigil.
+    /// </summary>
+    public void PreloadPreview(ActionCard card) => _previewedCard = card;
+
+    /// <summary>
+    /// Spawns the Wave 1 invaders before the first Vigil so A-row is populated at game start.
+    /// Marks the wave as spawned so Tide 1's Arrive step does not spawn it again.
+    /// </summary>
+    public void SpawnInitialWave(EncounterState state)
+    {
+        SpawnWaveForTide(1, state);
+        _initialWaveSpawned = true;
+    }
+
+    /// <summary>
     /// Runs one complete Tide and returns the action card used.
+    /// Tide 1 is a ramp-up tide: Fear Actions, Activate, CounterAttack, and Escalate
+    /// are skipped — only Advance, Arrive, and Preview run.
     /// </summary>
     public ActionCard ExecuteTide(int tideNumber, EncounterState state)
     {
+        bool isFirstTide = tideNumber == 1;
+
         // ── Determine action card ───────────────────────────────────────────
         ActionCard actionCard;
         if (_previewedCard != null)
@@ -60,49 +83,59 @@ public class TideRunner
         state.CurrentActionCard = actionCard;
         GameEvents.ActionCardRevealed?.Invoke(actionCard);
 
-        // ── Step 1: Fear Actions ────────────────────────────────────────────
-        GameEvents.TideStepStarted?.Invoke(TideStep.FearActions);
-
-        // Warden passive fear (e.g., Root network fear) generates at Tide start
-        int passiveFear = state.Warden?.CalculatePassiveFear() ?? 0;
-        if (passiveFear > 0)
+        // ── Step 1: Fear Actions (skipped on Tide 1) ────────────────────────
+        if (!isFirstTide)
         {
-            state.Dread?.OnFearGenerated(passiveFear);
-            GameEvents.FearGenerated?.Invoke(passiveFear);
-        }
+            GameEvents.TideStepStarted?.Invoke(TideStep.FearActions);
 
-        // Reveal and resolve queued fear actions
-        var fearActions = state.FearActions?.RevealAndDequeue() ?? new List<FearActionData>();
-        foreach (var fa in fearActions)
-        {
-            try
+            // Warden passive fear (e.g., Root network fear) generates at Tide start
+            int passiveFear = state.Warden?.CalculatePassiveFear() ?? 0;
+            if (passiveFear > 0)
             {
-                var effect = _resolver.Resolve(fa.Effect);
-                effect.Resolve(state, new TargetInfo());
+                state.Dread?.OnFearGenerated(passiveFear);
+                GameEvents.FearGenerated?.Invoke(passiveFear);
             }
-            catch (NotImplementedException) { }
+
+            // Reveal and resolve queued fear actions
+            var fearActions = state.FearActions?.RevealAndDequeue() ?? new List<FearActionData>();
+            foreach (var fa in fearActions)
+            {
+                try
+                {
+                    var effect = _resolver.Resolve(fa.Effect);
+                    effect.Resolve(state, new TargetInfo());
+                }
+                catch (NotImplementedException) { }
+            }
         }
 
-        // ── Step 2: Activate ───────────────────────────────────────────────
-        GameEvents.TideStepStarted?.Invoke(TideStep.Activate);
-        foreach (var territory in state.TerritoriesWithInvaders().ToList())
-            state.Combat?.ExecuteActivate(actionCard, territory, state);
-
-        // ── Step 3: CounterAttack ──────────────────────────────────────────
-        GameEvents.TideStepStarted?.Invoke(TideStep.CounterAttack);
-        foreach (var territory in state.Territories
-            .Where(t => t.Natives.Any(n => n.IsAlive) && t.Invaders.Any(i => i.IsAlive))
-            .ToList())
+        // ── Step 2: Activate (skipped on Tide 1) ───────────────────────────
+        if (!isFirstTide)
         {
-            int pool = state.Combat?.CalculateNativeDamagePool(territory) ?? 0;
-            GameEvents.CounterAttackReady?.Invoke(territory, pool);
-            if (pool > 0)
+            GameEvents.TideStepStarted?.Invoke(TideStep.Activate);
+            foreach (var territory in state.TerritoriesWithInvaders().ToList())
+                state.Combat?.ExecuteActivate(actionCard, territory, state);
+        }
+
+        // ── Step 3: CounterAttack (skipped on Tide 1; only after Ravage or Corrupt) ──
+        bool isProvoked = !isFirstTide && (state.Combat?.IsProvokedAction(actionCard) ?? false);
+        if (isProvoked)
+        {
+            GameEvents.TideStepStarted?.Invoke(TideStep.CounterAttack);
+            foreach (var territory in state.Territories
+                .Where(t => t.Natives.Any(n => n.IsAlive) && t.Invaders.Any(i => i.IsAlive))
+                .ToList())
             {
-                var assignments = CounterAttackHandler?.Invoke(territory, pool, state);
-                if (assignments != null)
-                    state.Combat?.ApplyCounterAttack(territory, assignments);
-                else
-                    state.Combat?.AutoAssignCounterAttack(territory);
+                int pool = state.Combat?.CalculateNativeDamagePool(territory) ?? 0;
+                GameEvents.CounterAttackReady?.Invoke(territory, pool);
+                if (pool > 0)
+                {
+                    var assignments = CounterAttackHandler?.Invoke(territory, pool, state);
+                    if (assignments != null)
+                        state.Combat?.ApplyCounterAttack(territory, assignments);
+                    else
+                        state.Combat?.AutoAssignCounterAttack(territory);
+                }
             }
         }
 
@@ -115,9 +148,12 @@ public class TideRunner
         GameEvents.TideStepStarted?.Invoke(TideStep.Arrive);
         SpawnWaveForTide(tideNumber, state);
 
-        // ── Step 6: Escalate ───────────────────────────────────────────────
-        GameEvents.TideStepStarted?.Invoke(TideStep.Escalate);
-        ApplyEscalation(tideNumber, state);
+        // ── Step 6: Escalate (skipped on Tide 1) ───────────────────────────
+        if (!isFirstTide)
+        {
+            GameEvents.TideStepStarted?.Invoke(TideStep.Escalate);
+            ApplyEscalation(tideNumber, state);
+        }
 
         // ── Step 7: Preview ────────────────────────────────────────────────
         GameEvents.TideStepStarted?.Invoke(TideStep.Preview);
@@ -128,8 +164,87 @@ public class TideRunner
         return actionCard;
     }
 
+    // ── Step methods for interactive GameBridge tide state machine ──────────────
+
+    /// <summary>Determines and reveals the action card. Call first each tide.</summary>
+    public ActionCard BeginTide(int tideNumber, EncounterState state)
+    {
+        ActionCard actionCard;
+        if (_previewedCard != null) { actionCard = _previewedCard; _previewedCard = null; }
+        else actionCard = _actionDeck.Draw(_cadence.NextPool());
+        state.CurrentActionCard = actionCard;
+        GameEvents.ActionCardRevealed?.Invoke(actionCard);
+        return actionCard;
+    }
+
+    /// <summary>Applies passive warden fear at the start of a non-first Tide.</summary>
+    public void ApplyPassiveFear(EncounterState state)
+    {
+        int passiveFear = state.Warden?.CalculatePassiveFear() ?? 0;
+        if (passiveFear > 0) { state.Dread?.OnFearGenerated(passiveFear); GameEvents.FearGenerated?.Invoke(passiveFear); }
+    }
+
+    /// <summary>Drains the fear action queue WITHOUT firing FearActionRevealed (player reveals each one).</summary>
+    public List<FearActionData> DrainFearActions(EncounterState state)
+    {
+        GameEvents.TideStepStarted?.Invoke(TideStep.FearActions);
+        return state.FearActions?.DrainQueue() ?? new List<FearActionData>();
+    }
+
+    /// <summary>Runs the Activate step for all territories with invaders.</summary>
+    public void RunActivate(ActionCard actionCard, EncounterState state)
+    {
+        GameEvents.TideStepStarted?.Invoke(TideStep.Activate);
+        foreach (var territory in state.TerritoriesWithInvaders().ToList())
+            state.Combat?.ExecuteActivate(actionCard, territory, state);
+    }
+
+    /// <summary>Returns territories eligible for native counter-attack. Fires TideStep.CounterAttack event.</summary>
+    public List<Territory> GetCounterAttackTargets(EncounterState state)
+    {
+        GameEvents.TideStepStarted?.Invoke(TideStep.CounterAttack);
+        return state.Territories
+            .Where(t => t.Natives.Any(n => n.IsAlive) && t.Invaders.Any(i => i.IsAlive))
+            .ToList();
+    }
+
+    /// <summary>Runs Advance + HeartMarch steps.</summary>
+    public void RunAdvance(ActionCard actionCard, EncounterState state)
+    {
+        GameEvents.TideStepStarted?.Invoke(TideStep.Advance);
+        state.Combat?.ExecuteAdvance(actionCard, state);
+        state.Combat?.ExecuteHeartMarch(state);
+    }
+
+    /// <summary>Runs the Arrive step — spawns the wave for this tide.</summary>
+    public void RunArrive(int tideNumber, EncounterState state)
+    {
+        GameEvents.TideStepStarted?.Invoke(TideStep.Arrive);
+        SpawnWaveForTide(tideNumber, state);
+    }
+
+    /// <summary>Runs the Escalate step.</summary>
+    public void RunEscalate(int tideNumber, EncounterState state)
+    {
+        GameEvents.TideStepStarted?.Invoke(TideStep.Escalate);
+        ApplyEscalation(tideNumber, state);
+    }
+
+    /// <summary>Runs the Preview step — draws next action card and previews next spawn.</summary>
+    public void RunPreview(int tideNumber, EncounterState state)
+    {
+        GameEvents.TideStepStarted?.Invoke(TideStep.Preview);
+        _previewedCard = _actionDeck.Draw(_cadence.NextPool());
+        GameEvents.NextActionPreviewed?.Invoke(_previewedCard);
+        _spawn.PreviewWave(tideNumber + 1);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+
     private void SpawnWaveForTide(int tideNumber, EncounterState state)
     {
+        if (_initialWaveSpawned && tideNumber == 1) return;
+
         // SpawnManager.PreviewWave returns the wave for this tide (fires WaveLocationsRevealed)
         var wave = _spawn.PreviewWave(tideNumber);
         if (wave == null) return;

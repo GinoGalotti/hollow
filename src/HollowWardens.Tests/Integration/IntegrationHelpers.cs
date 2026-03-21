@@ -1,5 +1,6 @@
 namespace HollowWardens.Tests.Integration;
 
+using HollowWardens.Core;
 using HollowWardens.Core.Cards;
 using HollowWardens.Core.Effects;
 using HollowWardens.Core.Encounter;
@@ -80,16 +81,16 @@ internal static class IntegrationHelpers
             Combat = new CombatSystem(),
             Presence = presence,
             Corruption = new CorruptionSystem(),
-            FearActions = new FearActionSystem(dread, fearPools),
+            FearActions = new FearActionSystem(dread, fearPools, GameRandom.FromSeed(42)),
             Warden = warden
         };
 
-        state.Deck = new DeckManager(warden, deck, rng: new Random(42), handLimit: handLimit, shuffle: shuffleDeck);
+        state.Deck = new DeckManager(warden, deck, rng: GameRandom.FromSeed(42), handLimit: handLimit, shuffle: shuffleDeck);
 
         var faction = new PaleMarchFaction();
-        var actionDeck = new ActionDeck(faction.BuildPainfulPool(), faction.BuildEasyPool(), rng: new Random(0), shuffle: false);
+        var actionDeck = new ActionDeck(faction.BuildPainfulPool(), faction.BuildEasyPool(), rng: GameRandom.FromSeed(0), shuffle: false);
         var cadence = new CadenceManager(config.Cadence);
-        var spawn = new SpawnManager(config.Waves, rng: new Random(0));
+        var spawn = new SpawnManager(config.Waves, rng: GameRandom.FromSeed(0));
 
         return (state, actionDeck, cadence, spawn, faction);
     }

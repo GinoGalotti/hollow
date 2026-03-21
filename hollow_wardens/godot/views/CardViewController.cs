@@ -39,6 +39,13 @@ public partial class CardViewController : PanelContainer
         vbox.AddChild(_playBtn);
 
         _playBtn.Pressed += OnPlayPressed;
+
+        var bridge = GameBridge.Instance;
+        if (bridge != null)
+        {
+            bridge.PhaseChanged         += _ => Refresh();
+            bridge.TargetingModeChanged += _ => Refresh();
+        }
     }
 
     public void Setup(Card card)
@@ -61,29 +68,42 @@ public partial class CardViewController : PanelContainer
         bool dormant = _card.IsDormant;
         Modulate = dormant ? new Color(0.5f, 0.5f, 0.5f) : Colors.White;
 
-        var bridge = GameBridge.Instance;
-        var phase  = bridge?.CurrentPhase;
-        bool inRes = bridge?.IsInResolution ?? false;
+        var bridge     = GameBridge.Instance;
+        var phase      = bridge?.CurrentPhase;
+        bool inRes     = bridge?.IsInResolution ?? false;
+        bool targeting = bridge?.IsWaitingForTarget ?? false;
 
-        if (dormant)
+        _playBtn.Visible  = true;
+        _playBtn.Modulate = Colors.White;
+
+        if (targeting)
+        {
+            _playBtn.Text     = "—";
+            _playBtn.Disabled = true;
+        }
+        else if (dormant)
         {
             _playBtn.Text     = "Dormant";
             _playBtn.Disabled = true;
         }
         else if (phase == TurnPhase.Vigil || inRes)
         {
+            bool canPlay      = bridge?.CanPlayTop() ?? true;
             _playBtn.Text     = inRes ? "Play (Top)" : "Play Top";
-            _playBtn.Disabled = false;
+            _playBtn.Disabled = !canPlay;
+            if (!canPlay) _playBtn.Modulate = new Color(1f, 1f, 1f, 0.4f);
         }
         else if (phase == TurnPhase.Dusk)
         {
+            bool canPlay      = bridge?.CanPlayBottom() ?? true;
             _playBtn.Text     = "Play Bottom";
-            _playBtn.Disabled = false;
+            _playBtn.Disabled = !canPlay;
+            if (!canPlay) _playBtn.Modulate = new Color(1f, 1f, 1f, 0.4f);
         }
         else
         {
-            _playBtn.Text     = "—";
-            _playBtn.Disabled = true;
+            // Tide, Rest — hide play button entirely
+            _playBtn.Visible = false;
         }
     }
 
