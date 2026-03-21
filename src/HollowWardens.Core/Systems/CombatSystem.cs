@@ -152,7 +152,9 @@ public class CombatSystem : ICombatSystem
         {
             foreach (var invader in territory.Invaders.Where(i => i.IsAlive).ToList())
             {
-                int steps = GetSteps(action, invader);
+                // D29: Network Slow — ask warden for movement penalty at this territory
+                int penalty = state.Warden?.GetMovementPenalty(territory.Id, state.Territories) ?? 0;
+                int steps = GetSteps(action, invader, penalty);
                 if (steps == 0) continue;
 
                 string currentId = invader.TerritoryId;
@@ -192,7 +194,7 @@ public class CombatSystem : ICombatSystem
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private static int GetSteps(ActionCard action, Invader invader)
+    private static int GetSteps(ActionCard action, Invader invader, int movementPenalty = 0)
     {
         if (invader.UnitType == UnitType.Ironclad)
         {
@@ -204,6 +206,13 @@ public class CombatSystem : ICombatSystem
         int steps = action.AdvanceModifier;
         if (invader.UnitType == UnitType.Outrider)
             steps += 1;
+
+        // D29: SlowInvaders halves movement (round down)
+        if (invader.IsSlowed)
+            steps = steps / 2;
+
+        // D29: Apply Network Slow penalty (minimum 0 total movement)
+        steps = Math.Max(0, steps - movementPenalty);
 
         return steps;
     }

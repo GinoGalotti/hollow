@@ -72,4 +72,37 @@ public class RootAbility : IWardenAbility
     /// </summary>
     public int CalculatePassiveFear() =>
         _presence?.CalculateNetworkFear() ?? 0;
+
+    /// <summary>
+    /// D29 Network Slow: −1 movement for invaders in territories adjacent to 2+ Presence territories.
+    /// </summary>
+    public int GetMovementPenalty(string territoryId, IEnumerable<Territory> allTerritories)
+    {
+        var territories = allTerritories.ToDictionary(t => t.Id);
+        var neighbors = TerritoryGraph.GetNeighbors(territoryId);
+        int presenceNeighborCount = neighbors.Count(n =>
+            territories.TryGetValue(n, out var t) && t.HasPresence);
+        return presenceNeighborCount >= 2 ? 1 : 0;
+    }
+
+    /// <summary>
+    /// D29 Presence Provocation: Natives in Presence territories counter-attack on every invader action.
+    /// </summary>
+    public bool ProvokesNatives(Territory territory) => territory.HasPresence;
+
+    /// <summary>
+    /// D29 Rest Growth: Place 1 free Presence on any territory with existing Presence.
+    /// Blocked by D28 vulnerability if territory is Defiled (corruption level 2+).
+    /// </summary>
+    public void OnRest(EncounterState state, string? targetTerritoryId)
+    {
+        if (targetTerritoryId == null) return;
+        var territory = state.GetTerritory(targetTerritoryId);
+        if (territory == null || !territory.HasPresence) return;
+
+        // D28 Vulnerability: Defiled blocks placement
+        if (territory.CorruptionLevel >= 2) return;
+
+        state.Presence?.PlacePresence(territory, 1);
+    }
 }

@@ -16,4 +16,7 @@ public interface IPlayerStrategy
 
     /// <summary>Assigns counter-attack damage. Default: auto-assign (lowest HP first).</summary>
     Dictionary<Invader, int>? AssignCounterDamage(Territory territory, int damagePool, EncounterState state);
+
+    // D29: Choose target territory for Rest Growth (null = skip)
+    string? ChooseRestGrowthTarget(EncounterState state) => null;
 }

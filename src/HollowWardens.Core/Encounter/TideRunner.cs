@@ -83,6 +83,11 @@ public class TideRunner
         state.CurrentActionCard = actionCard;
         GameEvents.ActionCardRevealed?.Invoke(actionCard);
 
+        // D29: Reset slow flags at Tide start
+        foreach (var t in state.Territories)
+            foreach (var inv in t.Invaders)
+                inv.IsSlowed = false;
+
         // ── Step 1: Fear Actions (skipped on Tide 1) ────────────────────────
         if (!isFirstTide)
         {
@@ -118,12 +123,19 @@ public class TideRunner
         }
 
         // ── Step 3: CounterAttack (skipped on Tide 1; only after Ravage or Corrupt) ──
-        bool isProvoked = !isFirstTide && (state.Combat?.IsProvokedAction(actionCard) ?? false);
+        // D29: Presence Provocation — counter-attack on ALL actions in provoked territories
+        bool isCardProvoked = state.Combat?.IsProvokedAction(actionCard) ?? false;
+        bool hasWardenProvocation = !isFirstTide && state.Warden != null
+            && state.Territories.Any(t =>
+                t.Natives.Any(n => n.IsAlive) && t.Invaders.Any(i => i.IsAlive)
+                && (state.Warden.ProvokesNatives(t)));
+        bool isProvoked = !isFirstTide && (isCardProvoked || hasWardenProvocation);
         if (isProvoked)
         {
             GameEvents.TideStepStarted?.Invoke(TideStep.CounterAttack);
             foreach (var territory in state.Territories
-                .Where(t => t.Natives.Any(n => n.IsAlive) && t.Invaders.Any(i => i.IsAlive))
+                .Where(t => t.Natives.Any(n => n.IsAlive) && t.Invaders.Any(i => i.IsAlive)
+                    && (isCardProvoked || (state.Warden?.ProvokesNatives(t) ?? false)))
                 .ToList())
             {
                 int pool = state.Combat?.CalculateNativeDamagePool(territory) ?? 0;
@@ -174,6 +186,12 @@ public class TideRunner
         else actionCard = _actionDeck.Draw(_cadence.NextPool());
         state.CurrentActionCard = actionCard;
         GameEvents.ActionCardRevealed?.Invoke(actionCard);
+
+        // D29: Reset slow flags at Tide start
+        foreach (var t in state.Territories)
+            foreach (var inv in t.Invaders)
+                inv.IsSlowed = false;
+
         return actionCard;
     }
 
@@ -200,11 +218,14 @@ public class TideRunner
     }
 
     /// <summary>Returns territories eligible for native counter-attack. Fires TideStep.CounterAttack event.</summary>
-    public List<Territory> GetCounterAttackTargets(EncounterState state)
+    public List<Territory> GetCounterAttackTargets(ActionCard actionCard, EncounterState state)
     {
         GameEvents.TideStepStarted?.Invoke(TideStep.CounterAttack);
+        bool isCardProvoked = state.Combat?.IsProvokedAction(actionCard) ?? false;
+        // D29: Presence Provocation — filter by card-provoked OR warden-provoked territories
         return state.Territories
-            .Where(t => t.Natives.Any(n => n.IsAlive) && t.Invaders.Any(i => i.IsAlive))
+            .Where(t => t.Natives.Any(n => n.IsAlive) && t.Invaders.Any(i => i.IsAlive)
+                && (isCardProvoked || (state.Warden?.ProvokesNatives(t) ?? false)))
             .ToList();
     }
 
