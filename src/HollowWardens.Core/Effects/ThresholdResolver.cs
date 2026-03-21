@@ -19,12 +19,24 @@ public class ThresholdResolver
 
     private static readonly Dictionary<(Element, int), string> Descriptions = new()
     {
-        [(Element.Root,   1)] = "Root T1: Place Presence",
+        [(Element.Root,   1)] = "Root T1: Place Presence adjacent",
+        [(Element.Root,   2)] = "Root T2: Reduce Corruption ×3 in one territory",
+        [(Element.Root,   3)] = "Root T3: Place 2 Presence + Reduce Corruption ×2 each",
         [(Element.Mist,   1)] = "Mist T1: +1 Weave",
+        [(Element.Mist,   2)] = "Mist T2: Return 1 card from discard to hand",
+        [(Element.Mist,   3)] = "Mist T3: +3 Weave + return all discard to hand",
         [(Element.Shadow, 1)] = "Shadow T1: +2 Fear",
-        [(Element.Ash,    1)] = "Ash T1: Damage Invaders",
-        [(Element.Gale,   1)] = "Gale T1: Push Invader",
-        [(Element.Void,   1)] = "Void T1: Damage Weakest",
+        [(Element.Shadow, 2)] = "Shadow T2: Next Fear Action draws from Dread+1",
+        [(Element.Shadow, 3)] = "Shadow T3: +5 Fear",
+        [(Element.Ash,    1)] = "Ash T1: 1 damage to all in most-invaded territory",
+        [(Element.Ash,    2)] = "Ash T2: 2 damage to all in one territory + 1 Corruption",
+        [(Element.Ash,    3)] = "Ash T3: 3 damage to ALL invaders on board + 1 Corruption each territory",
+        [(Element.Gale,   1)] = "Gale T1: Push 1 invader toward spawn",
+        [(Element.Gale,   2)] = "Gale T2: Push all invaders in one territory toward spawn",
+        [(Element.Gale,   3)] = "Gale T3: Push all invaders on board toward spawn",
+        [(Element.Void,   1)] = "Void T1: 1 damage to lowest-HP invader",
+        [(Element.Void,   2)] = "Void T2: All invaders take 1 damage",
+        [(Element.Void,   3)] = "Void T3: All invaders take 2 damage",
     };
 
     private static string GetDescription(Element element, int tier)
@@ -57,8 +69,7 @@ public class ThresholdResolver
             }
         }
 
-        if (tier == 1)
-            ExecuteEffect(element, state); // T2/T3 effects not yet implemented
+        ExecuteEffect(element, tier, state);
         state.Elements?.ResolveBanked(element, tier);
         GameEvents.ThresholdResolved?.Invoke(element, tier, GetDescription(element, tier));
     }
@@ -78,33 +89,62 @@ public class ThresholdResolver
 
     /// <summary>
     /// Immediately resolves without going through the pending queue.
-    /// Legacy entry point — tests call this directly.
+    /// Used by tests and legacy code.
     /// </summary>
     public void AutoResolve(Element element, int tier, EncounterState state)
     {
-        if (tier != 1) return;
-        ExecuteEffect(element, state);
+        ExecuteEffect(element, tier, state);
         state.Elements?.ResolveBanked(element, tier);
         GameEvents.ThresholdResolved?.Invoke(element, tier, GetDescription(element, tier));
     }
 
-    // ── Effect implementations ────────────────────────────────────────────────
+    // ── Effect dispatch ────────────────────────────────────────────────────────
 
-    private static void ExecuteEffect(Element element, EncounterState state)
+    private static void ExecuteEffect(Element element, int tier, EncounterState state)
     {
         switch (element)
         {
-            case Element.Root:   ResolveRoot(state);   break;
-            case Element.Mist:   ResolveMist(state);   break;
-            case Element.Shadow: ResolveShadow(state); break;
-            case Element.Ash:    ResolveAsh(state);    break;
-            case Element.Gale:   ResolveGale(state);   break;
-            case Element.Void:   ResolveVoid(state);   break;
+            case Element.Root:   ResolveRoot(tier, state);   break;
+            case Element.Mist:   ResolveMist(tier, state);   break;
+            case Element.Shadow: ResolveShadow(tier, state); break;
+            case Element.Ash:    ResolveAsh(tier, state);    break;
+            case Element.Gale:   ResolveGale(tier, state);   break;
+            case Element.Void:   ResolveVoid(tier, state);   break;
         }
     }
 
-    // Root T1: Place 1 Presence at range 1 from any existing Presence token
-    private static void ResolveRoot(EncounterState state)
+    // ── Root ─────────────────────────────────────────────────────────────────
+
+    // T1: Place 1 Presence at range 1 from any existing Presence token
+    // T2: Reduce Corruption by 3 in one territory with Presence (auto: highest corruption)
+    // T3: Place 2 Presence (adjacent to existing) + Reduce Corruption by 2 in each presence territory
+    private static void ResolveRoot(int tier, EncounterState state)
+    {
+        switch (tier)
+        {
+            case 1:
+                PlacePresenceAdjacent(state);
+                break;
+
+            case 2:
+                var target = state.Territories
+                    .Where(t => t.HasPresence && t.CorruptionPoints > 0)
+                    .OrderByDescending(t => t.CorruptionPoints)
+                    .FirstOrDefault();
+                if (target != null)
+                    state.Corruption?.ReduceCorruption(target, 3);
+                break;
+
+            case 3:
+                PlacePresenceAdjacent(state); // first Presence
+                PlacePresenceAdjacent(state); // second Presence (from any existing, including just-placed)
+                foreach (var t in state.Territories.Where(t => t.HasPresence))
+                    state.Corruption?.ReduceCorruption(t, 2);
+                break;
+        }
+    }
+
+    private static void PlacePresenceAdjacent(EncounterState state)
     {
         var presenceTerritories = state.Territories.Where(t => t.HasPresence).ToList();
         foreach (var source in presenceTerritories)
@@ -118,46 +158,161 @@ public class ThresholdResolver
                 return;
             }
         }
+        // Fallback: stack on an existing presence territory
         var fallback = presenceTerritories.FirstOrDefault();
         if (fallback != null)
             state.Presence?.PlacePresence(fallback);
     }
 
-    // Mist T1: Restore 1 Weave
-    private static void ResolveMist(EncounterState state) => state.Weave?.Restore(1);
+    // ── Mist ─────────────────────────────────────────────────────────────────
 
-    // Shadow T1: Generate 2 Fear
-    private static void ResolveShadow(EncounterState state)
+    // T1: Restore 1 Weave
+    // T2: Return 1 card from discard to hand
+    // T3: Restore 3 Weave + return ALL discard to hand
+    private static void ResolveMist(int tier, EncounterState state)
     {
-        state.Dread?.OnFearGenerated(2);
-        GameEvents.FearGenerated?.Invoke(2);
+        switch (tier)
+        {
+            case 1:
+                state.Weave?.Restore(1);
+                break;
+
+            case 2:
+                state.Deck?.ReturnDiscardToHand(1);
+                break;
+
+            case 3:
+                state.Weave?.Restore(3);
+                state.Deck?.ReturnDiscardToHand(int.MaxValue);
+                break;
+        }
     }
 
-    // Ash T1: Deal 1 damage to all invaders in the territory with the most invaders
-    private static void ResolveAsh(EncounterState state)
-    {
-        var target = state.TerritoriesWithInvaders()
-            .OrderByDescending(t => t.Invaders.Count(i => i.IsAlive))
-            .FirstOrDefault();
-        if (target == null) return;
+    // ── Shadow ────────────────────────────────────────────────────────────────
 
-        foreach (var invader in target.Invaders.Where(i => i.IsAlive).ToList())
-            ApplyDamage(invader, 1);
+    // T1: Generate 2 Fear
+    // T2: Next Fear Action draws from Dread Level + 1
+    // T3: Generate 5 Fear (preview/choose feature deferred)
+    private static void ResolveShadow(int tier, EncounterState state)
+    {
+        switch (tier)
+        {
+            case 1:
+                state.Dread?.OnFearGenerated(2);
+                GameEvents.FearGenerated?.Invoke(2);
+                break;
+
+            case 2:
+                state.FearActions?.ElevateNextDraw();
+                break;
+
+            case 3:
+                state.Dread?.OnFearGenerated(5);
+                GameEvents.FearGenerated?.Invoke(5);
+                break;
+        }
     }
 
-    // Gale T1: Push 1 invader one territory toward spawn (away from I1)
-    private static void ResolveGale(EncounterState state)
+    // ── Ash ───────────────────────────────────────────────────────────────────
+
+    // T1: 1 damage to all invaders in territory with most invaders
+    // T2: 2 damage to all in one territory (auto: most invaders) + 1 Corruption to that territory
+    // T3: 3 damage to ALL invaders on board + 1 Corruption per affected territory
+    private static void ResolveAsh(int tier, EncounterState state)
     {
-        var territory = state.TerritoriesWithInvaders()
-            .OrderBy(t => TerritoryGraph.Distance(t.Id, "I1"))
-            .FirstOrDefault();
-        if (territory == null) return;
+        switch (tier)
+        {
+            case 1:
+            {
+                var target = state.TerritoriesWithInvaders()
+                    .OrderByDescending(t => t.Invaders.Count(i => i.IsAlive))
+                    .FirstOrDefault();
+                if (target == null) return;
+                foreach (var invader in target.Invaders.Where(i => i.IsAlive).ToList())
+                    ApplyDamage(invader, 1);
+                break;
+            }
 
-        var invader = territory.Invaders.FirstOrDefault(i => i.IsAlive);
-        if (invader == null) return;
+            case 2:
+            {
+                var target = state.TerritoriesWithInvaders()
+                    .OrderByDescending(t => t.Invaders.Count(i => i.IsAlive))
+                    .FirstOrDefault();
+                if (target == null) return;
+                foreach (var invader in target.Invaders.Where(i => i.IsAlive).ToList())
+                    ApplyDamage(invader, 2);
+                state.Corruption?.AddCorruption(target, 1);
+                break;
+            }
 
-        int currentDist = TerritoryGraph.Distance(territory.Id, "I1");
-        var pushTargetId = TerritoryGraph.GetNeighbors(territory.Id)
+            case 3:
+            {
+                var affected = state.TerritoriesWithInvaders().ToList();
+                foreach (var territory in affected)
+                {
+                    foreach (var invader in territory.Invaders.Where(i => i.IsAlive).ToList())
+                        ApplyDamage(invader, 3);
+                    state.Corruption?.AddCorruption(territory, 1);
+                }
+                break;
+            }
+        }
+    }
+
+    // ── Gale ─────────────────────────────────────────────────────────────────
+
+    // T1: Push 1 invader one territory toward spawn (away from I1)
+    // T2: Push ALL invaders in one territory (auto: closest to I1)
+    // T3: Push ALL invaders on board one territory toward spawn
+    private static void ResolveGale(int tier, EncounterState state)
+    {
+        switch (tier)
+        {
+            case 1:
+            {
+                var territory = state.TerritoriesWithInvaders()
+                    .OrderBy(t => TerritoryGraph.Distance(t.Id, "I1"))
+                    .FirstOrDefault();
+                if (territory == null) return;
+                var invader = territory.Invaders.FirstOrDefault(i => i.IsAlive);
+                if (invader != null)
+                    PushInvader(invader, territory, state);
+                break;
+            }
+
+            case 2:
+            {
+                var territory = state.TerritoriesWithInvaders()
+                    .OrderBy(t => TerritoryGraph.Distance(t.Id, "I1"))
+                    .FirstOrDefault();
+                if (territory == null) return;
+                PushAllInTerritory(territory, state);
+                break;
+            }
+
+            case 3:
+            {
+                // Process farthest-from-I1 first so moved invaders aren't pushed twice
+                var territories = state.TerritoriesWithInvaders()
+                    .OrderByDescending(t => TerritoryGraph.Distance(t.Id, "I1"))
+                    .ToList();
+                foreach (var territory in territories)
+                    PushAllInTerritory(territory, state);
+                break;
+            }
+        }
+    }
+
+    private static void PushAllInTerritory(Territory territory, EncounterState state)
+    {
+        foreach (var invader in territory.Invaders.Where(i => i.IsAlive).ToList())
+            PushInvader(invader, territory, state);
+    }
+
+    private static void PushInvader(Invader invader, Territory from, EncounterState state)
+    {
+        int currentDist = TerritoryGraph.Distance(from.Id, "I1");
+        var pushTargetId = TerritoryGraph.GetNeighbors(from.Id)
             .Where(n => TerritoryGraph.Distance(n, "I1") >= currentDist)
             .OrderByDescending(n => TerritoryGraph.Distance(n, "I1"))
             .FirstOrDefault();
@@ -166,23 +321,47 @@ public class ThresholdResolver
         var dest = state.GetTerritory(pushTargetId);
         if (dest == null) return;
 
-        territory.Invaders.Remove(invader);
+        from.Invaders.Remove(invader);
         invader.TerritoryId = pushTargetId;
         dest.Invaders.Add(invader);
-        GameEvents.InvaderAdvanced?.Invoke(invader, territory.Id, pushTargetId);
+        GameEvents.InvaderAdvanced?.Invoke(invader, from.Id, pushTargetId);
     }
 
-    // Void T1: Deal 1 damage to the lowest-HP alive invader on the board
-    private static void ResolveVoid(EncounterState state)
+    // ── Void ─────────────────────────────────────────────────────────────────
+
+    // T1: Deal 1 damage to the lowest-HP alive invader on the board
+    // T2: All invaders take 1 damage
+    // T3: All invaders take 2 damage (design note: "no Corruption on death" deferred — no per-death Corruption in current model)
+    private static void ResolveVoid(int tier, EncounterState state)
     {
-        var (invader, _) = state.Territories
-            .SelectMany(t => t.Invaders.Where(i => i.IsAlive).Select(i => (invader: i, territory: t)))
-            .OrderBy(x => x.invader.Hp)
-            .FirstOrDefault();
+        switch (tier)
+        {
+            case 1:
+            {
+                var (invader, _) = state.Territories
+                    .SelectMany(t => t.Invaders.Where(i => i.IsAlive).Select(i => (invader: i, territory: t)))
+                    .OrderBy(x => x.invader.Hp)
+                    .FirstOrDefault();
+                if (invader == null) return;
+                ApplyDamage(invader, 1);
+                break;
+            }
 
-        if (invader == null) return;
-        ApplyDamage(invader, 1);
+            case 2:
+                foreach (var territory in state.Territories)
+                    foreach (var invader in territory.Invaders.Where(i => i.IsAlive).ToList())
+                        ApplyDamage(invader, 1);
+                break;
+
+            case 3:
+                foreach (var territory in state.Territories)
+                    foreach (var invader in territory.Invaders.Where(i => i.IsAlive).ToList())
+                        ApplyDamage(invader, 2);
+                break;
+        }
     }
+
+    // ── Shared helpers ────────────────────────────────────────────────────────
 
     // Shield X blocks damage < X; damage >= X breaks shield and deals full damage.
     private static void ApplyDamage(Invader invader, int damage)

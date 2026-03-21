@@ -11,6 +11,7 @@ public class FearActionSystem : IFearActionSystem
     private readonly GameRandom _rng;
     private readonly Queue<FearActionData> _queue = new();
     private int _fearBuffer = 0;
+    private int _nextDrawElevation = 0;
 
     public FearActionSystem(
         IDreadSystem dread,
@@ -30,10 +31,14 @@ public class FearActionSystem : IFearActionSystem
         while (_fearBuffer >= 5)
         {
             _fearBuffer -= 5;
-            _queue.Enqueue(DrawFromPool(_dread.DreadLevel));
+            int drawLevel = _dread.DreadLevel + _nextDrawElevation;
+            _nextDrawElevation = 0; // consume elevation for this one draw only
+            _queue.Enqueue(DrawFromPool(drawLevel));
             GameEvents.FearActionQueued?.Invoke();
         }
     }
+
+    public void ElevateNextDraw() => _nextDrawElevation = 1;
 
     public List<FearActionData> RevealAndDequeue()
     {

@@ -10,4 +10,6 @@ public interface IFearActionSystem
     /// <summary>Returns and clears the queue WITHOUT firing FearActionRevealed events (player-driven reveal).</summary>
     List<FearActionData> DrainQueue();
     void OnDreadAdvanced(int newLevel);  // retroactive upgrade
+    /// <summary>Causes the next queued Fear Action to draw from one Dread Level higher than current.</summary>
+    void ElevateNextDraw();
 }

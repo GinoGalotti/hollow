@@ -15,4 +15,9 @@ public interface IDeckManager
     void Rest();
     bool NeedsRest { get; }  // deck empty or near-empty
     void AwakenAllDormant();
+    /// <summary>
+    /// Moves up to <paramref name="maxCount"/> non-dormant cards from discard back to hand.
+    /// Returns the number of cards actually moved.
+    /// </summary>
+    int ReturnDiscardToHand(int maxCount);
 }

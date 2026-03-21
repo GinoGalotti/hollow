@@ -114,6 +114,24 @@ public class DeckManager : IDeckManager
         }
     }
 
+    /// <summary>
+    /// Moves up to <paramref name="maxCount"/> non-dormant cards from discard back to hand.
+    /// Returns the number of cards moved.
+    /// </summary>
+    public int ReturnDiscardToHand(int maxCount)
+    {
+        int moved = 0;
+        for (int i = _discardPile.Count - 1; i >= 0 && moved < maxCount; i--)
+        {
+            var card = _discardPile[i];
+            if (card.IsDormant) continue;
+            _discardPile.RemoveAt(i);
+            _handManager.Add(card);
+            moved++;
+        }
+        return moved;
+    }
+
     /// <summary>Awakens a specific dormant card, making it playable again.</summary>
     public void AwakenDormant(Card card)
     {
