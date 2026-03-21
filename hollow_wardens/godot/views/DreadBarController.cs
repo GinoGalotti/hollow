@@ -13,14 +13,32 @@ public partial class DreadBarController : VBoxContainer
 
     public override void _Ready()
     {
-        AddChild(new Label { Text = "── Dread / Weave ──", Modulate = Colors.Orange });
+        var cinzel     = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
+        var skullIcon  = GD.Load<Texture2D>("res://godot/assets/art/kenney_board-game-icons/PNG/Default (64px)/skull.png");
 
+        var header = new Label { Text = "── Dread / Weave ──", Modulate = Colors.Orange };
+        if (cinzel != null) header.AddThemeFontOverride("font", cinzel);
+        AddChild(header);
+
+        // Dread row: skull icon + dread level label
+        var dreadRow = new HBoxContainer();
+        if (skullIcon != null)
+            dreadRow.AddChild(new TextureRect
+            {
+                Texture           = skullIcon,
+                CustomMinimumSize = new Vector2(16, 16),
+                StretchMode       = TextureRect.StretchModeEnum.KeepAspectCentered,
+                ExpandMode        = TextureRect.ExpandModeEnum.FitWidthProportional,
+            });
         _dreadLabel = new Label();
+        if (cinzel != null) _dreadLabel.AddThemeFontOverride("font", cinzel);
+        _dreadLabel.AddThemeFontSizeOverride("font_size", 13);
+        dreadRow.AddChild(_dreadLabel);
+        AddChild(dreadRow);
         _fearLabel  = new Label();
         _barLabel   = new Label { AutowrapMode = TextServer.AutowrapMode.Off };
         _weaveLabel = new Label { Modulate = new Color(0.4f, 0.8f, 1.0f) };
 
-        AddChild(_dreadLabel);
         AddChild(_fearLabel);
         AddChild(_barLabel);
         AddChild(new HSeparator());

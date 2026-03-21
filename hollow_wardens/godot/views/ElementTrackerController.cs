@@ -17,17 +17,42 @@ public partial class ElementTrackerController : VBoxContainer
 
     public override void _Ready()
     {
-        AddChild(new Label { Text = "── Elements ──", Modulate = Colors.Yellow });
+        const string IconBase = "res://godot/assets/art/kenney_board-game-icons/PNG/Default (64px)/";
+        Texture2D?[] elemIcons =
+        {
+            GD.Load<Texture2D>(IconBase + "resource_wood.png"), // Root
+            GD.Load<Texture2D>(IconBase + "flask_half.png"),    // Mist
+            GD.Load<Texture2D>(IconBase + "skull.png"),         // Shadow
+            GD.Load<Texture2D>(IconBase + "fire.png"),          // Ash
+            GD.Load<Texture2D>(IconBase + "arrow_right.png"),   // Gale
+            GD.Load<Texture2D>(IconBase + "hexagon_outline.png"),// Void
+        };
+
+        var cinzel = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
+
+        var header = new Label { Text = "── Elements ──", Modulate = Colors.Yellow };
+        if (cinzel != null) header.AddThemeFontOverride("font", cinzel);
+        AddChild(header);
 
         for (int i = 0; i < 6; i++)
         {
             var e   = (Element)i;
             var row = new HBoxContainer();
 
+            // Element icon
+            if (elemIcons[i] != null)
+                row.AddChild(new TextureRect
+                {
+                    Texture           = elemIcons[i],
+                    CustomMinimumSize = new Vector2(16, 16),
+                    StretchMode       = TextureRect.StretchModeEnum.KeepAspectCentered,
+                    ExpandMode        = TextureRect.ExpandModeEnum.FitWidthProportional,
+                });
+
             row.AddChild(new Label
             {
                 Text              = e.ToString()[..3],
-                CustomMinimumSize = new Vector2(36, 0)
+                CustomMinimumSize = new Vector2(26, 0)
             });
 
             _barLabels[i] = new Label { Text = "0  [----:----:----]" };

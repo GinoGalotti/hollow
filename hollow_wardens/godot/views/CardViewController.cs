@@ -1,4 +1,5 @@
 using Godot;
+using System.Collections.Generic;
 using HollowWardens.Core.Models;
 
 /// <summary>
@@ -8,28 +9,53 @@ using HollowWardens.Core.Models;
 public partial class CardViewController : PanelContainer
 {
     private Card _card = null!;
-    private Label _nameLabel = null!;
-    private Label _elemLabel = null!;
-    private Label _topLabel  = null!;
-    private Label _botLabel  = null!;
-    private Button _playBtn  = null!;
+    private Label         _nameLabel = null!;
+    private HBoxContainer _elemRow   = null!;  // element icon row
+    private Label         _topLabel  = null!;
+    private Label         _botLabel  = null!;
+    private Button        _playBtn   = null!;
+
+    // Element icon textures loaded in _Ready()
+    private readonly Dictionary<Element, Texture2D?> _elemIcons = new();
 
     public override void _Ready()
     {
         CustomMinimumSize = new Vector2(150, 200);
 
+        // TODO: visual upgrade — card_empty.png as panel background (StyleBoxTexture)
+
+        var cinzel = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
+        var imFell = GD.Load<Font>("res://godot/assets/fonts/IMFellEnglish-Regular.ttf");
+
+        const string IconBase = "res://godot/assets/art/kenney_board-game-icons/PNG/Default (64px)/";
+        _elemIcons[Element.Root]   = GD.Load<Texture2D>(IconBase + "resource_wood.png");
+        _elemIcons[Element.Mist]   = GD.Load<Texture2D>(IconBase + "flask_half.png");
+        _elemIcons[Element.Shadow] = GD.Load<Texture2D>(IconBase + "skull.png");
+        _elemIcons[Element.Ash]    = GD.Load<Texture2D>(IconBase + "fire.png");
+        _elemIcons[Element.Gale]   = GD.Load<Texture2D>(IconBase + "arrow_right.png");
+        _elemIcons[Element.Void]   = GD.Load<Texture2D>(IconBase + "hexagon_outline.png");
+
         var vbox = new VBoxContainer();
         AddChild(vbox);
 
         _nameLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
-        _elemLabel = new Label { Modulate = new Color(0.7f, 0.9f, 0.7f) };
-        _topLabel  = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
-        _botLabel  = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                                 Modulate = new Color(0.8f, 0.8f, 1.0f) };
-        _playBtn   = new Button();
+        if (cinzel != null) _nameLabel.AddThemeFontOverride("font", cinzel);
+        _nameLabel.AddThemeFontSizeOverride("font_size", 13);
+
+        _elemRow = new HBoxContainer();
+
+        _topLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _botLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                                Modulate = new Color(0.8f, 0.8f, 1.0f) };
+        if (imFell != null) _topLabel.AddThemeFontOverride("font", imFell);
+        if (imFell != null) _botLabel.AddThemeFontOverride("font", imFell);
+        _topLabel.AddThemeFontSizeOverride("font_size", 11);
+        _botLabel.AddThemeFontSizeOverride("font_size", 11);
+
+        _playBtn = new Button();
 
         vbox.AddChild(_nameLabel);
-        vbox.AddChild(_elemLabel);
+        vbox.AddChild(_elemRow);
         vbox.AddChild(new HSeparator());
         vbox.AddChild(new Label { Text = "TOP:" });
         vbox.AddChild(_topLabel);
@@ -59,14 +85,42 @@ public partial class CardViewController : PanelContainer
         if (_card == null || _nameLabel == null) return;
 
         _nameLabel.Text = _card.Name;
-        _elemLabel.Text = _card.Elements.Length > 0
-            ? string.Join(" ", System.Array.ConvertAll(_card.Elements, e => e.ToString()[..2]))
-            : "—";
+
+        // Rebuild element icon row
+        foreach (var child in _elemRow.GetChildren()) child.QueueFree();
+        if (_card.Elements.Length > 0)
+        {
+            foreach (var elem in _card.Elements)
+            {
+                if (_elemIcons.TryGetValue(elem, out var icon) && icon != null)
+                    _elemRow.AddChild(new TextureRect
+                    {
+                        Texture           = icon,
+                        CustomMinimumSize = new Vector2(14, 14),
+                        StretchMode       = TextureRect.StretchModeEnum.KeepAspectCentered,
+                        ExpandMode        = TextureRect.ExpandModeEnum.FitWidthProportional,
+                    });
+                else
+                    _elemRow.AddChild(new Label { Text = elem.ToString()[..2] });
+            }
+        }
+        else
+        {
+            _elemRow.AddChild(new Label { Text = "—" });
+        }
+
         _topLabel.Text = FormatEffect(_card.TopEffect);
         _botLabel.Text = FormatEffect(_card.BottomEffect);
 
+        // Rarity tint × dormant state
+        Color rarityTint = _card.Rarity switch
+        {
+            CardRarity.Awakened => new Color(0.70f, 0.80f, 1.00f),
+            CardRarity.Ancient  => new Color(1.00f, 0.85f, 0.50f),
+            _                   => Colors.White
+        };
         bool dormant = _card.IsDormant;
-        Modulate = dormant ? new Color(0.5f, 0.5f, 0.5f) : Colors.White;
+        Modulate = dormant ? rarityTint * new Color(0.5f, 0.5f, 0.5f, 1f) : rarityTint;
 
         var bridge     = GameBridge.Instance;
         var phase      = bridge?.CurrentPhase;

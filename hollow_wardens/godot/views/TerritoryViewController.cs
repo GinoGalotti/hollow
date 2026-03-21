@@ -31,6 +31,18 @@ public partial class TerritoryViewController : Node2D
     // Cached invader rects for click hit-testing (populated in _Draw)
     private readonly List<(Rect2 rect, string invaderId)> _invaderRects = new();
 
+    // Fonts and icons — loaded in _Ready()
+    private Font?      _cinzelFont;
+    private Font?      _imFellFont;
+    private Texture2D? _iconPresence;
+    private Texture2D? _iconInvader;
+    private Texture2D? _iconNative;
+    private Texture2D? _iconCorrupt;
+    private Texture2D? _iconMarcher;
+    private Texture2D? _iconIronclad;
+    private Texture2D? _iconOutrider;
+    private Texture2D? _iconPioneer;
+
     public override void _Ready()
     {
         var bridge = GameBridge.Instance;
@@ -46,6 +58,17 @@ public partial class TerritoryViewController : Node2D
         bridge.CounterAttackPendingGodot += (tid, _)   => { if (tid == Name || Name == CounterAttackTerritory) QueueRedraw(); };
         bridge.CardPlayFeedback          += OnCardPlayFeedback;
 
+        const string IconBase = "res://godot/assets/art/kenney_board-game-icons/PNG/Default (64px)/";
+        _cinzelFont   = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
+        _imFellFont   = GD.Load<Font>("res://godot/assets/fonts/IMFellEnglish-Regular.ttf");
+        _iconPresence = GD.Load<Texture2D>(IconBase + "token.png");
+        _iconInvader  = GD.Load<Texture2D>(IconBase + "skull.png");
+        _iconNative   = GD.Load<Texture2D>(IconBase + "shield.png");
+        _iconCorrupt  = GD.Load<Texture2D>(IconBase + "fire.png");
+        _iconMarcher  = GD.Load<Texture2D>(IconBase + "sword.png");
+        _iconIronclad = GD.Load<Texture2D>(IconBase + "shield.png");
+        _iconOutrider = GD.Load<Texture2D>(IconBase + "arrow_right.png");
+        _iconPioneer  = GD.Load<Texture2D>(IconBase + "structure_house.png");
         SetProcess(false);
     }
 
@@ -141,7 +164,10 @@ public partial class TerritoryViewController : Node2D
         {
             var valid = TargetValidator.GetValidTargets(bridge.State, bridge.PendingEffect.Range);
             if (valid.Contains(Name.ToString()))
-                DrawRect(TerritoryRect, Colors.Yellow, filled: false, width: 3f);
+            {
+                DrawRect(TerritoryRect, new Color(1f, 1f, 0f, 0.15f));
+                DrawRect(TerritoryRect, Colors.Yellow, filled: false, width: 4f);
+            }
             else
                 DrawRect(TerritoryRect, new Color(0, 0, 0, 0.55f));
         }
@@ -151,19 +177,16 @@ public partial class TerritoryViewController : Node2D
         }
 
         // Territory text
-        var font = ThemeDB.FallbackFont;
-        const int fs = 12;
+        var titleFont = _cinzelFont ?? ThemeDB.FallbackFont;
+        var font      = _imFellFont ?? ThemeDB.FallbackFont;
+        const int fs  = 11;
 
-        DrawString(font, new Vector2(-58, -26), t.Id,
-            HorizontalAlignment.Left, 120, fs + 3, Colors.White);
-        DrawString(font, new Vector2(-58, -10), $"Presence: {t.PresenceCount}",
-            HorizontalAlignment.Left, 120, fs, Colors.Cyan);
-        DrawString(font, new Vector2(-58,   4), $"Invaders: {t.Invaders.Count(i => i.IsAlive)}",
-            HorizontalAlignment.Left, 120, fs, new Color(1, 0.5f, 0.5f));
-        DrawString(font, new Vector2(-58,  18), BuildNativeText(t),
-            HorizontalAlignment.Left, 120, fs, new Color(0.5f, 1, 0.5f));
-        DrawString(font, new Vector2(-58,  32), $"Corrupt:  {t.CorruptionPoints} (L{t.CorruptionLevel})",
-            HorizontalAlignment.Left, 120, fs, new Color(1, 0.8f, 0.2f));
+        DrawString(titleFont, new Vector2(-58, -26), t.Id,
+            HorizontalAlignment.Left, 120, 14, Colors.White);
+        DrawStatRow(_iconPresence, -10f, $"{t.PresenceCount} pres", font, fs, Colors.Cyan);
+        DrawStatRow(_iconInvader,    4f, $"{t.Invaders.Count(i => i.IsAlive)} inv", font, fs, new Color(1, 0.5f, 0.5f));
+        DrawStatRow(_iconNative,    18f, BuildNativeText(t),          font, fs, new Color(0.5f, 1, 0.5f));
+        DrawStatRow(_iconCorrupt,   32f, $"{t.CorruptionPoints}pt L{t.CorruptionLevel}", font, fs, new Color(1, 0.8f, 0.2f));
 
         // Unit squares below territory box
         bool isCounterTarget = bridge?.IsWaitingForCounterAttack == true
@@ -172,8 +195,8 @@ public partial class TerritoryViewController : Node2D
             ? CounterAttackController.Instance?.Assignments
             : null;
 
-        DrawInvaderSquares(t, font, isCounterTarget, assignments);
-        DrawNativeSquares(t, font);
+        DrawInvaderSquares(t, isCounterTarget, assignments);
+        DrawNativeSquares(t);
 
         // Counter-attack pool label
         if (isCounterTarget && bridge != null)
@@ -194,12 +217,13 @@ public partial class TerritoryViewController : Node2D
         }
     }
 
-    private void DrawInvaderSquares(Territory t, Font font, bool isCounterTarget,
+    private void DrawInvaderSquares(Territory t, bool isCounterTarget,
         IReadOnlyDictionary<string, int>? assignments)
     {
         var alive = t.Invaders.Where(i => i.IsAlive).ToList();
         if (alive.Count == 0) return;
 
+        var font = _imFellFont ?? ThemeDB.FallbackFont;
         for (int idx = 0; idx < Math.Min(alive.Count, MaxPerRow * 2); idx++)
         {
             int col    = idx % MaxPerRow;
@@ -220,10 +244,14 @@ public partial class TerritoryViewController : Node2D
             else
                 DrawRect(rect, new Color(0.8f, 0.8f, 0.8f, 0.4f), filled: false, width: 1f);
 
-            // Unit type initial
-            DrawString(font, new Vector2(x + 2, y + 12),
-                UnitInitial(invader.UnitType),
-                HorizontalAlignment.Left, SqSize, 11, Colors.White);
+            // Unit type icon (initial as fallback)
+            var unitIcon = UnitIcon(invader.UnitType);
+            if (unitIcon != null)
+                DrawTextureRect(unitIcon, new Rect2(x + 1, y + 1, 12, 12), false);
+            else
+                DrawString(font, new Vector2(x + 2, y + 12),
+                    UnitInitial(invader.UnitType),
+                    HorizontalAlignment.Left, SqSize, 11, Colors.White);
 
             // HP text
             DrawString(font, new Vector2(x + 1, y + SqSize - 1),
@@ -239,8 +267,9 @@ public partial class TerritoryViewController : Node2D
         }
     }
 
-    private void DrawNativeSquares(Territory t, Font font)
+    private void DrawNativeSquares(Territory t)
     {
+        var font  = _imFellFont ?? ThemeDB.FallbackFont;
         var alive = t.Natives.Where(n => n.IsAlive).ToList();
         if (alive.Count == 0) return;
 
@@ -319,5 +348,22 @@ public partial class TerritoryViewController : Node2D
         2 => new Color(0.55f, 0.25f, 0.05f),
         3 => new Color(0.50f, 0.00f, 0.05f),
         _ => new Color(0.25f, 0.25f, 0.25f),
+    };
+
+    private void DrawStatRow(Texture2D? icon, float textY, string text, Font font, int fontSize, Color color)
+    {
+        if (icon != null)
+            DrawTextureRect(icon, new Rect2(-60, textY - 12, 12, 12), false);
+        DrawString(font, new Vector2(-45, textY), text,
+            HorizontalAlignment.Left, 105, fontSize, color);
+    }
+
+    private Texture2D? UnitIcon(UnitType u) => u switch
+    {
+        UnitType.Marcher  => _iconMarcher,
+        UnitType.Ironclad => _iconIronclad,
+        UnitType.Outrider => _iconOutrider,
+        UnitType.Pioneer  => _iconPioneer,
+        _                 => null
     };
 }

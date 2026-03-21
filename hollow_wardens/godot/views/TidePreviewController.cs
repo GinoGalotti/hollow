@@ -11,15 +11,24 @@ public partial class TidePreviewController : VBoxContainer
 
     public override void _Ready()
     {
-        AddChild(new Label { Text = "── Tide Preview ──", Modulate = new Color(0.5f, 0.8f, 1f) });
+        var cinzel = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
+        var imFell = GD.Load<Font>("res://godot/assets/fonts/IMFellEnglish-Regular.ttf");
+        // TODO: visual upgrade — card_empty.png mini frame for action card preview
+
+        var header = new Label { Text = "── Tide Preview ──", Modulate = new Color(0.5f, 0.8f, 1f) };
+        if (cinzel != null) header.AddThemeFontOverride("font", cinzel);
+        AddChild(header);
 
         _tideLabel    = new Label();
+        if (cinzel != null) _tideLabel.AddThemeFontOverride("font", cinzel);
         _currentLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        if (imFell != null) _currentLabel.AddThemeFontOverride("font", imFell);
         _nextLabel    = new Label
         {
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
             Modulate = Colors.LightGray
         };
+        if (imFell != null) _nextLabel.AddThemeFontOverride("font", imFell);
 
         AddChild(_tideLabel);
         AddChild(_currentLabel);

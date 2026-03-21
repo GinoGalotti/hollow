@@ -6,15 +6,45 @@ using HollowWardens.Core.Models;
 /// </summary>
 public partial class PhaseIndicatorController : VBoxContainer
 {
-    private Label _phaseLabel = null!;
-    private Label _deckLabel  = null!;
-    private Label _hintLabel  = null!;
+    private Label      _phaseLabel = null!;
+    private Label      _deckLabel  = null!;
+    private Label      _hintLabel  = null!;
+    private TextureRect _phaseIcon  = null!;
+
+    // Phase icons indexed to TurnPhase order (Vigil, Tide, Dusk, Rest, Resolution)
+    private Texture2D?[] _phaseIcons = Array.Empty<Texture2D?>();
 
     public override void _Ready()
     {
-        AddChild(new Label { Text = "── Status ──", Modulate = Colors.Yellow });
+        const string IconBase = "res://godot/assets/art/kenney_board-game-icons/PNG/Default (64px)/";
+        _phaseIcons = new Texture2D?[]
+        {
+            GD.Load<Texture2D>(IconBase + "book_open.png"),   // Vigil
+            GD.Load<Texture2D>(IconBase + "pawn_right.png"),  // Tide
+            GD.Load<Texture2D>(IconBase + "cards_flip.png"),  // Dusk
+            GD.Load<Texture2D>(IconBase + "campfire.png"),    // Rest
+            GD.Load<Texture2D>(IconBase + "award.png"),       // Resolution
+        };
 
+        var cinzel = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
+
+        var header = new Label { Text = "── Status ──", Modulate = Colors.Yellow };
+        if (cinzel != null) header.AddThemeFontOverride("font", cinzel);
+        AddChild(header);
+
+        // Phase row: icon + label
+        var phaseRow = new HBoxContainer();
+        _phaseIcon = new TextureRect
+        {
+            CustomMinimumSize = new Vector2(18, 18),
+            StretchMode       = TextureRect.StretchModeEnum.KeepAspectCentered,
+            ExpandMode        = TextureRect.ExpandModeEnum.FitWidthProportional,
+        };
+        phaseRow.AddChild(_phaseIcon);
         _phaseLabel = new Label();
+        if (cinzel != null) _phaseLabel.AddThemeFontOverride("font", cinzel);
+        phaseRow.AddChild(_phaseLabel);
+        AddChild(phaseRow);
         _deckLabel  = new Label { Modulate = Colors.LightGray };
         _hintLabel  = new Label
         {
@@ -23,7 +53,6 @@ public partial class PhaseIndicatorController : VBoxContainer
             AutowrapMode = TextServer.AutowrapMode.WordSmart
         };
 
-        AddChild(_phaseLabel);
         AddChild(new HSeparator());
         AddChild(_deckLabel);
         AddChild(new HSeparator());
@@ -81,8 +110,19 @@ public partial class PhaseIndicatorController : VBoxContainer
             };
         }
 
-        _phaseLabel.Text    = phaseName;
+        _phaseLabel.Text     = phaseName;
         _phaseLabel.Modulate = color;
+
+        // Update phase icon
+        int iconIdx = res ? 4 : rest ? 3 : bridge.CurrentPhase switch
+        {
+            TurnPhase.Vigil => 0,
+            TurnPhase.Tide  => 1,
+            TurnPhase.Dusk  => 2,
+            _               => 0
+        };
+        if (_phaseIcons.Length > iconIdx)
+            _phaseIcon.Texture = _phaseIcons[iconIdx];
     }
 
     private void OnDeckCounts(int draw, int discard, int dissolved, int dormant)
