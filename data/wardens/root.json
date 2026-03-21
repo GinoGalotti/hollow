@@ -1,0 +1,373 @@
+{
+  "warden_id": "root",
+  "version": "2.2",
+  "name": "The Root",
+  "archetype": "Tank / Control",
+  "flavor": "Something ancient stirs beneath the soil. Where its roots spread, the land remembers how to fight back.",
+
+  "element_affinity": {
+    "primary": "Root",
+    "secondary": "Mist",
+    "tertiary": "Shadow"
+  },
+
+  "hand_limit": 5,
+  "starting_presence": { "territory": "I1", "count": 1 },
+
+  "passives": [
+    {
+      "id": "network_fear",
+      "name": "The Web Remembers",
+      "icon": "token",
+      "flavor": "Where roots intertwine, the land whispers of what was lost. Invaders feel it in their bones.",
+      "description": "Each turn, generate Fear equal to the number of adjacent Presence pairs (each pair counted twice).",
+      "trigger": "turn_start",
+      "mechanic": "network_fear"
+    },
+    {
+      "id": "network_slow",
+      "name": "Tangled Earth",
+      "icon": "hexagon",
+      "flavor": "The ground itself resists. Every step is a struggle through grasping soil.",
+      "description": "Invaders adjacent to 2+ Presence territories have −1 Advance movement.",
+      "trigger": "on_advance",
+      "mechanic": "network_slow",
+      "params": { "min_adjacent_presence": 2, "movement_penalty": 1 }
+    },
+    {
+      "id": "presence_provocation",
+      "name": "Protector's Call",
+      "icon": "shield",
+      "flavor": "The spirit's roots stir the Natives to action. In its shadow, they will not stand idle.",
+      "description": "Natives in Presence territories counter-attack on every invader action, not just Ravage.",
+      "trigger": "on_activate",
+      "mechanic": "always_provoke"
+    },
+    {
+      "id": "rest_growth",
+      "name": "Deep Breath",
+      "icon": "campfire",
+      "flavor": "Even in stillness, the roots creep forward. Rest is not weakness — it is growth.",
+      "description": "On Rest, place 1 free Presence on any territory with existing Presence.",
+      "trigger": "on_rest",
+      "mechanic": "place_presence",
+      "params": { "count": 1, "requires_existing": true }
+    },
+    {
+      "id": "dormancy",
+      "name": "Nothing Truly Dies",
+      "icon": "cards_return",
+      "flavor": "What the Root sacrifices does not vanish. It sleeps, waiting to be called again.",
+      "description": "Playing a bottom makes the card Dormant instead of dissolving it. Awaken effects restore dormant cards.",
+      "trigger": "on_bottom_played",
+      "mechanic": "dormancy"
+    },
+    {
+      "id": "assimilation",
+      "name": "The Land Reclaims",
+      "icon": "hexagon_in",
+      "flavor": "When the tide ebbs, the roots pull everything back into the earth.",
+      "description": "At Resolution, all invaders adjacent to Presence territories are removed. Each reduces Corruption by 1.",
+      "trigger": "on_resolution",
+      "mechanic": "assimilation"
+    }
+  ],
+
+  "resolution_style": "assimilation",
+
+  "cards": [
+    {
+      "num": "001",
+      "id": "root_001",
+      "name": "Tendrils of Reclamation",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Root", "Mist"],
+      "top":    { "type": "ReduceCorruption", "value": 2, "range": 1, "desc": "Reduce Corruption by 2 points in range 1" },
+      "bottom": { "type": "ReduceCorruption", "value": 5, "range": 2, "desc": "Reduce Corruption by 5 points in range 2, and restore 1 Weave",
+                  "secondary": { "type": "RestoreWeave", "value": 1 } },
+      "design_note": "Starter cleanse. Top counters one Ravage exactly (2 pts vs 2 pts). Bottom worth dissolving at 6-7 pts corruption."
+    },
+    {
+      "num": "002",
+      "id": "root_002",
+      "name": "Deep Roots",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Root"],
+      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "bottom": { "type": "PlacePresence", "value": 1, "range": 3, "desc": "Place 1 Presence in range 3, then reduce Corruption by 2 points in that territory",
+                  "secondary": { "type": "ReduceCorruption", "value": 2, "range": 0 } },
+      "design_note": "Presence placement starter. Bottom is emergency reach — range 3 means anywhere on the pyramid."
+    },
+    {
+      "num": "003",
+      "id": "root_003",
+      "name": "Earthen Mending",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Root", "Root"],
+      "top":    { "type": "ReduceCorruption", "value": 2, "range": 0, "desc": "Reduce Corruption by 2 points anywhere on the board" },
+      "bottom": { "type": "ReduceCorruption", "value": 4, "range": 0, "desc": "Reduce Corruption by 4 points anywhere, and reduce Corruption by 2 points in an adjacent territory",
+                  "secondary": { "type": "ReduceCorruption", "value": 2, "range": 1 } },
+      "design_note": "Range-0 cleanse. Double Root is best threshold fuel — with any other Root card gives Root x3+."
+    },
+    {
+      "num": "004",
+      "id": "root_004",
+      "name": "Shiver of the Ancient",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Shadow", "Mist"],
+      "top":    { "type": "GenerateFear", "value": 3, "range": 0, "desc": "Generate 3 Fear" },
+      "bottom": { "type": "GenerateFear", "value": 7, "range": 0, "desc": "Generate 7 Fear" },
+      "design_note": "Primary fear card. Bottom's 7 Fear is nearly 1.5 Fear Actions."
+    },
+    {
+      "num": "005",
+      "id": "root_005",
+      "name": "The Forest Remembers",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Root", "Shadow"],
+      "top":    { "type": "GenerateFear", "value": 2, "range": 0, "desc": "Generate 2 Fear" },
+      "bottom": { "type": "DamageInvaders", "value": 4, "range": 1, "desc": "Deal 4 damage to all invaders in one territory in range 1, then generate 2 Fear",
+                  "secondary": { "type": "GenerateFear", "value": 2 } },
+      "design_note": "Fear + damage hybrid. Bottom's 4 damage + presence amplification kills Marchers and Outriders."
+    },
+    {
+      "num": "006",
+      "id": "root_006",
+      "name": "Spreading Growth",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Root", "Root"],
+      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "bottom": { "type": "PlacePresence", "value": 2, "range": 2, "desc": "Place 2 Presence, each in different territories in range 2" },
+      "design_note": "Pure network expansion. Double Root means Root x4 with bottom doubling — guaranteed tier 1."
+    },
+    {
+      "num": "007",
+      "id": "root_007",
+      "name": "Healing Earth",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Mist", "Root"],
+      "top":    { "type": "RestoreWeave", "value": 1, "range": 0, "desc": "Restore 1 Weave" },
+      "bottom": { "type": "RestoreWeave", "value": 3, "range": 0, "desc": "Restore 3 Weave and reduce Corruption by 2 points anywhere",
+                  "secondary": { "type": "ReduceCorruption", "value": 2, "range": 0 } },
+      "design_note": "Only dedicated Weave recovery in starting deck."
+    },
+    {
+      "num": "008",
+      "id": "root_008",
+      "name": "Stir the Sleeping",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Root", "Shadow"],
+      "top":    { "type": "AwakeDormant", "value": 1, "range": 0, "desc": "Awaken 1 dormant card in hand" },
+      "bottom": { "type": "AwakeDormant", "value": 0, "range": 0, "desc": "Awaken all dormant cards in hand, then generate 2 Fear per card awakened",
+                  "secondary": { "type": "GenerateFear", "value": 0 } },
+      "design_note": "Root's hand quality card. Becomes MORE valuable as dormant cards accumulate."
+    },
+    {
+      "num": "009",
+      "id": "root_009",
+      "name": "Living Wall",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Root", "Void"],
+      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "bottom": { "type": "DamageInvaders", "value": 5, "range": 1, "desc": "Deal 5 damage to all invaders in one territory in range 1, and shield all Natives in that territory (Shield 2)",
+                  "secondary": { "type": "ShieldNatives", "value": 2, "range": 0 } },
+      "design_note": "Defensive combat card. 5 damage + presence amplification kills Ironclads."
+    },
+    {
+      "num": "025",
+      "id": "root_025",
+      "name": "Grasping Roots",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Root", "Root"],
+      "top":    { "type": "DamageInvaders", "value": 2, "range": 1, "desc": "Roots erupt, dealing 2 damage to all invaders in one territory in range 1" },
+      "bottom": { "type": "DamageInvaders", "value": 3, "range": 2, "desc": "Roots entangle everything in range 2. Deal 3 damage to all invaders in one territory in range 2. All invaders in that territory have their Advance halved next Tide.",
+                  "secondary": { "type": "SlowInvaders", "value": 1, "range": 2 } },
+      "design_note": "Root's only repeatable damage top (D29). 2 + presence amplification = 3+ damage. Double Root feeds threshold engine."
+    },
+
+    {
+      "num": "010",
+      "id": "root_010",
+      "name": "Ancient Pulse",
+      "rarity": "dormant",
+      "starting": false,
+      "elements": ["Mist", "Shadow"],
+      "top":    { "type": "RestoreWeave", "value": 1, "range": 0, "desc": "Restore 1 Weave and generate 1 Fear",
+                  "secondary": { "type": "GenerateFear", "value": 1 } },
+      "bottom": { "type": "RestoreWeave", "value": 2, "range": 0, "desc": "Restore 2 Weave, generate 3 Fear, and place 1 Presence in range 1",
+                  "secondary": { "type": "GenerateFear", "value": 3 } },
+      "design_note": "DRAFT. Utility card — flexibility pick for off-element diversity."
+    },
+    {
+      "num": "011",
+      "id": "root_011",
+      "name": "Reclaim the Soil",
+      "rarity": "dormant",
+      "starting": false,
+      "elements": ["Root", "Mist"],
+      "top":    { "type": "PlacePresence", "value": 1, "range": 0, "desc": "Place 1 Presence at any existing Presence token (reinforce a territory)" },
+      "bottom": { "type": "ReduceCorruption", "value": 6, "range": 1, "desc": "Reduce Corruption by 6 points in range 1, then place 1 Presence in range 1",
+                  "secondary": { "type": "PlacePresence", "value": 1, "range": 1 } },
+      "design_note": "DRAFT (D29). Strong presence stacking + biggest single-target cleanse in Dormant pool."
+    },
+    {
+      "num": "012",
+      "id": "root_012",
+      "name": "Rootbound",
+      "rarity": "dormant",
+      "starting": false,
+      "elements": ["Root", "Root", "Mist"],
+      "top":    { "type": "PlacePresence", "value": 2, "range": 0, "desc": "Place 2 Presence at existing Presence (reinforce one territory with 2 tokens)" },
+      "bottom": { "type": "GenerateFear", "value": 0, "range": 0, "desc": "Generate Fear equal to 2 x the number of Presence tokens in the highest-presence territory, then restore 1 Weave",
+                  "secondary": { "type": "RestoreWeave", "value": 1 } },
+      "design_note": "DRAFT. Network payoff — scales with presence density. Build-defining for wide-network runs."
+    },
+    {
+      "num": "013",
+      "id": "root_013",
+      "name": "Vast Network",
+      "rarity": "dormant",
+      "starting": false,
+      "elements": ["Root", "Root"],
+      "top":    { "type": "PlacePresence", "value": 1, "range": 2, "desc": "Place 1 Presence in range 2" },
+      "bottom": { "type": "PlacePresence", "value": 1, "range": 3, "desc": "Place 1 Presence in range 3. This turn, Network Fear counts adjacency twice for all Presence territories." },
+      "design_note": "Draft-only deep network card. Temporary Network Fear doubling on bottom."
+    },
+    {
+      "num": "014",
+      "id": "root_014",
+      "name": "Whisper of Roots",
+      "rarity": "dormant",
+      "starting": false,
+      "elements": ["Root", "Mist"],
+      "top":    { "type": "GenerateFear", "value": 2, "range": 0, "desc": "Generate 2 Fear" },
+      "bottom": { "type": "GenerateFear", "value": 3, "range": 0, "desc": "Generate 3 Fear and reduce Corruption by 1 point in all Presence territories",
+                  "secondary": { "type": "ReduceCorruption", "value": 1, "range": 0 } },
+      "design_note": "Gentle sustain draft card. Board-wide cleanse rewards wide presence."
+    },
+    {
+      "num": "015",
+      "id": "root_015",
+      "name": "Creeping Vines",
+      "rarity": "awakened",
+      "starting": false,
+      "elements": ["Root", "Gale"],
+      "top":    { "type": "MovePresence", "value": 1, "range": 2, "desc": "Move 1 Presence up to 2 territories" },
+      "bottom": { "type": "SlowInvaders", "value": 1, "range": 2, "desc": "Move 1 Presence up to 2 territories. All invaders in range 2 have their Advance movement halved this Tide.",
+                  "secondary": { "type": "MovePresence", "value": 1, "range": 2 } },
+      "design_note": "Awakened — MovePresence + SlowInvaders. Gale element unusual for Root."
+    },
+    {
+      "num": "016",
+      "id": "root_016",
+      "name": "Dread Awakening",
+      "rarity": "awakened",
+      "starting": false,
+      "elements": ["Shadow", "Shadow"],
+      "top":    { "type": "GenerateFear", "value": 4, "range": 0, "desc": "Generate 4 Fear" },
+      "bottom": { "type": "GenerateFear", "value": 9, "range": 0, "desc": "Generate 9 Fear. The next Fear Action drawn this encounter is from the next Dread Level pool." },
+      "design_note": "Fear engine card. Double Shadow hits Shadow tier 1 from a single bottom play."
+    },
+    {
+      "num": "017",
+      "id": "root_017",
+      "name": "Verdant Restoration",
+      "rarity": "awakened",
+      "starting": false,
+      "elements": ["Root", "Mist", "Mist"],
+      "top":    { "type": "ReduceCorruption", "value": 2, "range": 2, "desc": "Reduce Corruption by 2 points in range 2" },
+      "bottom": { "type": "Purify", "value": 1, "range": 1, "desc": "Remove one full Corruption level from one territory in range 1. Restore 2 Weave.",
+                  "secondary": { "type": "RestoreWeave", "value": 2 } },
+      "design_note": "Only Purify in Root pool. Double Mist hits Mist tier 1 on bottom."
+    },
+    {
+      "num": "018",
+      "id": "root_018",
+      "name": "Ancient Communion",
+      "rarity": "awakened",
+      "starting": false,
+      "elements": ["Root", "Mist"],
+      "top":    { "type": "ShieldNatives", "value": 2, "range": 1, "desc": "Give all Natives in range 1 Shield 2 until end of next Tide" },
+      "bottom": { "type": "BoostNatives", "value": 2, "range": 2, "desc": "Shield 2 all Natives in range 2. All Natives in range 2 deal +2 damage on their counter-attack this Tide.",
+                  "secondary": { "type": "ShieldNatives", "value": 2, "range": 2 } },
+      "design_note": "Native interaction card. Boosted + shielded Natives deal 5 damage each."
+    },
+    {
+      "num": "019",
+      "id": "root_019",
+      "name": "Root Terror",
+      "rarity": "awakened",
+      "starting": false,
+      "elements": ["Root", "Shadow"],
+      "top":    { "type": "GenerateFear", "value": 3, "range": 0, "desc": "Generate 3 Fear" },
+      "bottom": { "type": "PushInvaders", "value": 2, "range": 2, "desc": "Generate 3 Fear. Push up to 2 invaders in range 2 back toward their spawn point.",
+                  "secondary": { "type": "GenerateFear", "value": 3 } },
+      "design_note": "Fear + disruption. Push from M-row to A-row buys a full turn."
+    },
+    {
+      "num": "020",
+      "id": "root_020",
+      "name": "Boundless Growth",
+      "rarity": "awakened",
+      "starting": false,
+      "elements": ["Root", "Root", "Root"],
+      "top":    { "type": "PlacePresence", "value": 1, "range": 2, "desc": "Place 1 Presence in range 2" },
+      "bottom": { "type": "PlacePresence", "value": 3, "range": 2, "desc": "Place 3 Presence anywhere in range 2 (can be split across territories)" },
+      "design_note": "Triple Root contributes 6 on bottom — hits tier 1 and nearly tier 2."
+    },
+    {
+      "num": "021",
+      "id": "root_021",
+      "name": "Rise, Ancient One",
+      "rarity": "awakened",
+      "starting": false,
+      "elements": ["Root", "Shadow", "Mist"],
+      "top":    { "type": "AwakeDormant", "value": 1, "range": 0, "desc": "Awaken 1 dormant card" },
+      "bottom": { "type": "Custom", "value": 2, "range": 0, "desc": "Awaken 2 dormant cards. For each card awakened, choose: play its top immediately for free, or return it to hand." },
+      "design_note": "Most decision-dense bottom in the deck. Three elements = 6 total on bottom."
+    },
+    {
+      "num": "022",
+      "id": "root_022",
+      "name": "Lattice of Life",
+      "rarity": "ancient",
+      "starting": false,
+      "elements": ["Root", "Root", "Mist"],
+      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1. For each adjacent territory that also has Presence, generate 2 Fear." },
+      "bottom": { "type": "PlacePresence", "value": 2, "range": 2, "desc": "Place 2 Presence in range 2. Double Network Fear passive for the rest of this encounter." },
+      "design_note": "Ancient. Bottom's permanent Network Fear doubling is build-defining."
+    },
+    {
+      "num": "023",
+      "id": "root_023",
+      "name": "The Deep Remembers",
+      "rarity": "ancient",
+      "starting": false,
+      "elements": ["Root", "Mist", "Shadow"],
+      "top":    { "type": "ReduceCorruption", "value": 3, "range": 1, "desc": "Reduce Corruption by 3 in range 1. If this drops Tainted to Clean, generate 3 Fear." },
+      "bottom": { "type": "Purify", "value": 0, "range": 2, "desc": "Fully cleanse one territory in range 2 (0 Corruption). Generate Fear equal to Corruption level cleared x 4." },
+      "design_note": "Ancient. Full cleanse + scaling Fear. Clearing Desecrated = 12 Fear."
+    },
+    {
+      "num": "024",
+      "id": "root_024",
+      "name": "Living Forest",
+      "rarity": "ancient",
+      "starting": false,
+      "elements": ["Root", "Root", "Mist"],
+      "top":    { "type": "ShieldNatives", "value": 3, "range": 2, "desc": "Shield 3 all Natives in range 2. Surviving Natives with Shield 3 gain +1 permanent HP this encounter." },
+      "bottom": { "type": "Custom", "value": 0, "range": 0, "desc": "All Natives fully heal. Each Native deals double counter-attack damage for rest of encounter. Generate 1 Fear per living Native." },
+      "design_note": "Ancient Native build-around. 6 Natives = 6 Fear + permanent double damage."
+    }
+  ]
+}
