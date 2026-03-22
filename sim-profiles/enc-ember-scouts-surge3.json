@@ -1,0 +1,9 @@
+{
+  "name": "enc-ember-scouts-surge3 — Ember on scouts with surge at tide 3",
+  "seeds": "1-500",
+  "warden": "ember",
+  "encounter": "pale_march_scouts",
+  "encounter_overrides": {
+    "surge_tides": [3]
+  }
+}

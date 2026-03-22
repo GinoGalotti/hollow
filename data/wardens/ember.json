@@ -91,7 +91,7 @@
       "rarity": "dormant",
       "starting": true,
       "elements": ["Ash", "Ash"],
-      "top":    { "type": "DamageInvaders", "value": 3, "range": 1, "desc": "Deal 3 damage to all invaders in one territory in range 1" },
+      "top":    { "type": "DamageInvaders", "value": 2, "range": 1, "desc": "Deal 2 damage to all invaders in one territory in range 1" },
       "bottom": { "type": "DamageInvaders", "value": 6, "range": 1, "desc": "Deal 6 damage to all invaders in one territory in range 1" },
       "design_note": "Core damage card. Double Ash — Ash T1 (Ember Fury) reachable in one play."
     },
@@ -172,7 +172,7 @@
       "rarity": "dormant",
       "starting": true,
       "elements": ["Ash", "Ash", "Shadow"],
-      "top":    { "type": "DamageInvaders", "value": 3, "range": 1, "desc": "Deal 3 damage to all invaders in one territory in range 1" },
+      "top":    { "type": "DamageInvaders", "value": 2, "range": 1, "desc": "Deal 2 damage to all invaders in one territory in range 1" },
       "bottom": { "type": "DamageInvaders", "value": 5, "range": 2, "desc": "Deal 5 damage to all invaders in one territory in range 2. Slow all invaders in that territory.",
                   "secondary": { "type": "SlowInvaders", "value": 1, "range": 2 } },
       "design_note": "Starter heavy hitter. Triple element on bottom = 6 threshold points. Slow combo bonus."

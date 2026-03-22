@@ -4,12 +4,14 @@ using HollowWardens.Core;
 using HollowWardens.Core.Cards;
 using HollowWardens.Core.Data;
 using HollowWardens.Core.Models;
+using HollowWardens.Core.Map;
 using HollowWardens.Core.Systems;
 using HollowWardens.Core.Wardens;
 
 public class EncounterState
 {
     public EncounterConfig Config { get; set; } = new();
+    public TerritoryGraph Graph { get; set; } = TerritoryGraph.Standard;
     public List<Territory> Territories { get; set; } = new();
     public IDeckManager? Deck { get; set; }
     public IElementSystem? Elements { get; set; }
@@ -30,6 +32,44 @@ public class EncounterState
     public BalanceConfig Balance { get; set; } = new();
 
     public Territory? GetTerritory(string id) => Territories.FirstOrDefault(t => t.Id == id);
+
+    /// <summary>Applies the encounter's FearMultiplier to a base fear amount.</summary>
+    public int ApplyFearMultiplier(int baseFear) => (int)(baseFear * Config.FearMultiplier);
     public IEnumerable<Territory> TerritoriesWithInvaders() => Territories.Where(t => t.Invaders.Any(i => i.IsAlive));
     public IEnumerable<Territory> TerritoriesWithNatives() => Territories.Where(t => t.Natives.Any(n => n.IsAlive));
+
+    /// <summary>
+    /// Extracts a BoardCarryover snapshot from the end of this encounter.
+    /// Corruption: L0-L1 → 0 pts, L2 → 3 pts (persists as L1 threshold), L3 → full points.
+    /// </summary>
+    public BoardCarryover ExtractCarryover()
+    {
+        var corruption = new Dictionary<string, int>();
+        foreach (var t in Territories)
+        {
+            int pts = t.CorruptionLevel switch
+            {
+                0 or 1 => 0,
+                2      => 3,   // L2 → persists as L1 threshold (3 pts)
+                _      => t.CorruptionPoints  // L3 → full persistence
+            };
+            if (pts > 0)
+                corruption[t.Id] = pts;
+        }
+
+        var dissolved = Deck?.DissolvedCards.Select(c => c.Id).ToList() ?? new List<string>();
+
+        // Collect passives unlocked beyond the warden's base set
+        var passives = PassiveGating?.ActivePassives.ToList() ?? new List<string>();
+
+        return new BoardCarryover
+        {
+            CorruptionCarryover    = corruption,
+            FinalWeave             = Weave?.CurrentWeave ?? 20,
+            DreadLevel             = Dread?.DreadLevel   ?? 1,
+            TotalFearGenerated     = Dread?.TotalFearGenerated ?? 0,
+            PermanentlyRemovedCards = dissolved,
+            UnlockedPassives       = passives
+        };
+    }
 }

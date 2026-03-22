@@ -24,6 +24,9 @@ public class SimStats
     // Per-tide snapshots (tide number → snapshot)
     public List<TideSnapshot> TideSnapshots { get; set; } = new();
 
+    // Carryover snapshot extracted at encounter end
+    public BoardCarryover? FinalCarryover { get; set; }
+
     public class TideSnapshot
     {
         public int Tide { get; set; }

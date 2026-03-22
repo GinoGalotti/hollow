@@ -1,0 +1,8 @@
+{
+  "name": "root-C-extra-invaders — +1 invader per wave, volume overwhelms Assimilation",
+  "seeds": "1-500",
+  "warden": "root",
+  "encounter_overrides": {
+    "extra_invaders_per_wave": 1
+  }
+}

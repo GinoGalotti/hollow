@@ -1,0 +1,8 @@
+{
+  "name": "root-B-lock-network-slow — remove movement penalty, invaders advance at full speed",
+  "seeds": "1-500",
+  "warden": "root",
+  "warden_overrides": {
+    "lock_passives": ["network_slow"]
+  }
+}

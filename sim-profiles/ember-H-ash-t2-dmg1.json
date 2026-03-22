@@ -1,0 +1,10 @@
+{
+  "name": "ember-H-ash-t2-dmg1 — Ash T2 deals 1 instead of 2 (T1+T2 = 2 focused, Outriders survive)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "balance_overrides": {
+    "element_overrides": {
+      "Ash": { "t2_damage": 1 }
+    }
+  }
+}

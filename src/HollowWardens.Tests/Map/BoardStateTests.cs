@@ -38,7 +38,7 @@ public class BoardStateTests
     public void DistanceA1ToI1Is2()
     {
         // A1 → M1 → I1
-        var dist = TerritoryGraph.Distance("A1", "I1");
+        var dist = TerritoryGraph.Standard.Distance("A1", "I1");
         Assert.Equal(2, dist);
     }
 

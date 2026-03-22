@@ -1,0 +1,10 @@
+{
+    "name": "root on twin peaks — split defense",
+    "seeds": "1-200",
+    "warden": "root",
+    "encounter": "pale_march_standard",
+    "encounter_overrides": {
+        "board_layout": "twin_peaks",
+        "native_erosion_per_tide": 1
+    }
+}

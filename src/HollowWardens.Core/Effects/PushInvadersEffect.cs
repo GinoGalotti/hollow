@@ -18,10 +18,10 @@ public class PushInvadersEffect : IEffect
         if (invaders.Count == 0) return;
 
         // Push to an adjacent territory that is farther from I1 (or equal distance).
-        int currentDist = TerritoryGraph.Distance(territory.Id, "I1");
-        var pushTargetId = TerritoryGraph.GetNeighbors(territory.Id)
-            .Where(n => TerritoryGraph.Distance(n, "I1") >= currentDist)
-            .OrderByDescending(n => TerritoryGraph.Distance(n, "I1"))
+        int currentDist = state.Graph.Distance(territory.Id, state.Graph.HeartId);
+        var pushTargetId = state.Graph.GetNeighbors(territory.Id)
+            .Where(n => state.Graph.Distance(n, state.Graph.HeartId) >= currentDist)
+            .OrderByDescending(n => state.Graph.Distance(n, state.Graph.HeartId))
             .FirstOrDefault();
 
         if (pushTargetId == null) return;

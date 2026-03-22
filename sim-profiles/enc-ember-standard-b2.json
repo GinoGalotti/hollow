@@ -1,0 +1,9 @@
+{
+  "name": "enc-ember-standard-b2 — Ember on standard +1 invader/wave (B2 applied to E1)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "encounter": "pale_march_standard",
+  "encounter_overrides": {
+    "extra_invaders_per_wave": 1
+  }
+}

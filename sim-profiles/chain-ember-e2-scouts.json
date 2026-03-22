@@ -1,0 +1,11 @@
+{
+  "name": "chain-ember-e2-scouts — Ember E2 scouts with median E1 carryover (weave=20, dread=2, fear=28)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "encounter": "pale_march_scouts",
+  "board_carryover": {
+    "starting_weave": 20,
+    "dread_level": 2,
+    "total_fear": 28
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "ember-L-hp-plus1 — all invaders +1 HP (Outriders 3→4, Marchers 4→5, Ironclads 5→6)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "balance_overrides": {
+    "invader_hp_bonus": 1
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "enc-ember-scouts-b2 — Ember on scouts +1 invader/wave (B2 applied)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "encounter": "pale_march_scouts",
+  "encounter_overrides": {
+    "extra_invaders_per_wave": 1
+  }
+}

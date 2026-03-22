@@ -1,0 +1,11 @@
+{
+  "name": "root-D-lock-assimilation-extra-invaders — no resolution clear AND +1 invader per wave",
+  "seeds": "1-500",
+  "warden": "root",
+  "warden_overrides": {
+    "lock_passives": ["assimilation"]
+  },
+  "encounter_overrides": {
+    "extra_invaders_per_wave": 1
+  }
+}

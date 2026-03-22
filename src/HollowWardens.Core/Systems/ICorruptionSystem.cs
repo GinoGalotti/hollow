@@ -8,4 +8,5 @@ public interface ICorruptionSystem
     void ReduceCorruption(Territory territory, int points);
     void PurifyLevel(Territory territory);
     void ApplyPersistence(Territory territory);  // between encounters
+    HashSet<string> SacredTerritories { get; }
 }

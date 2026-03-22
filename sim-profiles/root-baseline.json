@@ -1,0 +1,5 @@
+{
+  "name": "root-baseline — Root warden, seeds 1-500, no overrides",
+  "seeds": "1-500",
+  "warden": "root"
+}

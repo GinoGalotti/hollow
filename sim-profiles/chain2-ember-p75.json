@@ -1,0 +1,12 @@
+{
+  "name": "chain2-ember-p75 — Ember E2 scouts-B2, p75 E1 exit (weave=20, dread=3, fear=34)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "encounter": "pale_march_scouts",
+  "encounter_overrides": { "extra_invaders_per_wave": 1 },
+  "board_carryover": {
+    "starting_weave": 20,
+    "dread_level": 3,
+    "total_fear": 34
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "root-A-lock-assimilation — remove resolution clear, see how much Assimilation carries",
+  "seeds": "1-500",
+  "warden": "root",
+  "warden_overrides": {
+    "lock_passives": ["assimilation"]
+  }
+}

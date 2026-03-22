@@ -6,7 +6,7 @@ public enum CardRarity { Dormant, Awakened, Ancient }
 
 public enum UnitType { Marcher, Ironclad, Outrider, Pioneer }
 
-public enum TerritoryRow { Arrival, Middle, Inner }
+public enum TerritoryRow { Arrival, Middle, Bridge, Inner }
 
 public enum TurnPhase { Vigil, Tide, Dusk, Rest, Resolution }
 

@@ -1,0 +1,11 @@
+{
+  "name": "ember-E-decay2-ash-t3-dmg2 — decay 2/turn + Ash T3 damage 2 (weaker AND expensive)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "balance_overrides": {
+    "element_decay_per_turn": 2,
+    "element_overrides": {
+      "Ash": { "t3_damage": 2 }
+    }
+  }
+}

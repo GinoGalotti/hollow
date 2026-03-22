@@ -5,8 +5,12 @@ using HollowWardens.Core.Models;
 
 public class CorruptionSystem : ICorruptionSystem
 {
+    public HashSet<string> SacredTerritories { get; } = new();
+
     public void AddCorruption(Territory territory, int points)
     {
+        if (SacredTerritories.Contains(territory.Id)) return;
+
         // D28 Vulnerability: detect crossing into Desecrated (Level 3)
         var levelBefore = territory.CorruptionLevel;
 

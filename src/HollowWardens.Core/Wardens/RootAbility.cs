@@ -50,9 +50,10 @@ public class RootAbility : IWardenAbility
     /// </summary>
     public void OnResolution(EncounterState state)
     {
+        if (Gating != null && !Gating.IsActive("assimilation")) return;
         foreach (var territory in state.Territories.Where(t => t.HasPresence).ToList())
         {
-            foreach (var neighborId in TerritoryGraph.GetNeighbors(territory.Id))
+            foreach (var neighborId in state.Graph.GetNeighbors(territory.Id))
             {
                 var neighbor = state.GetTerritory(neighborId);
                 if (neighbor == null) continue;
@@ -95,7 +96,7 @@ public class RootAbility : IWardenAbility
         var territories = allTerritories.ToDictionary(t => t.Id);
         if (!territories.TryGetValue(territoryId, out var territory)) return 0;
 
-        var neighbors = TerritoryGraph.GetNeighbors(territoryId);
+        var neighbors = TerritoryGraph.Standard.GetNeighbors(territoryId);
         int presenceNeighborCount = neighbors.Count(n =>
             territories.TryGetValue(n, out var t) && t.HasPresence);
 

@@ -1,0 +1,9 @@
+{
+  "name": "enc-root-siege-b2 — Root on siege with +1 invader/wave (B2 expansion test)",
+  "seeds": "1-500",
+  "warden": "root",
+  "encounter": "pale_march_siege",
+  "encounter_overrides": {
+    "extra_invaders_per_wave": 1
+  }
+}

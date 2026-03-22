@@ -1,0 +1,11 @@
+{
+    "name": "ember — haunted ground + blight",
+    "seeds": "1-200",
+    "warden": "ember",
+    "encounter": "pale_march_standard",
+    "encounter_overrides": {
+        "presence_placement_corruption_cost": 2,
+        "blight_pulse_interval": 2,
+        "fear_multiplier": 1.5
+    }
+}

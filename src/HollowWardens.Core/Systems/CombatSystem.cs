@@ -23,7 +23,7 @@ public class CombatSystem : ICombatSystem
             || id.Contains(CorruptId, StringComparison.OrdinalIgnoreCase);
     }
 
-    // Invaders that were in I1 before the current Advance — eligible to march on Heart.
+    // Invaders that were in the heart zone before the current Advance — eligible to march on Heart.
     private readonly HashSet<string> _preAdvanceI1Invaders = new();
 
     // ── Activate ──────────────────────────────────────────────────────────────
@@ -139,11 +139,14 @@ public class CombatSystem : ICombatSystem
 
     public void ExecuteAdvance(ActionCard action, EncounterState state)
     {
-        // Record which invaders were already in I1 — only they can march this Tide.
+        var graph  = state.Graph;
+        string heartId = graph.HeartId;
+
+        // Record which invaders were already in the heart zone — only they can march this Tide.
         _preAdvanceI1Invaders.Clear();
-        var i1 = state.GetTerritory("I1");
-        if (i1 != null)
-            foreach (var inv in i1.Invaders.Where(i => i.IsAlive))
+        var heart = state.GetTerritory(heartId);
+        if (heart != null)
+            foreach (var inv in heart.Invaders.Where(i => i.IsAlive))
                 _preAdvanceI1Invaders.Add(inv.Id);
 
         // Collect moves before applying any (prevents double-movement).
@@ -155,16 +158,16 @@ public class CombatSystem : ICombatSystem
             {
                 // D29: Network Slow — ask warden for movement penalty at this territory
                 int penalty = state.Warden?.GetMovementPenalty(territory.Id, state.Territories) ?? 0;
-                int steps = GetSteps(action, invader, penalty);
+                int steps = GetSteps(action, invader, penalty, state.Config.InvaderAdvanceBonus);
                 if (steps == 0) continue;
 
                 string currentId = invader.TerritoryId;
                 for (int s = 0; s < steps; s++)
                 {
-                    var next = GetNextTowardHeart(currentId);
+                    var next = GetNextTowardHeart(currentId, graph, heartId);
                     if (next == null) break;
                     currentId = next;
-                    if (currentId == "I1") break; // grace: stop at heart zone
+                    if (currentId == heartId) break; // grace: stop at heart zone
                 }
 
                 if (currentId != invader.TerritoryId)
@@ -173,29 +176,30 @@ public class CombatSystem : ICombatSystem
         }
 
         foreach (var (invader, dest) in moves)
-            MoveInvader(invader, dest, state);
+            MoveInvader(invader, dest, state, heartId);
     }
 
     // ── Heart March ───────────────────────────────────────────────────────────
 
     public void ExecuteHeartMarch(EncounterState state)
     {
-        var i1 = state.GetTerritory("I1");
-        if (i1 == null) return;
+        string heartId = state.Graph.HeartId;
+        var heart = state.GetTerritory(heartId);
+        if (heart == null) return;
 
-        foreach (var invader in i1.Invaders
+        foreach (var invader in heart.Invaders
             .Where(i => i.IsAlive && _preAdvanceI1Invaders.Contains(i.Id))
             .ToList())
         {
-            int damage = Math.Max(1, invader.Hp);
+            int damage = (int)(Math.Max(1, invader.Hp) * state.Config.HeartDamageMultiplier);
             state.Weave?.DealDamage(damage);
-            GameEvents.HeartDamageDealt?.Invoke(i1);
+            GameEvents.HeartDamageDealt?.Invoke(heart);
         }
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    private static int GetSteps(ActionCard action, Invader invader, int movementPenalty = 0)
+    private static int GetSteps(ActionCard action, Invader invader, int movementPenalty = 0, int advanceBonus = 0)
     {
         if (invader.UnitType == UnitType.Ironclad)
         {
@@ -204,7 +208,8 @@ public class CombatSystem : ICombatSystem
             if (!shouldMove) return 0;
         }
 
-        int steps = action.AdvanceModifier;
+        // Apply advance bonus BEFORE penalty so penalty can offset it
+        int steps = action.AdvanceModifier + advanceBonus;
         if (invader.UnitType == UnitType.Outrider)
             steps += 1;
 
@@ -219,21 +224,21 @@ public class CombatSystem : ICombatSystem
     }
 
     /// <summary>
-    /// Returns the adjacent territory one step closer to I1 (alphabetically first on tie).
-    /// Returns null if already at I1.
+    /// Returns the adjacent territory one step closer to the heart (alphabetically first on tie).
+    /// Returns null if already at heart.
     /// </summary>
-    private static string? GetNextTowardHeart(string currentId)
+    private static string? GetNextTowardHeart(string currentId, TerritoryGraph graph, string heartId)
     {
-        int currentDist = TerritoryGraph.Distance(currentId, "I1");
+        int currentDist = graph.Distance(currentId, heartId);
         if (currentDist == 0) return null;
 
-        return TerritoryGraph.GetNeighbors(currentId)
-            .Where(n => TerritoryGraph.Distance(n, "I1") < currentDist)
+        return graph.GetNeighbors(currentId)
+            .Where(n => graph.Distance(n, heartId) < currentDist)
             .OrderBy(n => n)
             .FirstOrDefault();
     }
 
-    private static void MoveInvader(Invader invader, string toId, EncounterState state)
+    private static void MoveInvader(Invader invader, string toId, EncounterState state, string heartId)
     {
         string fromId = invader.TerritoryId;
         state.GetTerritory(fromId)?.Invaders.Remove(invader);
@@ -241,7 +246,7 @@ public class CombatSystem : ICombatSystem
         var toTerritory = state.GetTerritory(toId);
         toTerritory?.Invaders.Add(invader);
         GameEvents.InvaderAdvanced?.Invoke(invader, fromId, toId);
-        if (toId == "I1" && toTerritory != null)
+        if (toId == heartId && toTerritory != null)
             GameEvents.InvaderArrived?.Invoke(invader, toTerritory);
     }
 

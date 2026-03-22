@@ -1,0 +1,16 @@
+{
+  "name": "ember-N-cards-plus-h — DI×3→DI×2 tops + Ash T2=1 (M+H combined)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "warden_overrides": {
+    "upgrade_cards": {
+      "ember_001": { "top": { "value": 2 } },
+      "ember_008": { "top": { "value": 2 } }
+    }
+  },
+  "balance_overrides": {
+    "element_overrides": {
+      "Ash": { "t2_damage": 1 }
+    }
+  }
+}

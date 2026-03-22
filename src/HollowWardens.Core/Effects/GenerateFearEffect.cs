@@ -11,7 +11,8 @@ public class GenerateFearEffect : IEffect
 
     public void Resolve(EncounterState state, TargetInfo target)
     {
-        state.Dread?.OnFearGenerated(_data.Value);
-        GameEvents.FearGenerated?.Invoke(_data.Value);
+        int amount = state.ApplyFearMultiplier(_data.Value);
+        state.Dread?.OnFearGenerated(amount);
+        GameEvents.FearGenerated?.Invoke(amount);
     }
 }

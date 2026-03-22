@@ -1,0 +1,13 @@
+{
+    "name": "nightmare — corruption spreads + surge + scaling",
+    "seeds": "1-100",
+    "warden": "root",
+    "encounter": "pale_march_standard",
+    "encounter_overrides": {
+        "corruption_spread": 1,
+        "surge_tides": [3, 5],
+        "invader_corruption_scaling": true,
+        "native_hp_override": 1,
+        "native_damage_override": 5
+    }
+}

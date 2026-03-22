@@ -35,10 +35,10 @@ public class TideRunner
         EffectResolver resolver)
     {
         _actionDeck = actionDeck;
-        _cadence = cadence;
-        _spawn = spawn;
-        _faction = faction;
-        _resolver = resolver;
+        _cadence    = cadence;
+        _spawn      = spawn;
+        _faction    = faction;
+        _resolver   = resolver;
     }
 
     /// <summary>
@@ -96,8 +96,9 @@ public class TideRunner
             int passiveFear = state.Warden?.CalculatePassiveFear() ?? 0;
             if (passiveFear > 0)
             {
-                state.Dread?.OnFearGenerated(passiveFear);
-                GameEvents.FearGenerated?.Invoke(passiveFear);
+                int appliedFear = state.ApplyFearMultiplier(passiveFear);
+                state.Dread?.OnFearGenerated(appliedFear);
+                GameEvents.FearGenerated?.Invoke(appliedFear);
             }
 
             // Reveal and resolve queued fear actions
@@ -166,6 +167,9 @@ public class TideRunner
         // ── Step 5: Arrive ─────────────────────────────────────────────────
         GameEvents.TideStepStarted?.Invoke(TideStep.Arrive);
         SpawnWaveForTide(tideNumber + 1, state);
+        // Surge: spawn a second wave on surge tides
+        if (state.Config.SurgeTides?.Contains(tideNumber) == true)
+            SpawnWaveForTide(tideNumber + 1, state);
 
         // ── Step 6: Escalate (skipped on Tide 1) ───────────────────────────
         if (!isFirstTide)
@@ -179,6 +183,9 @@ public class TideRunner
         _previewedCard = _actionDeck.Draw(_cadence.NextPool());
         GameEvents.NextActionPreviewed?.Invoke(_previewedCard);
         _spawn.PreviewWave(tideNumber + 1);
+
+        // ── Tide End Effects ────────────────────────────────────────────────
+        RunTideEndEffects(tideNumber, state);
 
         return actionCard;
     }
@@ -209,7 +216,12 @@ public class TideRunner
     public void ApplyPassiveFear(EncounterState state)
     {
         int passiveFear = state.Warden?.CalculatePassiveFear() ?? 0;
-        if (passiveFear > 0) { state.Dread?.OnFearGenerated(passiveFear); GameEvents.FearGenerated?.Invoke(passiveFear); }
+        if (passiveFear > 0)
+        {
+            int applied = state.ApplyFearMultiplier(passiveFear);
+            state.Dread?.OnFearGenerated(applied);
+            GameEvents.FearGenerated?.Invoke(applied);
+        }
     }
 
     /// <summary>Drains the fear action queue WITHOUT firing FearActionRevealed (player reveals each one).</summary>
@@ -247,11 +259,13 @@ public class TideRunner
         state.Combat?.ExecuteHeartMarch(state);
     }
 
-    /// <summary>Runs the Arrive step — spawns the next wave (tideNumber + 1).</summary>
+    /// <summary>Runs the Arrive step — spawns the next wave (tideNumber + 1), with surge if configured.</summary>
     public void RunArrive(int tideNumber, EncounterState state)
     {
         GameEvents.TideStepStarted?.Invoke(TideStep.Arrive);
         SpawnWaveForTide(tideNumber + 1, state);
+        if (state.Config.SurgeTides?.Contains(tideNumber) == true)
+            SpawnWaveForTide(tideNumber + 1, state);
     }
 
     /// <summary>Runs the Escalate step.</summary>
@@ -268,6 +282,60 @@ public class TideRunner
         _previewedCard = _actionDeck.Draw(_cadence.NextPool());
         GameEvents.NextActionPreviewed?.Invoke(_previewedCard);
         _spawn.PreviewWave(tideNumber + 1);
+    }
+
+    /// <summary>
+    /// Runs all end-of-tide effects: corruption spread, native erosion, blight pulse.
+    /// Call after the Preview step in both sim and interactive paths.
+    /// </summary>
+    public void RunTideEndEffects(int tideNumber, EncounterState state)
+    {
+        var rng = state.Random;
+
+        // Corruption Spread: L1+ territories spread to 1 random adjacent L0 territory
+        if (state.Config.CorruptionSpread > 0 && rng != null)
+        {
+            foreach (var territory in state.Territories.Where(t => t.CorruptionLevel >= 1).ToList())
+            {
+                var neighborIds    = state.Graph.GetNeighbors(territory.Id);
+                var cleanNeighbors = neighborIds
+                    .Select(id => state.GetTerritory(id))
+                    .Where(t => t != null && t.CorruptionLevel == 0)
+                    .ToList();
+                if (cleanNeighbors.Count > 0)
+                {
+                    var target = cleanNeighbors[rng.Next(cleanNeighbors.Count)]!;
+                    state.Corruption?.AddCorruption(target, state.Config.CorruptionSpread);
+                }
+            }
+        }
+
+        // Native Erosion: all alive natives lose N HP at tide end
+        if (state.Config.NativeErosionPerTide > 0)
+        {
+            foreach (var territory in state.Territories)
+            {
+                foreach (var native in territory.Natives.Where(n => n.IsAlive).ToList())
+                {
+                    native.Hp -= state.Config.NativeErosionPerTide;
+                    if (native.Hp <= 0)
+                    {
+                        native.Hp = 0;
+                        territory.Natives.Remove(native);
+                        GameEvents.NativeDefeated?.Invoke(native, territory);
+                    }
+                }
+            }
+        }
+
+        // Blight Pulse: every N tides, a random territory gains +3 corruption
+        if (state.Config.BlightPulseInterval > 0 && rng != null
+            && tideNumber % state.Config.BlightPulseInterval == 0)
+        {
+            var allTerritories = state.Territories.ToList();
+            var target = allTerritories[rng.Next(allTerritories.Count)];
+            state.Corruption?.AddCorruption(target, 3);
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -288,6 +356,19 @@ public class TideRunner
             foreach (var unitType in unitTypes)
             {
                 var invader = _faction.CreateUnit(unitType, territoryId);
+
+                // Invader Corruption Scaling: +1 HP per L1+ territory on arrival
+                if (state.Config.InvaderCorruptionScaling)
+                {
+                    int l1Count = state.Territories.Count(t => t.CorruptionLevel >= 1);
+                    invader.Hp    += l1Count;
+                    invader.MaxHp += l1Count;
+                }
+
+                // Invader Arrival Shield
+                if (state.Config.InvaderArrivalShield > 0)
+                    invader.ShieldValue = state.Config.InvaderArrivalShield;
+
                 territory.Invaders.Add(invader);
                 GameEvents.InvaderArrived?.Invoke(invader, territory);
             }

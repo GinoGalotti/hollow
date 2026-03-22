@@ -84,6 +84,7 @@ public class SimStatsCollector
         _stats.Result = result;
         _stats.FinalWeave = _state.Weave?.CurrentWeave ?? 0;
         _stats.TidesCompleted = _state.CurrentTide;
+        _stats.FinalCarryover = _state.ExtractCarryover();
     }
 
     public void UnwireEvents()

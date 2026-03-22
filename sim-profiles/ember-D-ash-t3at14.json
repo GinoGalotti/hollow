@@ -1,0 +1,10 @@
+{
+  "name": "ember-D-ash-t3at14 — Ash T3 needs 14 elements instead of 11 (delays T3 1-2 turns)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "balance_overrides": {
+    "element_overrides": {
+      "Ash": { "tier3_threshold": 14 }
+    }
+  }
+}

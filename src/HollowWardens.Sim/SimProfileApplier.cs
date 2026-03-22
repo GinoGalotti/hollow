@@ -70,6 +70,22 @@ public static class SimProfileApplier
         if (overrides.NativeSpawns != null)
             config.NativeSpawns = overrides.NativeSpawns;
 
+        if (overrides.ExtraInvadersPerWave.HasValue && overrides.ExtraInvadersPerWave.Value > 0)
+        {
+            int extra = overrides.ExtraInvadersPerWave.Value;
+            foreach (var wave in config.Waves)
+            {
+                foreach (var option in wave.Options)
+                {
+                    // Add extra Marchers to A1 (primary arrival point)
+                    if (!option.Units.ContainsKey("A1"))
+                        option.Units["A1"] = new List<HollowWardens.Core.Models.UnitType>();
+                    for (int i = 0; i < extra; i++)
+                        option.Units["A1"].Add(HollowWardens.Core.Models.UnitType.Marcher);
+                }
+            }
+        }
+
         if (overrides.EscalationSchedule != null)
         {
             config.EscalationSchedule.Clear();
@@ -83,6 +99,79 @@ public static class SimProfileApplier
                 });
             }
         }
+
+        // Easy tier
+        if (overrides.ElementDecayOverride.HasValue)
+            config.ElementDecayOverride = overrides.ElementDecayOverride.Value;
+
+        if (overrides.StartingElements != null)
+            config.StartingElements = overrides.StartingElements;
+
+        if (overrides.ThresholdDamageBonus.HasValue)
+            config.ThresholdDamageBonus = overrides.ThresholdDamageBonus.Value;
+
+        if (overrides.VigilPlayLimitOverride.HasValue)
+            config.VigilPlayLimitOverride = overrides.VigilPlayLimitOverride.Value;
+
+        if (overrides.DuskPlayLimitOverride.HasValue)
+            config.DuskPlayLimitOverride = overrides.DuskPlayLimitOverride.Value;
+
+        if (overrides.HandLimitOverride.HasValue)
+            config.HandLimitOverride = overrides.HandLimitOverride.Value;
+
+        if (overrides.NativeHpOverride.HasValue)
+            config.NativeHpOverride = overrides.NativeHpOverride.Value;
+
+        if (overrides.NativeDamageOverride.HasValue)
+            config.NativeDamageOverride = overrides.NativeDamageOverride.Value;
+
+        if (overrides.FearMultiplier.HasValue)
+            config.FearMultiplier = overrides.FearMultiplier.Value;
+
+        if (overrides.HeartDamageMultiplier.HasValue)
+            config.HeartDamageMultiplier = overrides.HeartDamageMultiplier.Value;
+
+        // Medium tier
+        if (overrides.InvaderCorruptionScaling.HasValue)
+            config.InvaderCorruptionScaling = overrides.InvaderCorruptionScaling.Value;
+
+        if (overrides.InvaderArrivalShield.HasValue)
+            config.InvaderArrivalShield = overrides.InvaderArrivalShield.Value;
+
+        if (overrides.InvaderRegenOnRest.HasValue)
+            config.InvaderRegenOnRest = overrides.InvaderRegenOnRest.Value;
+
+        if (overrides.InvaderAdvanceBonus.HasValue)
+            config.InvaderAdvanceBonus = overrides.InvaderAdvanceBonus.Value;
+
+        if (overrides.SurgeTides != null)
+            config.SurgeTides = overrides.SurgeTides;
+
+        if (overrides.StartingInfrastructure != null)
+            config.StartingInfrastructure = overrides.StartingInfrastructure;
+
+        if (overrides.PresencePlacementCorruptionCost.HasValue)
+            config.PresencePlacementCorruptionCost = overrides.PresencePlacementCorruptionCost.Value;
+
+        // Hard tier
+        if (overrides.CorruptionSpread.HasValue)
+            config.CorruptionSpread = overrides.CorruptionSpread.Value;
+
+        if (overrides.SacredTerritories != null)
+            config.SacredTerritories = overrides.SacredTerritories;
+
+        if (overrides.NativeErosionPerTide.HasValue)
+            config.NativeErosionPerTide = overrides.NativeErosionPerTide.Value;
+
+        if (overrides.BlightPulseInterval.HasValue)
+            config.BlightPulseInterval = overrides.BlightPulseInterval.Value;
+
+        if (overrides.EclipseTides != null)
+            config.EclipseTides = overrides.EclipseTides;
+
+        // Board layout
+        if (overrides.BoardLayout != null)
+            config.BoardLayout = overrides.BoardLayout;
     }
 
     public static void ApplyBalanceOverrides(
@@ -170,6 +259,23 @@ public static class SimProfileApplier
         {
             if (Enum.TryParse<Element>(elementName, ignoreCase: true, out var element))
                 state.Elements?.AddElements(new[] { element }, value);
+        }
+    }
+
+    public static void ApplyBoardCarryoverOverride(
+        EncounterState state, BoardCarryoverOverride overrides)
+    {
+        if (overrides.StartingWeave.HasValue)
+            state.Weave = new HollowWardens.Core.Systems.WeaveSystem(
+                overrides.StartingWeave.Value, state.Balance.MaxWeave);
+
+        if (overrides.StartingCorruption != null)
+            ApplyStartingCorruption(state, overrides.StartingCorruption);
+
+        if (overrides.RemovedCards != null)
+        {
+            foreach (var cardId in overrides.RemovedCards)
+                state.Deck?.PermanentlyRemove(cardId);
         }
     }
 

@@ -1,0 +1,9 @@
+{
+  "name": "enc-ember-elite-b2 — Ember on elite +1 invader/wave",
+  "seeds": "1-500",
+  "warden": "ember",
+  "encounter": "pale_march_elite",
+  "encounter_overrides": {
+    "extra_invaders_per_wave": 1
+  }
+}

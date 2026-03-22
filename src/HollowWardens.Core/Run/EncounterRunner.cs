@@ -52,10 +52,13 @@ public class EncounterRunner
             VulnerabilityWiring.WireEvents(state.Presence);
         GameEvents.EncounterStarted?.Invoke(state.Config);
 
+        // ── §0 Apply encounter config levers ────────────────────────────────
+        ApplyEncounterConfigLevers(state);
+
         // ── §1 Initial board setup ──────────────────────────────────────────
-        // Spawn natives per config
-        int nativeHp     = state.Balance.DefaultNativeHp;
-        int nativeDamage = state.Balance.DefaultNativeDamage;
+        // Spawn natives per config (use encounter overrides if set)
+        int nativeHp     = state.Config.NativeHpOverride     ?? state.Balance.DefaultNativeHp;
+        int nativeDamage = state.Config.NativeDamageOverride ?? state.Balance.DefaultNativeDamage;
         foreach (var (territoryId, count) in state.Config.NativeSpawns)
         {
             var territory = state.GetTerritory(territoryId);
@@ -93,6 +96,13 @@ public class EncounterRunner
                     Type              = GameActionType.Rest,
                     TargetTerritoryId = restTarget
                 });
+                // Invader Regen on Rest
+                if (state.Config.InvaderRegenOnRest > 0)
+                {
+                    foreach (var t in state.Territories)
+                        foreach (var inv in t.Invaders.Where(i => i.IsAlive))
+                            inv.Hp = Math.Min(inv.MaxHp, inv.Hp + state.Config.InvaderRegenOnRest);
+                }
                 // No Tide or Dusk on a rest turn
                 continue;
             }
@@ -126,6 +136,61 @@ public class EncounterRunner
 
         GameEvents.EncounterEnded?.Invoke(RewardCalculator.Calculate(state));
         return RewardCalculator.Calculate(state);
+    }
+
+    // ── Encounter config lever application ─────────────────────────────────
+
+    private static void ApplyEncounterConfigLevers(EncounterState state)
+    {
+        var config  = state.Config;
+        var balance = state.Balance;
+
+        // Element decay override
+        if (config.ElementDecayOverride.HasValue)
+            balance.ElementDecayPerTurn = config.ElementDecayOverride.Value;
+
+        // Starting elements
+        if (config.StartingElements != null)
+        {
+            foreach (var (elementName, count) in config.StartingElements)
+            {
+                if (Enum.TryParse<HollowWardens.Core.Models.Element>(elementName, ignoreCase: true, out var element))
+                    state.Elements?.AddElements(new[] { element }, count);
+            }
+        }
+
+        // Threshold damage bonus
+        if (config.ThresholdDamageBonus != 0)
+        {
+            balance.ThresholdT1Damage += config.ThresholdDamageBonus;
+            balance.ThresholdT2Damage += config.ThresholdDamageBonus;
+            balance.ThresholdT3Damage += config.ThresholdDamageBonus;
+        }
+
+        // Play limit overrides
+        if (config.VigilPlayLimitOverride.HasValue)
+            balance.VigilPlayLimit = config.VigilPlayLimitOverride.Value;
+        if (config.DuskPlayLimitOverride.HasValue)
+            balance.DuskPlayLimit = config.DuskPlayLimitOverride.Value;
+
+        // Sacred territories
+        if (config.SacredTerritories != null && state.Corruption is HollowWardens.Core.Systems.CorruptionSystem cs)
+        {
+            foreach (var id in config.SacredTerritories)
+                cs.SacredTerritories.Add(id);
+        }
+
+        // Starting infrastructure
+        if (config.StartingInfrastructure != null)
+        {
+            foreach (var (territoryId, count) in config.StartingInfrastructure)
+            {
+                var territory = state.GetTerritory(territoryId);
+                if (territory != null)
+                    for (int i = 0; i < count; i++)
+                        territory.Tokens.Add(new HollowWardens.Core.Models.Infrastructure { TerritoryId = territoryId });
+            }
+        }
     }
 
     // ── Private helpers ────────────────────────────────────────────────────
@@ -200,6 +265,29 @@ public class EncounterRunner
         }
     }
 
+    /// <summary>
+    /// Applies a BoardCarryover to a freshly built EncounterState before the encounter starts.
+    /// Sets weave, applies corruption, and removes permanently dissolved cards from the deck.
+    /// </summary>
+    public static void ApplyCarryover(EncounterState state, BoardCarryover carryover)
+    {
+        // Replace weave system to start at carryover value
+        state.Weave = new HollowWardens.Core.Systems.WeaveSystem(
+            carryover.FinalWeave, state.Balance.MaxWeave);
+
+        // Apply corruption per territory
+        foreach (var (territoryId, pts) in carryover.CorruptionCarryover)
+        {
+            var territory = state.GetTerritory(territoryId);
+            if (territory != null && pts > 0)
+                state.Corruption?.AddCorruption(territory, pts);
+        }
+
+        // Permanently remove dissolved cards from the deck
+        foreach (var cardId in carryover.PermanentlyRemovedCards)
+            state.Deck?.PermanentlyRemove(cardId);
+    }
+
     private void WireEvents(EncounterState state)
     {
         // FearGenerated → FearActions queue (Dread is called directly by effects/passives)
@@ -210,12 +298,12 @@ public class EncounterRunner
         _onDreadAdvanced = level => state.FearActions?.OnDreadAdvanced(level);
         GameEvents.DreadAdvanced += _onDreadAdvanced;
 
-        // NativeDefeated → generates 1 Fear (Dread called directly; FearGenerated event queues FearActions)
+        // NativeDefeated → generates 1 Fear (with multiplier applied)
         _onNativeDefeated = (native, territory) =>
         {
-            const int fearPerNative = 1;
-            state.Dread?.OnFearGenerated(fearPerNative);
-            GameEvents.FearGenerated?.Invoke(fearPerNative);
+            int fearAmount = state.ApplyFearMultiplier(1);
+            state.Dread?.OnFearGenerated(fearAmount);
+            GameEvents.FearGenerated?.Invoke(fearAmount);
         };
         GameEvents.NativeDefeated += _onNativeDefeated;
 

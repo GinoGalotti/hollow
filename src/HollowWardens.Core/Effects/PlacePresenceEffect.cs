@@ -19,5 +19,8 @@ public class PlacePresenceEffect : IEffect
         if (territory.CorruptionLevel >= blockLevel) return;
 
         state.Presence?.PlacePresence(territory, _data.Value > 0 ? _data.Value : 1);
+
+        if (state.Config.PresencePlacementCorruptionCost > 0)
+            state.Corruption?.AddCorruption(territory, state.Config.PresencePlacementCorruptionCost);
     }
 }

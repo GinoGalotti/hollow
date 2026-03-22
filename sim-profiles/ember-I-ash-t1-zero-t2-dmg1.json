@@ -1,0 +1,10 @@
+{
+  "name": "ember-I-ash-t1-zero-t2-dmg1 — T1=0 + T2=1 (T1+T2 = 1 focused, aggressive nerf)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "balance_overrides": {
+    "element_overrides": {
+      "Ash": { "t1_damage": 0, "t2_damage": 1 }
+    }
+  }
+}

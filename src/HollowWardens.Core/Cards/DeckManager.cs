@@ -52,6 +52,22 @@ public class DeckManager : IDeckManager
     public IReadOnlyList<Card> DissolvedCards => _dissolved;
     public IReadOnlyList<Card> PermanentlyRemovedCards => _permanentlyRemoved;
 
+    /// <summary>Permanently removes the card with the given ID from all piles.</summary>
+    public void PermanentlyRemove(string cardId)
+    {
+        var card = _drawPile.FirstOrDefault(c => c.Id == cardId)
+                ?? _discardPile.FirstOrDefault(c => c.Id == cardId)
+                ?? _dissolved.FirstOrDefault(c => c.Id == cardId)
+                ?? _handManager.Cards.FirstOrDefault(c => c.Id == cardId);
+        if (card == null) return;
+
+        _drawPile.Remove(card);
+        _discardPile.Remove(card);
+        _dissolved.Remove(card);
+        _handManager.Remove(card);
+        _permanentlyRemoved.Add(card);
+    }
+
     /// <summary>True if the card is in hand and not dormant.</summary>
     public bool IsPlayable(Card card) => _handManager.IsPlayable(card);
 

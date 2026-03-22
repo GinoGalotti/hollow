@@ -6,6 +6,7 @@ using HollowWardens.Core.Data;
 using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Events;
 using HollowWardens.Core.Invaders.PaleMarch;
+using HollowWardens.Core.Localization;
 using HollowWardens.Core.Models;
 using HollowWardens.Core.Run;
 using HollowWardens.Core.Systems;
@@ -13,22 +14,24 @@ using HollowWardens.Core.Wardens;
 using HollowWardens.Sim;
 
 // ── Argument parsing ──────────────────────────────────────────────────────────
-string? cliSeeds   = null;
-string? cliWarden  = null;
-string? cliOutput  = null;
-string? cliData    = null;
-string? profilePath = null;
-bool    verbose    = false;
+string? cliSeeds    = null;
+string? cliWarden   = null;
+string? cliOutput   = null;
+string? cliData     = null;
+string? cliEncounter = null;
+string? profilePath  = null;
+bool    verbose      = false;
 
 for (int i = 0; i < args.Length; i++)
 {
-    if      (args[i] == "--seeds"   && i + 1 < args.Length) cliSeeds   = args[++i];
-    else if (args[i] == "--seed"    && i + 1 < args.Length) cliSeeds   = args[++i]; // backward compat: single seed
-    else if (args[i] == "--data"    && i + 1 < args.Length) cliData    = args[++i];
-    else if (args[i] == "--output"  && i + 1 < args.Length) cliOutput  = args[++i];
-    else if (args[i] == "--warden"  && i + 1 < args.Length) cliWarden  = args[++i];
-    else if (args[i] == "--profile" && i + 1 < args.Length) profilePath = args[++i];
-    else if (args[i] == "--verbose")                         verbose    = true;
+    if      (args[i] == "--seeds"     && i + 1 < args.Length) cliSeeds    = args[++i];
+    else if (args[i] == "--seed"      && i + 1 < args.Length) cliSeeds    = args[++i]; // backward compat: single seed
+    else if (args[i] == "--data"      && i + 1 < args.Length) cliData     = args[++i];
+    else if (args[i] == "--output"    && i + 1 < args.Length) cliOutput   = args[++i];
+    else if (args[i] == "--warden"    && i + 1 < args.Length) cliWarden   = args[++i];
+    else if (args[i] == "--encounter" && i + 1 < args.Length) cliEncounter = args[++i];
+    else if (args[i] == "--profile"   && i + 1 < args.Length) profilePath  = args[++i];
+    else if (args[i] == "--verbose")                           verbose      = true;
 }
 
 // ── Load profile (if given) ───────────────────────────────────────────────────
@@ -46,12 +49,13 @@ if (profilePath != null)
 }
 
 // ── Resolve effective seeds (CLI > profile > default 1-500) ──────────────────
-string             seedsStr = cliSeeds ?? profile?.Seeds ?? "1-500";
-IReadOnlyList<int> seeds    = ParseSeeds(seedsStr);
-int    runs      = seeds.Count;
-string wardenArg = cliWarden ?? profile?.Warden ?? "root";
-string outputDir = cliOutput ?? profile?.Output ?? "sim-results";
-string? dataPath = cliData;
+string             seedsStr    = cliSeeds ?? profile?.Seeds ?? "1-500";
+IReadOnlyList<int> seeds       = ParseSeeds(seedsStr);
+int    runs         = seeds.Count;
+string wardenArg    = cliWarden   ?? profile?.Warden    ?? "root";
+string encounterArg = cliEncounter ?? profile?.Encounter ?? "pale_march_standard";
+string outputDir    = cliOutput   ?? profile?.Output    ?? "sim-results";
+string? dataPath    = cliData;
 
 // ── Build BalanceConfig from profile overrides ────────────────────────────────
 var balance = new BalanceConfig();
@@ -69,6 +73,10 @@ if (dataPath == null)
         ? Path.Combine(dir, "data", "wardens")
         : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../data/wardens"));
     dataPath = Path.Combine(dataDir, $"{wardenArg}.json");
+
+    var csvPath = Path.Combine(Path.GetDirectoryName(dataDir) ?? dataDir, "localization", "strings.csv");
+    if (File.Exists(csvPath))
+        Loc.Load(csvPath, "en");
 }
 
 if (!File.Exists(dataPath))
@@ -80,6 +88,7 @@ if (!File.Exists(dataPath))
 
 string seedsDisplay = FormatSeedsDisplay(seeds);
 Console.WriteLine($"=== HOLLOW WARDENS SIMULATION — {runs} encounters (seeds {seedsDisplay}) ===");
+Console.WriteLine($"Warden: {wardenArg} | Encounter: {encounterArg}");
 if (profile != null) Console.WriteLine($"Profile: {profile.Name}");
 Console.WriteLine();
 
@@ -91,7 +100,7 @@ int encounterNum = 0;
 foreach (int seed in seeds)
 {
     encounterNum++;
-    var (state, runner, stats, collector) = BuildEncounter(seed, dataPath, balance.Clone(), wardenArg, profile);
+    var (state, runner, stats, collector) = BuildEncounter(seed, dataPath, balance.Clone(), wardenArg, encounterArg, profile);
 
     collector.WireEvents();
 
@@ -157,6 +166,7 @@ double Avg(Func<SimStats, double> f) => total == 0 ? 0 : Math.Round(allStats.Ave
 var summary   = new StringBuilder();
 var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 summary.AppendLine($"=== HOLLOW WARDENS SIMULATION — {runs} encounters (seeds {seedsDisplay}) ===");
+summary.AppendLine($"Warden: {wardenArg} | Encounter: {encounterArg}");
 if (profile != null) summary.AppendLine($"Profile: {profile.Name}");
 summary.AppendLine($"Timestamp: {timestamp}");
 summary.AppendLine($"Output directory: {Path.GetFullPath(outputDir)}");
@@ -232,17 +242,24 @@ File.WriteAllText(Path.Combine(outputDir, "summary.txt"), summary.ToString(), En
 
 // encounters.csv
 var encountersCsv = new StringBuilder();
-encountersCsv.AppendLine("seed,result,tides_completed,final_weave,max_weave,invaders_killed,natives_killed,heart_damage_events,peak_corruption,total_corruption_at_end,total_presence_at_end,sacrifices,total_fear_generated,export_string");
+encountersCsv.AppendLine("seed,result,tides_completed,final_weave,max_weave,invaders_killed,natives_killed,heart_damage_events,peak_corruption,total_corruption_at_end,total_presence_at_end,sacrifices,total_fear_generated,dread_level,cards_removed,final_corruption_json,export_string");
 foreach (var (stats, export, seed) in allExports)
 {
     var escapedExport = "\"" + export.Replace("\"", "\"\"") + "\"";
     int corrAtEnd = stats.TideSnapshots.LastOrDefault()?.TotalCorruption ?? 0;
     int presAtEnd = stats.TideSnapshots.LastOrDefault()?.TotalPresence ?? 0;
+    // Carryover columns
+    var carryover = stats.FinalCarryover;
+    int dreadLevel   = carryover?.DreadLevel ?? 1;
+    int cardsRemoved = carryover?.PermanentlyRemovedCards.Count ?? 0;
+    string corrJson  = carryover?.CorruptionCarryover.Count > 0
+        ? "\"" + System.Text.Json.JsonSerializer.Serialize(carryover.CorruptionCarryover).Replace("\"", "\"\"") + "\""
+        : "\"{}\"";
     encountersCsv.AppendLine(
         $"{seed},{stats.Result},{stats.TidesCompleted},{stats.FinalWeave},20," +
         $"{stats.InvadersKilled},{stats.NativesKilled},{stats.HeartDamageEvents}," +
         $"{stats.PeakCorruption},{corrAtEnd},{presAtEnd}," +
-        $"{stats.SacrificeCount},{stats.TotalFearGenerated},{escapedExport}");
+        $"{stats.SacrificeCount},{stats.TotalFearGenerated},{dreadLevel},{cardsRemoved},{corrJson},{escapedExport}");
 }
 File.WriteAllText(Path.Combine(outputDir, "encounters.csv"), encountersCsv.ToString(), Encoding.UTF8);
 
@@ -290,7 +307,7 @@ static string FormatSeedsDisplay(IReadOnlyList<int> seeds)
 
 // ── Builder ────────────────────────────────────────────────────────────────
 static (EncounterState state, EncounterRunner runner, SimStats stats, SimStatsCollector collector)
-    BuildEncounter(int seed, string wardenJsonPath, BalanceConfig balance, string wardenId, SimProfile? profile)
+    BuildEncounter(int seed, string wardenJsonPath, BalanceConfig balance, string wardenId, string encounterId, SimProfile? profile)
 {
     var random     = GameRandom.FromSeed(seed);
     var wardenData = WardenLoader.Load(wardenJsonPath);
@@ -299,14 +316,24 @@ static (EncounterState state, EncounterRunner runner, SimStats stats, SimStatsCo
     if (profile?.WardenOverrides != null)
         SimProfileApplier.ApplyWardenOverrides(wardenData, profile.WardenOverrides);
 
-    var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
+    var config      = EncounterLoader.Create(encounterId);
+    var graph       = HollowWardens.Core.Map.TerritoryGraph.Create(config.BoardLayout);
+    var territories = HollowWardens.Core.Map.BoardState.Create(graph).Territories.Values.ToList();
     var presence    = new PresenceSystem(() => territories, balance.MaxPresencePerTerritory);
     var dread       = new DreadSystem(balance);
-    var config      = EncounterLoader.CreatePaleMarchStandard();
 
-    // Apply encounter overrides (tide count, native spawns, escalation)
+    // Apply encounter overrides (tide count, native spawns, escalation, levers)
     if (profile?.EncounterOverrides != null)
         SimProfileApplier.ApplyEncounterOverrides(config, profile.EncounterOverrides);
+
+    // Re-create board if encounter overrides changed the layout
+    if (profile?.EncounterOverrides?.BoardLayout != null)
+    {
+        graph = HollowWardens.Core.Map.TerritoryGraph.Create(config.BoardLayout);
+        var newBoard = HollowWardens.Core.Map.BoardState.Create(graph);
+        territories.Clear();
+        territories.AddRange(newBoard.Territories.Values);
+    }
 
     IWardenAbility warden = wardenData.WardenId switch
     {
@@ -322,9 +349,15 @@ static (EncounterState state, EncounterRunner runner, SimStats stats, SimStatsCo
     var faction = new PaleMarchFaction();
     faction.HpBonus = balance.InvaderHpBonus;
 
+    // Apply hand limit override from encounter config
+    int handLimit = wardenData.HandLimit;
+    if (config.HandLimitOverride.HasValue)
+        handLimit = config.HandLimitOverride.Value;
+
     var state = new EncounterState
     {
         Config        = config,
+        Graph         = graph,
         Territories   = territories,
         Elements      = new ElementSystem(balance),
         Dread         = dread,
@@ -341,6 +374,10 @@ static (EncounterState state, EncounterRunner runner, SimStats stats, SimStatsCo
         Balance       = balance
     };
 
+    // Apply starting corruption from encounter config
+    if (config.StartingCorruption != null)
+        SimProfileApplier.ApplyStartingCorruption(state, config.StartingCorruption);
+
     // Apply post-state profile overrides
     if (profile?.EncounterOverrides?.StartingCorruption != null)
         SimProfileApplier.ApplyStartingCorruption(state, profile.EncounterOverrides.StartingCorruption);
@@ -350,7 +387,12 @@ static (EncounterState state, EncounterRunner runner, SimStats stats, SimStatsCo
         SimProfileApplier.ApplyPassiveOverrides(gating, profile.WardenOverrides);
 
     var startingCards = wardenData.Cards.Where(c => c.IsStarting).ToList();
-    state.Deck = new DeckManager(warden, startingCards, random, shuffle: true);
+    state.Deck = new DeckManager(warden, startingCards, random, handLimit, shuffle: true);
+
+    // Apply board carryover overrides (starting weave, corruption, removed cards)
+    // Must come after Deck is built so PermanentlyRemove works
+    if (profile?.BoardCarryover != null)
+        SimProfileApplier.ApplyBoardCarryoverOverride(state, profile.BoardCarryover);
 
     var actionDeck = new ActionDeck(faction.BuildPainfulPool(), faction.BuildEasyPool(), random, shuffle: true);
     var cadence    = new CadenceManager(config.Cadence);

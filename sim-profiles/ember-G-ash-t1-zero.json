@@ -1,0 +1,10 @@
+{
+  "name": "ember-G-ash-t1-zero — Ash T1 deals 0 damage (presence/utility only)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "balance_overrides": {
+    "element_overrides": {
+      "Ash": { "t1_damage": 0 }
+    }
+  }
+}

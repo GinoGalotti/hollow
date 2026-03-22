@@ -9,6 +9,7 @@ using HollowWardens.Core.Models;
 public class PassiveGating
 {
     private readonly HashSet<string> _activePassives = new();
+    private readonly HashSet<string> _lockedPassives = new();
     private readonly Dictionary<(Element element, int tier), string> _unlockConditions = new();
     private readonly string _wardenId;
 
@@ -59,6 +60,7 @@ public class PassiveGating
         var key = (element, tier);
         if (!_unlockConditions.TryGetValue(key, out var passiveId)) return null;
         if (_activePassives.Contains(passiveId)) return null; // already unlocked
+        if (_lockedPassives.Contains(passiveId)) return null;  // force-locked by sim profile
 
         _activePassives.Add(passiveId);
         _unlockConditions.Remove(key); // one-time unlock
@@ -71,8 +73,12 @@ public class PassiveGating
     /// <summary>Force a passive to be active (for sim profiles / testing).</summary>
     public void ForceUnlock(string passiveId) => _activePassives.Add(passiveId);
 
-    /// <summary>Force a passive to be inactive (for sim profiles / testing).</summary>
-    public void ForceLock(string passiveId) => _activePassives.Remove(passiveId);
+    /// <summary>Force a passive to be permanently inactive (survives threshold re-unlocks).</summary>
+    public void ForceLock(string passiveId)
+    {
+        _activePassives.Remove(passiveId);
+        _lockedPassives.Add(passiveId);
+    }
 
     /// <summary>Reset for new encounter (back to base passives only).</summary>
     public void Reset()

@@ -1,0 +1,10 @@
+{
+  "name": "ember-C-ash-t3-dmg2 — Ash T3 deals 2 instead of 3 (outlying invaders survive)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "balance_overrides": {
+    "element_overrides": {
+      "Ash": { "t3_damage": 2 }
+    }
+  }
+}

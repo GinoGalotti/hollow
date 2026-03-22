@@ -18,31 +18,54 @@ public static class TargetValidator
         EffectType.AwakeDormant,
     };
 
-    /// <summary>
-    /// Returns true when this effect requires the player to select a territory
-    /// before resolution: Range > 0 AND the type is not self-resolving globally.
-    /// </summary>
-    public static bool NeedsTarget(EffectData effect)
-        => effect.Range > 0 && !NoTargetTypes.Contains(effect.Type);
+    // These types always require a territory target, even at Range 0 (global reach = any territory).
+    private static readonly HashSet<EffectType> TerritoryAtAnyRangeTypes = new()
+    {
+        EffectType.DamageInvaders,
+        EffectType.ReduceCorruption,
+        EffectType.ShieldNatives,
+        EffectType.BoostNatives,
+        EffectType.SlowInvaders,
+    };
 
     /// <summary>
-    /// Returns the IDs of all territories reachable within <paramref name="range"/>
-    /// steps from any territory that currently has at least one Presence token.
-    /// Returns an empty list when no presence exists on the board.
-    /// When <paramref name="effectType"/> is <see cref="EffectType.ReduceCorruption"/>,
-    /// only territories with CorruptionPoints &gt; 0 are returned.
+    /// Returns true when this effect requires the player to select a territory
+    /// before resolution. True for Range > 0 (non-global types) and for
+    /// territory-targeting types that work at any range (including Range 0 = global).
+    /// </summary>
+    public static bool NeedsTarget(EffectData effect)
+        => !NoTargetTypes.Contains(effect.Type) &&
+           (effect.Range > 0 || TerritoryAtAnyRangeTypes.Contains(effect.Type));
+
+    /// <summary>
+    /// Returns the IDs of all territories valid for the given effect.
+    /// For territory-targeting types at Range 0: returns all relevant territories on the board
+    /// (global reach — e.g. "any territory" for DamageInvaders, ReduceCorruption).
+    /// For Range > 0: territories reachable within range steps from any presence token.
+    /// Returns an empty list when no presence exists and range > 0.
     /// </summary>
     public static List<string> GetValidTargets(EncounterState state, int range, EffectType? effectType = null)
     {
         var result = new HashSet<string>();
-        foreach (var territory in state.Territories.Where(t => t.HasPresence))
+
+        // Range 0 for territory-targeting types = global reach (any territory on the board)
+        bool isGlobal = range == 0 && effectType.HasValue && TerritoryAtAnyRangeTypes.Contains(effectType.Value);
+        if (isGlobal)
         {
-            foreach (var id in TerritoryGraph.AllTerritoryIds)
+            result.UnionWith(state.Graph.AllTerritoryIds);
+        }
+        else
+        {
+            foreach (var territory in state.Territories.Where(t => t.HasPresence))
             {
-                if (TerritoryGraph.Distance(territory.Id, id) <= range)
-                    result.Add(id);
+                foreach (var id in state.Graph.AllTerritoryIds)
+                {
+                    if (state.Graph.Distance(territory.Id, id) <= range)
+                        result.Add(id);
+                }
             }
         }
+
         var list = result.ToList();
         if (effectType == EffectType.ReduceCorruption)
             list = list.Where(id =>
@@ -50,6 +73,10 @@ public static class TargetValidator
                 var t = state.GetTerritory(id);
                 return t != null && t.CorruptionPoints > 0;
             }).ToList();
+        else if (effectType == EffectType.DamageInvaders || effectType == EffectType.SlowInvaders)
+            list = list.Where(id => state.GetTerritory(id)?.Invaders.Any(i => i.IsAlive) == true).ToList();
+        else if (effectType == EffectType.ShieldNatives || effectType == EffectType.BoostNatives)
+            list = list.Where(id => state.GetTerritory(id)?.Natives.Any(n => n.IsAlive) == true).ToList();
         return list;
     }
 }

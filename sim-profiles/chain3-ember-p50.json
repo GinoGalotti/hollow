@@ -1,0 +1,12 @@
+{
+  "name": "chain3-ember-p50 — Ember E3 elite-B2, p50 arc (weave=20, dread=2, fear=27)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "encounter": "pale_march_elite",
+  "encounter_overrides": { "extra_invaders_per_wave": 1 },
+  "board_carryover": {
+    "starting_weave": 20,
+    "dread_level": 2,
+    "total_fear": 27
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "enc-root-standard — Root on pale_march_standard (reference baseline)",
+  "seeds": "1-500",
+  "warden": "root",
+  "encounter": "pale_march_standard"
+}

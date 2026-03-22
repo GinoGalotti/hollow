@@ -1,0 +1,9 @@
+{
+  "name": "enc-root-elite-b2 — Root on elite +1 invader/wave",
+  "seeds": "1-500",
+  "warden": "root",
+  "encounter": "pale_march_elite",
+  "encounter_overrides": {
+    "extra_invaders_per_wave": 1
+  }
+}

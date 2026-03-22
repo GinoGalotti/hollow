@@ -20,7 +20,7 @@ public static class InvaderPathfinding
         if (invader.UnitType == UnitType.Ironclad && !invader.AlternateMoveTurn)
             return null;
 
-        var candidates = TerritoryGraph.GetNeighbors(invader.TerritoryId)
+        var candidates = TerritoryGraph.Standard.GetNeighbors(invader.TerritoryId)
             .Where(id => IsCloserToHeart(invader.TerritoryId, id))
             .Select(id => board.Get(id))
             .ToList();
@@ -48,8 +48,8 @@ public static class InvaderPathfinding
 
     private static bool IsCloserToHeart(string fromId, string toId)
     {
-        int distFrom = TerritoryGraph.Distance(fromId, SacredHeart);
-        int distTo   = TerritoryGraph.Distance(toId,   SacredHeart);
+        int distFrom = TerritoryGraph.Standard.Distance(fromId, SacredHeart);
+        int distTo   = TerritoryGraph.Standard.Distance(toId,   SacredHeart);
         return distTo < distFrom;
     }
 

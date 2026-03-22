@@ -1,0 +1,8 @@
+{
+  "name": "ember-B-decay2 — element decay 2/turn (engine falls off on rest turns)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "balance_overrides": {
+    "element_decay_per_turn": 2
+  }
+}

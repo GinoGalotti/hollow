@@ -177,7 +177,7 @@ public class ThresholdResolver
         var presenceTerritories = state.Territories.Where(t => t.HasPresence).ToList();
         foreach (var source in presenceTerritories)
         {
-            var neighbor = TerritoryGraph.GetNeighbors(source.Id)
+            var neighbor = state.Graph.GetNeighbors(source.Id)
                 .Select(id => state.GetTerritory(id))
                 .FirstOrDefault(t => t != null && !t.HasPresence);
             if (neighbor != null)
@@ -299,7 +299,7 @@ public class ThresholdResolver
             case 1:
             {
                 var territory = state.TerritoriesWithInvaders()
-                    .OrderBy(t => TerritoryGraph.Distance(t.Id, "I1"))
+                    .OrderBy(t => state.Graph.Distance(t.Id, state.Graph.HeartId))
                     .FirstOrDefault();
                 if (territory == null) return;
                 var invader = territory.Invaders.FirstOrDefault(i => i.IsAlive);
@@ -311,7 +311,7 @@ public class ThresholdResolver
             case 2:
             {
                 var territory = state.TerritoriesWithInvaders()
-                    .OrderBy(t => TerritoryGraph.Distance(t.Id, "I1"))
+                    .OrderBy(t => state.Graph.Distance(t.Id, state.Graph.HeartId))
                     .FirstOrDefault();
                 if (territory == null) return;
                 PushAllInTerritory(territory, state);
@@ -320,9 +320,9 @@ public class ThresholdResolver
 
             case 3:
             {
-                // Process farthest-from-I1 first so moved invaders aren't pushed twice
+                // Process farthest-from-heart first so moved invaders aren't pushed twice
                 var territories = state.TerritoriesWithInvaders()
-                    .OrderByDescending(t => TerritoryGraph.Distance(t.Id, "I1"))
+                    .OrderByDescending(t => state.Graph.Distance(t.Id, state.Graph.HeartId))
                     .ToList();
                 foreach (var territory in territories)
                     PushAllInTerritory(territory, state);
@@ -339,10 +339,10 @@ public class ThresholdResolver
 
     private static void PushInvader(Invader invader, Territory from, EncounterState state)
     {
-        int currentDist = TerritoryGraph.Distance(from.Id, "I1");
-        var pushTargetId = TerritoryGraph.GetNeighbors(from.Id)
-            .Where(n => TerritoryGraph.Distance(n, "I1") >= currentDist)
-            .OrderByDescending(n => TerritoryGraph.Distance(n, "I1"))
+        int currentDist = state.Graph.Distance(from.Id, state.Graph.HeartId);
+        var pushTargetId = state.Graph.GetNeighbors(from.Id)
+            .Where(n => state.Graph.Distance(n, state.Graph.HeartId) >= currentDist)
+            .OrderByDescending(n => state.Graph.Distance(n, state.Graph.HeartId))
             .FirstOrDefault();
 
         if (pushTargetId == null) return;

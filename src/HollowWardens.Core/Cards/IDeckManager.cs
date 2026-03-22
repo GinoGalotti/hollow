@@ -9,6 +9,10 @@ public interface IDeckManager
     int DissolvedCount { get; }
     int DormantCount { get; }
     IReadOnlyList<Card> Hand { get; }
+    IReadOnlyList<Card> DissolvedCards { get; }
+
+    /// <summary>Permanently removes the card with the given ID from all piles.</summary>
+    void PermanentlyRemove(string cardId);
     void RefillHand();
     void PlayTop(Card card);
     void PlayBottom(Card card, EncounterTier tier);

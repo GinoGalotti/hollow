@@ -146,7 +146,7 @@ public class BotStrategy : IPlayerStrategy
         var presenceIds = state.Territories.Where(t => t.HasPresence).Select(t => t.Id).ToHashSet();
         var candidate = state.Territories
             .Where(t => !t.HasPresence && t.CorruptionLevel < 2
-                && TerritoryGraph.GetNeighbors(t.Id).Any(n => presenceIds.Contains(n)))
+                && state.Graph.GetNeighbors(t.Id).Any(n => presenceIds.Contains(n)))
             .OrderBy(t => t.CorruptionPoints)
             .FirstOrDefault();
         if (candidate != null) return candidate.Id;

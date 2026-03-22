@@ -24,21 +24,21 @@ public class PresenceSystem : IPresenceSystem
         => territory.PresenceCount = Math.Max(0, territory.PresenceCount - count);
 
     public bool IsInRange(string fromTerritoryId, string toTerritoryId, int range)
-        => TerritoryGraph.Distance(fromTerritoryId, toTerritoryId) <= range;
+        => TerritoryGraph.Standard.Distance(fromTerritoryId, toTerritoryId) <= range;
 
     public List<string> GetTerritoriesInRange(string fromTerritoryId, int range)
-        => TerritoryGraph.AllTerritoryIds
-            .Where(id => TerritoryGraph.Distance(fromTerritoryId, id) <= range)
+        => TerritoryGraph.Standard.AllTerritoryIds
+            .Where(id => TerritoryGraph.Standard.Distance(fromTerritoryId, id) <= range)
             .ToList();
 
     public int CalculateNetworkFear()
     {
         var territories = _territoriesProvider().ToDictionary(t => t.Id);
         int fear = 0;
-        foreach (var id in TerritoryGraph.AllTerritoryIds)
+        foreach (var id in TerritoryGraph.Standard.AllTerritoryIds)
         {
             if (!territories.TryGetValue(id, out var t) || !t.HasPresence) continue;
-            foreach (var neighborId in TerritoryGraph.GetNeighbors(id))
+            foreach (var neighborId in TerritoryGraph.Standard.GetNeighbors(id))
             {
                 // Bugfix: count undirected edges only (each pair once, not twice)
                 if (string.Compare(id, neighborId, StringComparison.Ordinal) >= 0) continue;

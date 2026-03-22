@@ -1,0 +1,11 @@
+{
+  "name": "ember-M-tops-nerfed — Flame Burst + Conflagration top DI×3 → DI×2",
+  "seeds": "1-500",
+  "warden": "ember",
+  "warden_overrides": {
+    "upgrade_cards": {
+      "ember_001": { "top": { "value": 2 } },
+      "ember_008": { "top": { "value": 2 } }
+    }
+  }
+}

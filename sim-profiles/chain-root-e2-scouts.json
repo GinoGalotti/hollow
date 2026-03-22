@@ -1,0 +1,11 @@
+{
+  "name": "chain-root-e2-scouts — Root E2 scouts with median E1 carryover (weave=20, dread=3, fear=38)",
+  "seeds": "1-500",
+  "warden": "root",
+  "encounter": "pale_march_scouts",
+  "board_carryover": {
+    "starting_weave": 20,
+    "dread_level": 3,
+    "total_fear": 38
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "ember-K-ash-full-nerf — T1=0 T2=1 T3=2 (cascade 0+1+2=3 focused, 2 board-wide)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "balance_overrides": {
+    "element_overrides": {
+      "Ash": { "t1_damage": 0, "t2_damage": 1, "t3_damage": 2 }
+    }
+  }
+}

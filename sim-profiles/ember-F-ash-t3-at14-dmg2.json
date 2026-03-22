@@ -1,0 +1,10 @@
+{
+  "name": "ember-F-ash-t3-at14-dmg2 — Ash T3 threshold 14 + damage 2 (delayed AND weaker)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "balance_overrides": {
+    "element_overrides": {
+      "Ash": { "tier3_threshold": 14, "t3_damage": 2 }
+    }
+  }
+}

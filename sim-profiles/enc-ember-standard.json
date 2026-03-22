@@ -1,0 +1,6 @@
+{
+  "name": "enc-ember-standard — Ember on pale_march_standard (B1 shipped baseline)",
+  "seeds": "1-500",
+  "warden": "ember",
+  "encounter": "pale_march_standard"
+}

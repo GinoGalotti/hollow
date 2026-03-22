@@ -6,6 +6,7 @@ using HollowWardens.Core.Effects;
 using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Events;
 using HollowWardens.Core.Invaders.PaleMarch;
+using HollowWardens.Core.Localization;
 using HollowWardens.Core.Map;
 using HollowWardens.Core.Models;
 using HollowWardens.Core.Run;
@@ -76,6 +77,9 @@ public partial class GameBridge : Node
 
     /// <summary>Set before the encounter starts to select which warden to play.</summary>
     public static string SelectedWardenId { get; set; } = "root";
+
+    /// <summary>Set before the encounter starts to select which encounter to run.</summary>
+    public static string SelectedEncounterId { get; set; } = "pale_march_standard";
 
     public EncounterState State { get; private set; } = null!;
 
@@ -183,6 +187,11 @@ public partial class GameBridge : Node
     public override void _Ready()
     {
         Instance = this;
+        var resDir  = ProjectSettings.GlobalizePath("res://");
+        var csvPath = System.IO.Path.GetFullPath(
+            System.IO.Path.Combine(resDir, "..", "data", "localization", "strings.csv"));
+        Loc.Load(csvPath, "en");
+        GD.Print($"[Loc] Loaded {Loc.Count} strings");
         // BuildEncounter is deferred — WardenSelectController calls StartWithWarden() after selection.
         // If no WardenSelectController is present (e.g. in tests), call StartWithWarden("root") directly.
     }
@@ -290,8 +299,19 @@ public partial class GameBridge : Node
 
         if (TargetValidator.NeedsTarget(card.TopEffect))
         {
-            EnterTargetingMode(card, card.TopEffect, isPendingBottom: false);
-            return;
+            var validTargets = TargetValidator.GetValidTargets(State, card.TopEffect.Range, card.TopEffect.Type);
+            switch (validTargets.Count)
+            {
+                case 0:
+                    break; // no valid targets — fall through and play for elements only
+                case 1:
+                    if (!_inResolution && !_turnManager.CanPlayTop()) return;
+                    AutoPlayTop(card, validTargets[0]);
+                    return;
+                default:
+                    EnterTargetingMode(card, card.TopEffect, isPendingBottom: false);
+                    return;
+            }
         }
 
         if (!_inResolution && !_turnManager.CanPlayTop()) return; // play limit reached (2 tops per Vigil)
@@ -316,8 +336,19 @@ public partial class GameBridge : Node
 
         if (TargetValidator.NeedsTarget(card.BottomEffect))
         {
-            EnterTargetingMode(card, card.BottomEffect, isPendingBottom: true);
-            return;
+            var validTargets = TargetValidator.GetValidTargets(State, card.BottomEffect.Range, card.BottomEffect.Type);
+            switch (validTargets.Count)
+            {
+                case 0:
+                    break; // no valid targets — fall through and play for elements only
+                case 1:
+                    if (!_turnManager.CanPlayBottom()) return;
+                    AutoPlayBottom(card, validTargets[0]);
+                    return;
+                default:
+                    EnterTargetingMode(card, card.BottomEffect, isPendingBottom: true);
+                    return;
+            }
         }
 
         if (!_turnManager.CanPlayBottom()) return; // play limit reached (1 bottom per Dusk)
@@ -331,6 +362,50 @@ public partial class GameBridge : Node
             CardId     = card.Id
         });
         _turnManager.PlayBottom(card); // effects fire here
+        EmitSignal(SignalName.HandChanged);
+        EmitDeckCounts();
+    }
+
+    private void AutoPlayTop(Card card, string targetId)
+    {
+        EmitCardPlayFeedback(card.TopEffect, card.Name, targetId, _inResolution ? 2 : 0);
+        State.ActionLog.Record(new GameAction
+        {
+            TurnNumber = State.CurrentTide,
+            Phase      = _turnManager.CurrentPhase,
+            Type       = GameActionType.PlayTop,
+            CardId     = card.Id
+        });
+        State.ActionLog.Record(new GameAction
+        {
+            TurnNumber        = State.CurrentTide,
+            Phase             = _turnManager.CurrentPhase,
+            Type              = GameActionType.SelectTarget,
+            TargetTerritoryId = targetId
+        });
+        _turnManager.PlayTop(card, new TargetInfo { TerritoryId = targetId, SourceCard = card });
+        EmitSignal(SignalName.HandChanged);
+        EmitDeckCounts();
+    }
+
+    private void AutoPlayBottom(Card card, string targetId)
+    {
+        EmitCardPlayFeedback(card.BottomEffect, card.Name, targetId, 1);
+        State.ActionLog.Record(new GameAction
+        {
+            TurnNumber = State.CurrentTide,
+            Phase      = _turnManager.CurrentPhase,
+            Type       = GameActionType.PlayBottom,
+            CardId     = card.Id
+        });
+        State.ActionLog.Record(new GameAction
+        {
+            TurnNumber        = State.CurrentTide,
+            Phase             = _turnManager.CurrentPhase,
+            Type              = GameActionType.SelectTarget,
+            TargetTerritoryId = targetId
+        });
+        _turnManager.PlayBottom(card, new TargetInfo { TerritoryId = targetId, SourceCard = card });
         EmitSignal(SignalName.HandChanged);
         EmitDeckCounts();
     }
@@ -453,7 +528,9 @@ public partial class GameBridge : Node
         var balance = new HollowWardens.Core.Encounter.BalanceConfig();
         GD.Print($"Encounter seed: {random.Seed}");
 
-        var territories = BoardState.CreatePyramid().Territories.Values.ToList();
+        var config      = EncounterLoader.Create(SelectedEncounterId);
+        var graph       = HollowWardens.Core.Map.TerritoryGraph.Create(config.BoardLayout);
+        var territories = BoardState.Create(graph).Territories.Values.ToList();
         var dread       = new DreadSystem(balance);
         var presence    = new PresenceSystem(() => territories, balance.MaxPresencePerTerritory);
 
@@ -474,12 +551,12 @@ public partial class GameBridge : Node
             rootAbility.Gating = gating;
         gating.PassiveUnlocked += (id, _) => EmitSignal(SignalName.PassiveUnlocked, id);
 
-        var config  = EncounterLoader.CreatePaleMarchStandard();
         var faction = new PaleMarchFaction();
         faction.HpBonus = balance.InvaderHpBonus;
         State = new EncounterState
         {
             Config        = config,
+            Graph         = graph,
             Territories   = territories,
             Elements      = new ElementSystem(balance),
             Dread         = dread,
@@ -512,11 +589,73 @@ public partial class GameBridge : Node
         InitialEncounterSetup();
     }
 
+    private void ApplyEncounterConfigLevers()
+    {
+        var config  = State.Config;
+        var balance = State.Balance;
+
+        if (config.ElementDecayOverride.HasValue)
+            balance.ElementDecayPerTurn = config.ElementDecayOverride.Value;
+
+        if (config.StartingElements != null)
+        {
+            foreach (var (elementName, count) in config.StartingElements)
+            {
+                if (Enum.TryParse<HollowWardens.Core.Models.Element>(elementName, ignoreCase: true, out var element))
+                    State.Elements?.AddElements(new[] { element }, count);
+            }
+        }
+
+        if (config.ThresholdDamageBonus != 0)
+        {
+            balance.ThresholdT1Damage += config.ThresholdDamageBonus;
+            balance.ThresholdT2Damage += config.ThresholdDamageBonus;
+            balance.ThresholdT3Damage += config.ThresholdDamageBonus;
+        }
+
+        if (config.VigilPlayLimitOverride.HasValue)
+            balance.VigilPlayLimit = config.VigilPlayLimitOverride.Value;
+        if (config.DuskPlayLimitOverride.HasValue)
+            balance.DuskPlayLimit = config.DuskPlayLimitOverride.Value;
+
+        if (config.SacredTerritories != null
+            && State.Corruption is HollowWardens.Core.Systems.CorruptionSystem cs)
+        {
+            foreach (var id in config.SacredTerritories)
+                cs.SacredTerritories.Add(id);
+        }
+
+        if (config.StartingInfrastructure != null)
+        {
+            foreach (var (territoryId, count) in config.StartingInfrastructure)
+            {
+                var territory = State.GetTerritory(territoryId);
+                if (territory != null)
+                    for (int i = 0; i < count; i++)
+                        territory.Tokens.Add(new HollowWardens.Core.Models.Infrastructure { TerritoryId = territoryId });
+            }
+        }
+    }
+
     private void InitialEncounterSetup()
     {
-        // Spawn natives per config
-        int nativeHp     = State.Balance.DefaultNativeHp;
-        int nativeDamage = State.Balance.DefaultNativeDamage;
+        // Apply starting corruption from encounter config
+        if (State.Config.StartingCorruption != null)
+        {
+            foreach (var (tid, pts) in State.Config.StartingCorruption)
+            {
+                var corruptTerritory = State.GetTerritory(tid);
+                if (corruptTerritory != null)
+                    State.Corruption?.AddCorruption(corruptTerritory, pts);
+            }
+        }
+
+        // Apply encounter config levers (element decay, threshold bonus, play limits, sacred territories, etc.)
+        ApplyEncounterConfigLevers();
+
+        // Spawn natives per config (use encounter overrides if set)
+        int nativeHp     = State.Config.NativeHpOverride     ?? State.Balance.DefaultNativeHp;
+        int nativeDamage = State.Config.NativeDamageOverride ?? State.Balance.DefaultNativeDamage;
         foreach (var (territoryId, count) in State.Config.NativeSpawns)
         {
             var territory = State.GetTerritory(territoryId);
