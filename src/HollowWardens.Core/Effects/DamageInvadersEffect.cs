@@ -16,6 +16,9 @@ public class DamageInvadersEffect : IEffect
 
         // D28: Presence amplification — +1 damage per Presence in target territory
         var damage = AmplificationHelper.GetAmplifiedValue(_data.Value, state, target.TerritoryId);
+        // Ember Fury: +1 per corrupted territory when warden is Ember and fury is active
+        if (state.Warden?.WardenId == "ember")
+            damage += EmberFuryHelper.GetFuryBonus(state);
 
         foreach (var invader in territory.Invaders.Where(i => i.IsAlive).ToList())
         {

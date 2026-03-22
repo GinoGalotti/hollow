@@ -1,0 +1,42 @@
+﻿=== HOLLOW WARDENS SIMULATION — 50 encounters (seeds 42–91) ===
+Profile: combo-root_019+root_020
+Timestamp: 2026-03-21 21:24:34
+Output directory: D:\Workspace\hollow\sim-results\combo-cards-root\root_019__root_020
+
+OUTCOMES:
+  Clean:     49 (98%)
+  Weathered: 1 (2%)
+  Breach:    0 (0%)
+
+SURVIVAL:
+  Avg tides completed:  6
+  Avg final weave:      17.64 / 20
+  Game overs (weave 0): 0
+
+COMBAT:
+  Avg invaders killed:     22.98
+  Avg natives killed:      0.72
+  Avg heart damage events: 0.98
+
+CORRUPTION:
+  Avg peak corruption (single territory): 3.28
+  Desecration events (L3 reached):        0 total across all encounters
+  Avg total corruption at final tide:     0
+
+PRESENCE & SACRIFICE:
+  Avg total presence at final tide: 11.4
+  Avg sacrifices per encounter:     0
+
+FEAR:
+  Avg fear generated per encounter: 42.66
+
+PER-TIDE AVERAGES (across all encounters):
+  Tide 1: weave=20 invaders=3 presence=3 corruption=0
+  Tide 2: weave=20 invaders=6 presence=4.7 corruption=0
+  Tide 3: weave=20 invaders=8.6 presence=7.7 corruption=7.5
+  Tide 4: weave=18.9 invaders=9 presence=9.2 corruption=0
+  Tide 5: weave=18.3 invaders=10.3 presence=10.3 corruption=0
+  Tide 6: weave=17.6 invaders=9.8 presence=11.4 corruption=0
+
+[CLOSEST CALL] Encounter with lowest weave (8) — seed 43:
+SEED:43|0:PlayTop:root_009:-|1:SelectTarget:-:M1|2:PlayTop:root_005:-|3:PlayBottom:root_003:-|4:PlayTop:root_019:-|5:PlayTop:root_025:-|6:SelectTarget:-:A1|7:PlayBottom:root_002:-|8:SelectTarget:-:A3|9:PlayTop:root_008:-|10:PlayTop:root_004:-|11:PlayBottom:root_006:-|12:SelectTarget:-:A1|13:Rest:-:A1|14:PlayTop:root_019:-|15:PlayTop:root_007:-|16:PlayBottom:root_020:-|17:SelectTarget:-:A2|18:PlayTop:root_008:-|19:PlayTop:root_001:-|20:SelectTarget:-:A1|21:PlayBottom:root_002:-|22:SelectTarget:-:A3|23:PlayTop:root_004:-|24:PlayTop:root_005:-|25:PlayBottom:root_025:-|26:SelectTarget:-:A1|27:PlayTop:root_003:-|28:PlayTop:root_006:-|29:SkipPhase:-:-|30:PlayTop:root_009:-|31:SkipPhase:-:-

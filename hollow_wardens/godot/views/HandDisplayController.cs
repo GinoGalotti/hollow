@@ -13,6 +13,7 @@ public partial class HandDisplayController : HBoxContainer
         var bridge = GameBridge.Instance;
         if (bridge == null) return;
 
+        bridge.EncounterReady         += Rebuild;
         bridge.HandChanged            += Rebuild;
         bridge.PhaseChanged           += _ => RefreshButtons();
         bridge.ResolutionTurnStarted  += _ => RefreshButtons();

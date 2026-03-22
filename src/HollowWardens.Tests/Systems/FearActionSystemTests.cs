@@ -102,4 +102,45 @@ public class FearActionSystemTests : IDisposable
 
         Assert.Equal(2, sut.QueuedCount);
     }
+
+    [Fact]
+    public void FearGenerated_DuringResolution_DoesNotQueue()
+    {
+        var dread = new DreadSystem();
+        var sut = new FearActionSystem(dread, MakePools());
+
+        sut.BeginResolution();
+        sut.OnFearSpent(5);
+        sut.EndResolution();
+
+        Assert.Equal(0, sut.QueuedCount);
+    }
+
+    [Fact]
+    public void FearGenerated_AfterResolutionEnds_QueuesNormally()
+    {
+        var dread = new DreadSystem();
+        var sut = new FearActionSystem(dread, MakePools());
+
+        sut.BeginResolution();
+        sut.EndResolution();
+        sut.OnFearSpent(5);
+
+        Assert.Equal(1, sut.QueuedCount);
+    }
+
+    [Fact]
+    public void BeginResolution_EndResolution_CanBeCalledMultipleTimes()
+    {
+        var dread = new DreadSystem();
+        var sut = new FearActionSystem(dread, MakePools());
+
+        sut.BeginResolution();
+        sut.EndResolution();
+        sut.BeginResolution();
+        sut.EndResolution();
+        sut.OnFearSpent(5);
+
+        Assert.Equal(1, sut.QueuedCount);
+    }
 }

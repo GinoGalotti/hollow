@@ -1,0 +1,3 @@
+﻿=== BREACH ENCOUNTER — seed 410 ===
+(Full verbose log not available — encounter ran before verbose was triggered)
+Export: SEED:410|0:PlayTop:root_002:-|1:SelectTarget:-:M1|2:PlayTop:root_009:-|3:SelectTarget:-:A1|4:PlayBottom:root_025:-|5:SelectTarget:-:A1|6:PlayTop:root_005:-|7:PlayTop:root_008:-|8:PlayBottom:root_003:-|9:Rest:-:A1|10:PlayTop:root_004:-|11:PlayTop:root_001:-|12:SelectTarget:-:A1|13:PlayBottom:root_006:-|14:SelectTarget:-:A2|15:PlayTop:root_007:-|16:PlayTop:root_002:-|17:SelectTarget:-:A3|18:PlayBottom:root_009:-|19:SelectTarget:-:A1|20:Rest:-:A1|21:PlayTop:root_008:-|22:PlayTop:root_005:-|23:PlayTop:root_025:-

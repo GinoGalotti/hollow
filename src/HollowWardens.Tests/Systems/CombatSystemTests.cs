@@ -51,7 +51,48 @@ public class CombatSystemTests : IDisposable
 
         _sut.ExecuteActivate(RavageCard(), territory, state);
 
-        Assert.Equal(4, territory.CorruptionPoints); // 2 per Marcher
+        Assert.Equal(6, territory.CorruptionPoints); // D30: 2 base + 2+2 per Marcher
+    }
+
+    [Fact]
+    public void Ravage_BasePlusPerInvader_CorrectTotal()
+    {
+        // 2 Marchers → 2 (base) + 2 + 2 = 6
+        var state = CreateState();
+        var territory = state.GetTerritory("A1")!;
+        territory.Invaders.Add(MakeInvader("i1", UnitType.Marcher, 2, "A1"));
+        territory.Invaders.Add(MakeInvader("i2", UnitType.Marcher, 2, "A1"));
+
+        _sut.ExecuteActivate(RavageCard(), territory, state);
+
+        Assert.Equal(6, territory.CorruptionPoints);
+    }
+
+    [Fact]
+    public void Ravage_SingleMarcher_IncludesBase()
+    {
+        // 1 Marcher → 2 (base) + 2 = 4
+        var state = CreateState();
+        var territory = state.GetTerritory("A1")!;
+        territory.Invaders.Add(MakeInvader("i1", UnitType.Marcher, 2, "A1"));
+
+        _sut.ExecuteActivate(RavageCard(), territory, state);
+
+        Assert.Equal(4, territory.CorruptionPoints);
+    }
+
+    [Fact]
+    public void Ravage_MixedUnits_CorrectTotal()
+    {
+        // 1 Ironclad (3) + 1 Outrider (1) → 2 (base) + 3 + 1 = 6
+        var state = CreateState();
+        var territory = state.GetTerritory("A1")!;
+        territory.Invaders.Add(MakeInvader("i1", UnitType.Ironclad, 3, "A1"));
+        territory.Invaders.Add(MakeInvader("i2", UnitType.Outrider, 2, "A1"));
+
+        _sut.ExecuteActivate(RavageCard(), territory, state);
+
+        Assert.Equal(6, territory.CorruptionPoints);
     }
 
     [Fact]
@@ -79,7 +120,7 @@ public class CombatSystemTests : IDisposable
 
         _sut.ExecuteActivate(RavageCard(), territory, state);
 
-        Assert.Equal(3, territory.CorruptionPoints); // Ironclad = 3 corruption
+        Assert.Equal(5, territory.CorruptionPoints); // D30: 2 base + 3 Ironclad
     }
 
     [Fact]
@@ -90,14 +131,14 @@ public class CombatSystemTests : IDisposable
         territory.Invaders.Add(MakeInvader("i1", UnitType.Outrider, 2, "A1"));
 
         var nativeLow  = new Native { Hp = 1, MaxHp = 2, Damage = 3, TerritoryId = "A1" };
-        var nativeHigh = MakeNative(2, "A1");
+        var nativeHigh = MakeNative(4, "A1"); // HP 4 to survive D30 base+outrider = 3 damage
         territory.Natives.Add(nativeLow);
         territory.Natives.Add(nativeHigh);
 
         _sut.ExecuteActivate(RavageCard(), territory, state);
 
         // Outrider pre-hit (2 dmg) kills nativeLow (HP 1).
-        // Main ravage: Outrider = 1 corruption/damage → nativeHigh (HP 2 → 1).
+        // Main ravage: D30 = 2 base + 1 Outrider = 3 total → nativeHigh (HP 4 → 1).
         Assert.False(nativeLow.IsAlive);
         Assert.Equal(1, nativeHigh.Hp);
     }
@@ -150,17 +191,17 @@ public class CombatSystemTests : IDisposable
     {
         var state     = CreateState();
         var territory = state.GetTerritory("A1")!;
-        // 1 Marcher → 2 total damage (corruption = damage pool)
+        // D30: 1 Marcher → 2 base + 2 = 4 total damage
         territory.Invaders.Add(MakeInvader("i1", UnitType.Marcher, 2, "A1"));
 
         var nativeLow  = new Native { Hp = 1, MaxHp = 2, Damage = 3, TerritoryId = "A1" };
-        var nativeHigh = MakeNative(2, "A1");
+        var nativeHigh = MakeNative(4, "A1"); // HP 4 to survive remaining 3 damage
         territory.Natives.Add(nativeLow);
         territory.Natives.Add(nativeHigh);
 
         _sut.ExecuteActivate(RavageCard(), territory, state);
 
-        // 2 damage: kill nativeLow (1), remaining 1 → nativeHigh takes 1 → HP 1
+        // 4 damage: kill nativeLow (1), remaining 3 → nativeHigh (HP 4 → 1)
         Assert.False(nativeLow.IsAlive);
         Assert.Equal(1, nativeHigh.Hp);
     }
@@ -170,18 +211,18 @@ public class CombatSystemTests : IDisposable
     {
         var state     = CreateState();
         var territory = state.GetTerritory("A1")!;
-        // 2 Marchers → 4 total damage (corruption = damage pool)
+        // D30: 2 Marchers → 2 base + 2+2 = 6 total damage
         territory.Invaders.Add(MakeInvader("i1", UnitType.Marcher, 2, "A1"));
         territory.Invaders.Add(MakeInvader("i2", UnitType.Marcher, 2, "A1"));
 
         var native1 = MakeNative(2, "A1"); // needs exactly 2 to kill
-        var native2 = MakeNative(3, "A1"); // higher HP — receives remaining 2 → HP 1
+        var native2 = MakeNative(5, "A1"); // HP 5 — receives remaining 4 → HP 1
         territory.Natives.Add(native1);
         territory.Natives.Add(native2);
 
         _sut.ExecuteActivate(RavageCard(), territory, state);
 
-        // 4 damage: kill native1 (2), remaining 2 → native2 HP 1
+        // 6 damage: kill native1 (2), remaining 4 → native2 (HP 5 → 1)
         Assert.False(native1.IsAlive);
         Assert.Equal(1, native2.Hp);
     }

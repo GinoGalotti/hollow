@@ -18,15 +18,20 @@ using HollowWardens.Core.Systems;
 public class RootAbility : IWardenAbility
 {
     private readonly IPresenceSystem? _presence;
+    private readonly BalanceConfig? _config;
 
     public RootAbility() { }
 
-    public RootAbility(IPresenceSystem presence)
+    public RootAbility(IPresenceSystem presence, BalanceConfig? config = null)
     {
         _presence = presence;
+        _config = config;
     }
 
     public string WardenId => "root";
+
+    /// <summary>Optional gating — when set, locks passives until thresholds unlock them.</summary>
+    public PassiveGating? Gating { get; set; }
 
     public BottomResult OnBottomPlayed(Card card, EncounterTier tier)
     {
@@ -39,8 +44,9 @@ public class RootAbility : IWardenAbility
     public BottomResult OnRestDissolve(Card card) => BottomResult.Dormant;
 
     /// <summary>
-    /// Assimilation: for each territory where Root has Presence, remove ALL alive
-    /// invaders from each adjacent territory and reduce that territory's Corruption by 1 point.
+    /// D30 Assimilation nerf: for each territory with Presence, remove up to
+    /// PresenceCount invaders (weakest first) from each adjacent territory.
+    /// Each removed invader reduces Corruption by 1. Stacking presence = stronger clear.
     /// </summary>
     public void OnResolution(EncounterState state)
     {
@@ -51,44 +57,63 @@ public class RootAbility : IWardenAbility
                 var neighbor = state.GetTerritory(neighborId);
                 if (neighbor == null) continue;
 
-                // Remove all alive invaders
-                var toRemove = neighbor.Invaders.Where(i => i.IsAlive).ToList();
+                // Remove up to PresenceCount invaders (weakest first)
+                var toRemove = neighbor.Invaders
+                    .Where(i => i.IsAlive)
+                    .OrderBy(i => i.Hp)
+                    .Take(territory.PresenceCount)
+                    .ToList();
+
                 foreach (var invader in toRemove)
                 {
                     neighbor.Invaders.Remove(invader);
                     GameEvents.InvaderDefeated?.Invoke(invader);
                 }
 
-                // Corruption -1 per assimilation (reduce by 1 point)
-                if (neighbor.CorruptionPoints > 0)
-                    state.Corruption?.ReduceCorruption(neighbor, 1);
+                // Corruption -1 per removed invader
+                if (toRemove.Count > 0)
+                    state.Corruption?.ReduceCorruption(neighbor, toRemove.Count);
             }
         }
     }
 
     /// <summary>
-    /// Network Fear: 1 Fear per directed Presence→Presence adjacency edge.
-    /// Two adjacent Presence territories contribute 2 (one per direction).
+    /// Network Fear: 1 Fear per undirected Presence adjacency edge, capped at 4 per Tide.
+    /// Cap is a balance knob on Root — not a system-wide rule.
     /// </summary>
     public int CalculatePassiveFear() =>
-        _presence?.CalculateNetworkFear() ?? 0;
+        Math.Min(_presence?.CalculateNetworkFear() ?? 0, _config?.NetworkFearCap ?? 4);
 
     /// <summary>
-    /// D29 Network Slow: −1 movement for invaders in territories adjacent to 2+ Presence territories.
+    /// D30 Network Slow redesign: slow only when adjacent presence territories strictly
+    /// outnumber the invaders in the target territory. Dense presence traps lone scouts;
+    /// a wave of 3 marchers pushes through 2 presence neighbors (2 ≤ 3, no slow).
     /// </summary>
     public int GetMovementPenalty(string territoryId, IEnumerable<Territory> allTerritories)
     {
+        if (Gating != null && !Gating.IsActive("network_slow")) return 0;
         var territories = allTerritories.ToDictionary(t => t.Id);
+        if (!territories.TryGetValue(territoryId, out var territory)) return 0;
+
         var neighbors = TerritoryGraph.GetNeighbors(territoryId);
         int presenceNeighborCount = neighbors.Count(n =>
             territories.TryGetValue(n, out var t) && t.HasPresence);
-        return presenceNeighborCount >= 2 ? 1 : 0;
+
+        int invaderCount = territory.Invaders.Count(i => i.IsAlive);
+
+        // No invaders = no slow needed. Presence must strictly outnumber invaders.
+        if (invaderCount == 0 || presenceNeighborCount <= invaderCount) return 0;
+        return 1;
     }
 
     /// <summary>
     /// D29 Presence Provocation: Natives in Presence territories counter-attack on every invader action.
     /// </summary>
-    public bool ProvokesNatives(Territory territory) => territory.HasPresence;
+    public bool ProvokesNatives(Territory territory)
+    {
+        if (Gating != null && !Gating.IsActive("presence_provocation")) return false;
+        return territory.HasPresence;
+    }
 
     /// <summary>
     /// D29 Rest Growth: Place 1 free Presence on any territory with existing Presence.
@@ -96,12 +121,13 @@ public class RootAbility : IWardenAbility
     /// </summary>
     public void OnRest(EncounterState state, string? targetTerritoryId)
     {
+        if (Gating != null && !Gating.IsActive("rest_growth")) return;
         if (targetTerritoryId == null) return;
         var territory = state.GetTerritory(targetTerritoryId);
         if (territory == null || !territory.HasPresence) return;
 
-        // D28 Vulnerability: Defiled blocks placement
-        if (territory.CorruptionLevel >= 2) return;
+        // D28/D31 Vulnerability: use warden's own tolerance threshold
+        if (territory.CorruptionLevel >= (state.Warden?.PresenceBlockLevel() ?? 2)) return;
 
         state.Presence?.PlacePresence(territory, 1);
     }

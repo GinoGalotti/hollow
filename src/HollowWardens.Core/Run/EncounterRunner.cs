@@ -25,6 +25,8 @@ public class EncounterRunner
     private Action<int>? _onDreadAdvanced;
     private Action<Native, Territory>? _onNativeDefeated;
     private Action<Element, int>? _onThresholdTriggered;
+    private Action<Card>? _onCardDissolved;
+    private Action<Card>? _onCardRestDissolved;
 
     public EncounterRunner(
         ActionDeck actionDeck,
@@ -52,12 +54,14 @@ public class EncounterRunner
 
         // ── §1 Initial board setup ──────────────────────────────────────────
         // Spawn natives per config
+        int nativeHp     = state.Balance.DefaultNativeHp;
+        int nativeDamage = state.Balance.DefaultNativeDamage;
         foreach (var (territoryId, count) in state.Config.NativeSpawns)
         {
             var territory = state.GetTerritory(territoryId);
             if (territory == null || count <= 0) continue;
             for (int i = 0; i < count; i++)
-                territory.Natives.Add(new Native { Hp = 2, MaxHp = 2, Damage = 3, TerritoryId = territoryId });
+                territory.Natives.Add(new Native { Hp = nativeHp, MaxHp = nativeHp, Damage = nativeDamage, TerritoryId = territoryId });
         }
         // Place starting Presence from warden data
         var startTerritory = state.GetTerritory(state.WardenData?.StartingPresence.Territory ?? "I1");
@@ -82,6 +86,13 @@ public class EncounterRunner
                 // D29: Rest Growth
                 var restTarget = strategy.ChooseRestGrowthTarget(state);
                 turnManager.Rest(restTarget);
+                state.ActionLog.Record(new GameAction
+                {
+                    TurnNumber        = state.CurrentTide,
+                    Phase             = TurnPhase.Rest,
+                    Type              = GameActionType.Rest,
+                    TargetTerritoryId = restTarget
+                });
                 // No Tide or Dusk on a rest turn
                 continue;
             }
@@ -93,6 +104,7 @@ public class EncounterRunner
             // ── Tide ────────────────────────────────────────────────────────
             tideRunner.ExecuteTide(tidesExecuted + 1, state);
             tidesExecuted++;
+            GameEvents.TideCompleted?.Invoke(tidesExecuted);
 
             if (state.Weave?.IsGameOver == true) break;
 
@@ -124,7 +136,32 @@ public class EncounterRunner
         {
             var card = strategy.ChooseTopPlay(state.Deck.Hand, state);
             if (card == null) break;
-            if (!turnManager.PlayTop(card)) break; // play limit reached
+
+            TargetInfo? target = null;
+            if (TargetValidator.NeedsTarget(card.TopEffect))
+            {
+                var territoryId = strategy.ChooseTarget(card.TopEffect, state);
+                if (territoryId != null)
+                    target = new TargetInfo { TerritoryId = territoryId, SourceCard = card };
+            }
+
+            if (!turnManager.PlayTop(card, target)) break; // play limit reached
+
+            state.ActionLog.Record(new GameAction
+            {
+                TurnNumber = state.CurrentTide,
+                Phase      = TurnPhase.Vigil,
+                Type       = GameActionType.PlayTop,
+                CardId     = card.Id
+            });
+            if (target != null)
+                state.ActionLog.Record(new GameAction
+                {
+                    TurnNumber        = state.CurrentTide,
+                    Phase             = TurnPhase.Vigil,
+                    Type              = GameActionType.SelectTarget,
+                    TargetTerritoryId = target.TerritoryId
+                });
         }
     }
 
@@ -134,7 +171,32 @@ public class EncounterRunner
         {
             var card = strategy.ChooseBottomPlay(state.Deck.Hand, state);
             if (card == null) break;
-            if (!turnManager.PlayBottom(card)) break; // play limit reached
+
+            TargetInfo? target = null;
+            if (TargetValidator.NeedsTarget(card.BottomEffect))
+            {
+                var territoryId = strategy.ChooseTarget(card.BottomEffect, state);
+                if (territoryId != null)
+                    target = new TargetInfo { TerritoryId = territoryId, SourceCard = card };
+            }
+
+            if (!turnManager.PlayBottom(card, target)) break; // play limit reached
+
+            state.ActionLog.Record(new GameAction
+            {
+                TurnNumber = state.CurrentTide,
+                Phase      = TurnPhase.Dusk,
+                Type       = GameActionType.PlayBottom,
+                CardId     = card.Id
+            });
+            if (target != null)
+                state.ActionLog.Record(new GameAction
+                {
+                    TurnNumber        = state.CurrentTide,
+                    Phase             = TurnPhase.Dusk,
+                    Type              = GameActionType.SelectTarget,
+                    TargetTerritoryId = target.TerritoryId
+                });
         }
     }
 
@@ -157,10 +219,28 @@ public class EncounterRunner
         };
         GameEvents.NativeDefeated += _onNativeDefeated;
 
-        // ThresholdTriggered → auto-resolve Tier 1 effects
+        // ThresholdTriggered → auto-resolve effects + unlock gated passives
         var resolver = new ThresholdResolver();
-        _onThresholdTriggered = (element, tier) => resolver.AutoResolve(element, tier, state);
+        _onThresholdTriggered = (element, tier) =>
+        {
+            resolver.AutoResolve(element, tier, state);
+            state.PassiveGating?.OnThresholdTriggered(element, tier);
+        };
         GameEvents.ThresholdTriggered += _onThresholdTriggered;
+
+        // Phoenix Spark: when a card is permanently removed, generate 3 Fear (Ember only, when active)
+        _onCardDissolved = _ =>
+        {
+            if (state.Warden?.WardenId == "ember"
+                && (state.PassiveGating == null || state.PassiveGating.IsActive("phoenix_spark")))
+            {
+                state.Dread?.OnFearGenerated(3);
+                GameEvents.FearGenerated?.Invoke(3);
+            }
+        };
+        _onCardRestDissolved = _onCardDissolved;
+        GameEvents.CardDissolved     += _onCardDissolved;
+        GameEvents.CardRestDissolved += _onCardRestDissolved;
     }
 
     private void UnwireEvents()
@@ -168,6 +248,8 @@ public class EncounterRunner
         if (_onFearGenerated != null)     GameEvents.FearGenerated     -= _onFearGenerated;
         if (_onDreadAdvanced != null)     GameEvents.DreadAdvanced     -= _onDreadAdvanced;
         if (_onNativeDefeated != null)    GameEvents.NativeDefeated    -= _onNativeDefeated;
-        if (_onThresholdTriggered != null) GameEvents.ThresholdTriggered -= _onThresholdTriggered;
+        if (_onThresholdTriggered != null)  GameEvents.ThresholdTriggered  -= _onThresholdTriggered;
+        if (_onCardDissolved != null)       GameEvents.CardDissolved        -= _onCardDissolved;
+        if (_onCardRestDissolved != null)   GameEvents.CardRestDissolved    -= _onCardRestDissolved;
     }
 }

@@ -41,5 +41,18 @@ public partial class InputHandler : Node
             DebugLogController.Instance?.Toggle();
             GetViewport().SetInputAsHandled();
         }
+        else if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.F5 })
+        {
+            var exportString = GameBridge.Instance?.ExportEncounterState() ?? "";
+            DisplayServer.ClipboardSet(exportString);
+            GD.Print($"[Export] Copied to clipboard ({exportString.Length} chars)");
+            GetViewport().SetInputAsHandled();
+        }
+        else if (@event is InputEventKey { Pressed: true, Echo: false, Keycode: Key.F6 })
+        {
+            var exportString = GameBridge.Instance?.ExportEncounterState() ?? "";
+            GD.Print($"=== ENCOUNTER EXPORT ===\n{exportString}\n========================");
+            GetViewport().SetInputAsHandled();
+        }
     }
 }

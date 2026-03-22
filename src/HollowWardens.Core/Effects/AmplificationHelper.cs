@@ -18,6 +18,9 @@ public static class AmplificationHelper
     {
         var territory = state.GetTerritory(territoryId);
         if (territory == null || !territory.HasPresence) return baseValue;
-        return baseValue + territory.PresenceCount;
+        var balance = state.Balance;
+        int bonus = territory.PresenceCount * balance.AmplificationPerPresence;
+        bonus = Math.Min(bonus, balance.AmplificationCap);
+        return baseValue + bonus;
     }
 }

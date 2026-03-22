@@ -325,6 +325,114 @@ public class D28_PresenceValueTests : IDisposable
         Assert.Equal(1, firedCount);
     }
 
+    // ═══ PRESENCE CAP ═══
+
+    [Fact]
+    public void PlacePresence_CapsAtMaxPerTerritory()
+    {
+        var territory = MakeTerritory("M1", presence: 0);
+        var state = MakeState(territory);
+
+        state.Presence!.PlacePresence(territory, 5);
+
+        Assert.Equal(PresenceSystem.MaxPresencePerTerritory, territory.PresenceCount);
+    }
+
+    [Fact]
+    public void PlacePresence_AtMax_AddsNothing()
+    {
+        var territory = MakeTerritory("M1", presence: PresenceSystem.MaxPresencePerTerritory);
+        var state = MakeState(territory);
+
+        state.Presence!.PlacePresence(territory, 1);
+
+        Assert.Equal(PresenceSystem.MaxPresencePerTerritory, territory.PresenceCount);
+    }
+
+    [Fact]
+    public void PlacePresence_BelowMax_AddsNormally()
+    {
+        var territory = MakeTerritory("M1", presence: 1);
+        var state = MakeState(territory);
+
+        state.Presence!.PlacePresence(territory, 1);
+
+        Assert.Equal(2, territory.PresenceCount);
+    }
+
+    [Fact]
+    public void PlacePresence_BulkAdd_ClampsToMax()
+    {
+        var territory = MakeTerritory("M1", presence: 2);
+        var state = MakeState(territory);
+
+        state.Presence!.PlacePresence(territory, 3);
+
+        Assert.Equal(PresenceSystem.MaxPresencePerTerritory, territory.PresenceCount);
+    }
+
+    // ═══ SHIELD/BOOST NATIVES AMPLIFICATION ═══
+
+    [Fact]
+    public void ShieldNatives_AmplifiedByPresence()
+    {
+        // ShieldNatives value=2, 1 presence → natives get shield 3
+        var territory = MakeTerritory("M1", presence: 1);
+        var native = new Native { Hp = 3, MaxHp = 3, Damage = 2, TerritoryId = "M1" };
+        territory.Natives.Add(native);
+        var state = MakeState(territory);
+
+        var effect = new ShieldNativesEffect(new EffectData { Type = EffectType.ShieldNatives, Value = 2 });
+        effect.Resolve(state, Target("M1"));
+
+        Assert.Equal(3, native.ShieldValue); // 2 + 1 presence
+    }
+
+    [Fact]
+    public void ShieldNatives_NoPresence_BaseValueOnly()
+    {
+        // ShieldNatives value=2, 0 presence → natives get shield 2
+        var territory = MakeTerritory("M1", presence: 0);
+        var native = new Native { Hp = 3, MaxHp = 3, Damage = 2, TerritoryId = "M1" };
+        territory.Natives.Add(native);
+        var state = MakeState(territory);
+
+        var effect = new ShieldNativesEffect(new EffectData { Type = EffectType.ShieldNatives, Value = 2 });
+        effect.Resolve(state, Target("M1"));
+
+        Assert.Equal(2, native.ShieldValue);
+    }
+
+    [Fact]
+    public void BoostNatives_AmplifiedByPresence()
+    {
+        // BoostNatives value=2, 2 presence → natives get boost 4 (2+2)
+        var territory = MakeTerritory("M1", presence: 2);
+        var native = new Native { Hp = 3, MaxHp = 3, Damage = 1, TerritoryId = "M1" };
+        territory.Natives.Add(native);
+        var state = MakeState(territory);
+
+        var effect = new BoostNativesEffect(new EffectData { Type = EffectType.BoostNatives, Value = 2 });
+        effect.Resolve(state, Target("M1"));
+
+        Assert.Equal(5, native.Damage); // 1 base + 4 boost (2 + 2 presence)
+    }
+
+    [Fact]
+    public void BoostNatives_NoPresence_BaseValueOnly()
+    {
+        // BoostNatives value=2, 0 presence → natives get boost 2
+        var territory = MakeTerritory("M1", presence: 0);
+        var native = new Native { Hp = 3, MaxHp = 3, Damage = 1, TerritoryId = "M1" };
+        territory.Natives.Add(native);
+        var state = MakeState(territory);
+
+        var effect = new BoostNativesEffect(new EffectData { Type = EffectType.BoostNatives, Value = 2 });
+        effect.Resolve(state, Target("M1"));
+
+        Assert.Equal(3, native.Damage); // 1 base + 2 boost
+    }
+
     // ═══ COMBINED SCENARIOS ═══
 
     [Fact]

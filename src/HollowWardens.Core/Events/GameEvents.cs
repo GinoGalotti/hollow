@@ -71,6 +71,9 @@ public static class GameEvents
     public static Action<Element, int>?         ThresholdExpired;   // element, tier — went unresolved at turn end
     public static Action<Element, int, string>? ThresholdResolved;  // element, tier, description — resolved
 
+    // Simulation: fires after each complete Tide (for stats collection)
+    public static Action<int>? TideCompleted;  // tide number
+
     // Encounter lifecycle
     public static Action<EncounterConfig>? EncounterStarted;
     public static Action<EncounterResult>? EncounterEnded;
@@ -127,6 +130,8 @@ public static class GameEvents
         ThresholdPending = null;
         ThresholdExpired = null;
         ThresholdResolved = null;
+
+        TideCompleted = null;
 
         EncounterStarted = null;
         EncounterEnded = null;

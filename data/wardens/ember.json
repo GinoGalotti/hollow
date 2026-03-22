@@ -1,0 +1,298 @@
+{
+  "warden_id": "ember",
+  "version": "1.0",
+  "name": "The Ember",
+  "archetype": "Burst Damage / Glass Cannon",
+  "flavor": "A dying fire spirit. Where it burns, corruption spreads — but so does destruction. Ember trades board health for raw power.",
+
+  "element_affinity": {
+    "primary": "Ash",
+    "secondary": "Shadow",
+    "tertiary": "Gale"
+  },
+
+  "hand_limit": 5,
+  "starting_presence": { "territory": "I1", "count": 1 },
+
+  "passives": [
+    {
+      "id": "ash_trail",
+      "name": "Scorching Path",
+      "icon": "fire",
+      "flavor": "Where the Ember walks, the land scorches. Every foothold is a wound in the world.",
+      "description": "At Tide start, each territory with Ember presence gains 1 Corruption and all invaders there take 1 damage.",
+      "trigger": "tide_start",
+      "mechanic": "ash_trail"
+    },
+    {
+      "id": "flame_out",
+      "name": "Nothing Burns Forever",
+      "icon": "card_remove",
+      "flavor": "Every flame consumes itself in the end. There is no coming back from the Ember's fire.",
+      "description": "Playing a bottom removes the card permanently (no Dormancy). Ember's bottoms are always one-shot.",
+      "trigger": "on_bottom_played",
+      "mechanic": "flame_out"
+    },
+    {
+      "id": "scorched_earth",
+      "name": "Scorched Earth",
+      "icon": "dice_skull",
+      "flavor": "When the smoke clears, nothing remains. The invaders who survived the fire will face the ash.",
+      "description": "At Resolution, deal damage to all invaders equal to total corruption across presence territories. Then halve that corruption (round down).",
+      "trigger": "on_resolution",
+      "mechanic": "scorched_earth"
+    },
+    {
+      "id": "ember_fury",
+      "name": "Rising Fury",
+      "icon": "dice_sword",
+      "flavor": "The more the land burns, the stronger the Ember becomes. Corruption is not a weakness — it is power.",
+      "description": "All Ember card damage effects get +1 per territory at corruption Level 1+ (Tainted or worse).",
+      "trigger": "passive",
+      "mechanic": "ember_fury"
+    },
+    {
+      "id": "heat_wave",
+      "name": "Heat Wave",
+      "icon": "arrow_clockwise",
+      "flavor": "Rest brings not peace, but a surge of searing heat. The invaders never see it coming.",
+      "description": "On Rest, deal 2 damage to all invaders in ALL presence territories.",
+      "trigger": "on_rest",
+      "mechanic": "heat_wave"
+    },
+    {
+      "id": "controlled_burn",
+      "name": "Controlled Burn",
+      "icon": "fire",
+      "flavor": "The spirit reads the flames like a language. Where fires are tended, fear takes root.",
+      "description": "At Tide start, if 3+ territories are at Corruption Level 1, generate 2 Fear.",
+      "trigger": "on_tide_start",
+      "mechanic": "controlled_burn",
+      "params": { "min_territories": 3, "fear_generated": 2 }
+    },
+    {
+      "id": "phoenix_spark",
+      "name": "Phoenix Spark",
+      "icon": "fire",
+      "flavor": "Even in death, the Ember's fire frightens. A card destroyed is a flame passed on.",
+      "description": "When a card is permanently removed (bottom or rest-dissolve), generate 3 Fear.",
+      "trigger": "on_card_permanent_removal",
+      "mechanic": "phoenix_spark"
+    }
+  ],
+
+  "resolution_style": "scorched_earth",
+
+  "cards": [
+    {
+      "num": "001",
+      "id": "ember_001",
+      "name": "Flame Burst",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Ash", "Ash"],
+      "top":    { "type": "DamageInvaders", "value": 3, "range": 1, "desc": "Deal 3 damage to all invaders in one territory in range 1" },
+      "bottom": { "type": "DamageInvaders", "value": 6, "range": 1, "desc": "Deal 6 damage to all invaders in one territory in range 1" },
+      "design_note": "Core damage card. Double Ash — Ash T1 (Ember Fury) reachable in one play."
+    },
+    {
+      "num": "002",
+      "id": "ember_002",
+      "name": "Kindle",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Ash", "Gale"],
+      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "bottom": { "type": "PlacePresence", "value": 1, "range": 3, "desc": "Place 1 Presence anywhere in range 3, then deal 2 damage to all invaders in that territory",
+                  "secondary": { "type": "DamageInvaders", "value": 2, "range": 0 } },
+      "design_note": "Presence placement + seeding damage. Bottom's range 3 = anywhere on board."
+    },
+    {
+      "num": "003",
+      "id": "ember_003",
+      "name": "Burning Ground",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Ash", "Shadow"],
+      "top":    { "type": "DamageInvaders", "value": 2, "range": 0, "desc": "Deal 2 damage to all invaders in any territory" },
+      "bottom": { "type": "DamageInvaders", "value": 4, "range": 0, "desc": "Deal 4 damage to all invaders in any territory, then generate 3 Fear",
+                  "secondary": { "type": "GenerateFear", "value": 3 } },
+      "design_note": "Range 0 = anywhere. Ash+Shadow hits both Ash and Shadow thresholds."
+    },
+    {
+      "num": "004",
+      "id": "ember_004",
+      "name": "Smoke Screen",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Shadow", "Gale"],
+      "top":    { "type": "GenerateFear", "value": 3, "range": 0, "desc": "Generate 3 Fear" },
+      "bottom": { "type": "GenerateFear", "value": 6, "range": 0, "desc": "Generate 6 Fear" },
+      "design_note": "Pure fear card. Shadow+Gale opens cross-element thresholds."
+    },
+    {
+      "num": "005",
+      "id": "ember_005",
+      "name": "Stoke the Fire",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Ash", "Ash"],
+      "top":    { "type": "ReduceCorruption", "value": 2, "range": 1, "desc": "Reduce Corruption by 2 points in range 1" },
+      "bottom": { "type": "ReduceCorruption", "value": 4, "range": 1, "desc": "Reduce Corruption by 4 points in range 1, then deal 2 damage to all invaders there",
+                  "secondary": { "type": "DamageInvaders", "value": 2, "range": 1 } },
+      "design_note": "Corruption management. Ember needs this to avoid Level 2 lockout. Double Ash fuels threshold."
+    },
+    {
+      "num": "006",
+      "id": "ember_006",
+      "name": "Ember Spread",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Ash", "Shadow"],
+      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "bottom": { "type": "PlacePresence", "value": 2, "range": 2, "desc": "Place 2 Presence in range 2 (can split across territories)" },
+      "design_note": "Presence expansion. Ash Trail needs presence to deal damage — every token matters."
+    },
+    {
+      "num": "007",
+      "id": "ember_007",
+      "name": "Heat Shimmer",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Ash", "Gale"],
+      "top":    { "type": "RestoreWeave", "value": 1, "range": 0, "desc": "Restore 1 Weave" },
+      "bottom": { "type": "RestoreWeave", "value": 2, "range": 0, "desc": "Restore 2 Weave, then generate 2 Fear",
+                  "secondary": { "type": "GenerateFear", "value": 2 } },
+      "design_note": "Weave recovery. Ember burns through weave fast with Ash Trail — this is essential sustain."
+    },
+    {
+      "num": "008",
+      "id": "ember_008",
+      "name": "Conflagration",
+      "rarity": "dormant",
+      "starting": true,
+      "elements": ["Ash", "Ash", "Shadow"],
+      "top":    { "type": "DamageInvaders", "value": 3, "range": 1, "desc": "Deal 3 damage to all invaders in one territory in range 1" },
+      "bottom": { "type": "DamageInvaders", "value": 5, "range": 2, "desc": "Deal 5 damage to all invaders in one territory in range 2. Slow all invaders in that territory.",
+                  "secondary": { "type": "SlowInvaders", "value": 1, "range": 2 } },
+      "design_note": "Starter heavy hitter. Triple element on bottom = 6 threshold points. Slow combo bonus."
+    },
+
+    {
+      "num": "009",
+      "id": "ember_009",
+      "name": "Ash Veil",
+      "rarity": "dormant",
+      "starting": false,
+      "elements": ["Ash", "Shadow"],
+      "top":    { "type": "GenerateFear", "value": 2, "range": 0, "desc": "Generate 2 Fear" },
+      "bottom": { "type": "GenerateFear", "value": 5, "range": 0, "desc": "Generate 5 Fear" },
+      "design_note": "DRAFT. Fear engine. Shadow cross-threshold synergy."
+    },
+    {
+      "num": "010",
+      "id": "ember_010",
+      "name": "Cinder Presence",
+      "rarity": "dormant",
+      "starting": false,
+      "elements": ["Ash", "Gale"],
+      "top":    { "type": "PlacePresence", "value": 1, "range": 2, "desc": "Place 1 Presence in range 2" },
+      "bottom": { "type": "PlacePresence", "value": 1, "range": 2, "desc": "Place 1 Presence in range 2, then deal 3 damage to all invaders in that territory",
+                  "secondary": { "type": "DamageInvaders", "value": 3, "range": 1 } },
+      "design_note": "DRAFT. Presence placement with attached damage. Feeds Ash Trail footprint."
+    },
+    {
+      "num": "011",
+      "id": "ember_011",
+      "name": "Fan the Flames",
+      "rarity": "dormant",
+      "starting": false,
+      "elements": ["Ash", "Ash"],
+      "top":    { "type": "DamageInvaders", "value": 3, "range": 1, "desc": "Deal 3 damage to all invaders in one territory in range 1" },
+      "bottom": { "type": "DamageInvaders", "value": 6, "range": 1, "desc": "Deal 6 damage to all invaders in one territory in range 1" },
+      "design_note": "DRAFT. Second copy of core damage. Double Ash = fast threshold stacking."
+    },
+    {
+      "num": "012",
+      "id": "ember_012",
+      "name": "Purifying Fire",
+      "rarity": "dormant",
+      "starting": false,
+      "elements": ["Ash", "Gale"],
+      "top":    { "type": "ReduceCorruption", "value": 3, "range": 1, "desc": "Reduce Corruption by 3 points in range 1" },
+      "bottom": { "type": "Purify", "value": 1, "range": 1, "desc": "Remove one full Corruption level from one territory in range 1" },
+      "design_note": "DRAFT. Ember's ONLY Purify. Rare and precious — saves from Desecration spiral."
+    },
+    {
+      "num": "013",
+      "id": "ember_013",
+      "name": "Smoldering Ruins",
+      "rarity": "dormant",
+      "starting": false,
+      "elements": ["Ash", "Shadow"],
+      "top":    { "type": "RestoreWeave", "value": 2, "range": 0, "desc": "Restore 2 Weave" },
+      "bottom": { "type": "RestoreWeave", "value": 3, "range": 0, "desc": "Restore 3 Weave, then reduce Corruption by 3 points anywhere",
+                  "secondary": { "type": "ReduceCorruption", "value": 3, "range": 0 } },
+      "design_note": "DRAFT. Utility sustain — weave + board-wide cleanse."
+    },
+    {
+      "num": "014",
+      "id": "ember_014",
+      "name": "Fire Storm",
+      "rarity": "awakened",
+      "starting": false,
+      "elements": ["Ash", "Ash", "Gale"],
+      "top":    { "type": "DamageInvaders", "value": 4, "range": 2, "desc": "Deal 4 damage to all invaders in one territory in range 2" },
+      "bottom": { "type": "DamageInvaders", "value": 7, "range": 2, "desc": "Deal 7 damage to all invaders in one territory in range 2, then deal 3 damage to all invaders in an adjacent territory",
+                  "secondary": { "type": "DamageInvaders", "value": 3, "range": 1 } },
+      "design_note": "DRAFT. Awakened multi-territory damage. Triple-element = 6 on bottom."
+    },
+    {
+      "num": "015",
+      "id": "ember_015",
+      "name": "Blazing Advance",
+      "rarity": "awakened",
+      "starting": false,
+      "elements": ["Ash", "Shadow"],
+      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
+      "bottom": { "type": "PlacePresence", "value": 1, "range": 2, "desc": "Place 1 Presence in range 2, then deal 5 damage to all invaders in that territory",
+                  "secondary": { "type": "DamageInvaders", "value": 5, "range": 1 } },
+      "design_note": "DRAFT. Awakened presence + damage combo. New territory = Ash Trail target + immediate damage."
+    },
+    {
+      "num": "016",
+      "id": "ember_016",
+      "name": "Flashpoint",
+      "rarity": "awakened",
+      "starting": false,
+      "elements": ["Ash", "Ash", "Shadow"],
+      "top":    { "type": "GenerateFear", "value": 4, "range": 0, "desc": "Generate 4 Fear" },
+      "bottom": { "type": "DamageInvaders", "value": 7, "range": 1, "desc": "Deal 7 damage to all invaders in range 1, then generate 3 Fear",
+                  "secondary": { "type": "GenerateFear", "value": 3 } },
+      "design_note": "DRAFT. Awakened fear+damage hybrid. Bottom is devastating with Ember Fury bonus."
+    },
+    {
+      "num": "017",
+      "id": "ember_017",
+      "name": "Wildfire",
+      "rarity": "ancient",
+      "starting": false,
+      "elements": ["Ash", "Ash", "Ash"],
+      "top":    { "type": "DamageInvaders", "value": 4, "range": 1, "desc": "Deal 4 damage to all invaders in range 1. Generate 1 Fear per invader killed." },
+      "bottom": { "type": "Custom", "value": 0, "range": 0, "desc": "Deal 4 damage to all invaders in EVERY territory with Ember presence. Triple Ash: generate 6 Fear." },
+      "design_note": "Ancient board-wipe. Bottom is build-defining — rewards max presence footprint."
+    },
+    {
+      "num": "018",
+      "id": "ember_018",
+      "name": "Last Conflagration",
+      "rarity": "ancient",
+      "starting": false,
+      "elements": ["Ash", "Gale", "Shadow"],
+      "top":    { "type": "GenerateFear", "value": 6, "range": 0, "desc": "Generate 6 Fear" },
+      "bottom": { "type": "DamageInvaders", "value": 10, "range": 0, "desc": "Deal 10 damage to all invaders in any territory, then generate 5 Fear",
+                  "secondary": { "type": "GenerateFear", "value": 5 } },
+      "design_note": "Ancient finisher. 10+fury bonus can one-shot any invader cluster. With Phoenix Spark, even playing this generates 3 Fear."
+    }
+  ]
+}

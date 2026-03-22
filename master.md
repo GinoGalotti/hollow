@@ -68,6 +68,7 @@ VIGIL → THE TIDE → DUSK
 - Play 1 or 2 tops only (safe, conservative)
 - Play 1 bottom only in Dusk (dissolve one card for its powerful effect)
 - Play 1–2 tops in Vigil + 1 bottom in Dusk (full offensive turn, highest stamina cost)
+- **Sacrifice 1 Presence** (free action, Vigil or Dusk) — remove 1 Presence from a territory to cleanse 3 Corruption there. No card needed. See §7.6.
 
 ### 2.2 Eclipse Events — Flipping the Ratio
 
@@ -130,6 +131,8 @@ An encounter is a contained invader wave. Each encounter has:
 **Encounter setup:**
 - **Initial wave (Wave 0):** Before the player's first Vigil, a starting wave arrives at A-row positions per the encounter data. The board already has invaders in play when the game begins.
 - **Starting Presence:** The Root Warden begins with 1 Presence token placed on I1.
+
+**Tide arrival offset:** The initial wave (Wave 0) is pre-spawned before the first Vigil — the A-row is populated at game start. Each subsequent Tide spawns the next wave: Tide 1 spawns Wave 1, Tide 2 spawns Wave 2, etc. This gives the player one full turn of buffer before reinforcements arrive.
 
 ### 3.2 How Encounters End
 
@@ -202,8 +205,8 @@ Each territory has a **Corruption Points** counter that advances toward three le
 |---|---|---|---|
 | Clean | 0 | Full resource generation. Normal Presence rules. | — |
 | Tainted (1) | 3 points | Reduced resource output. Invaders get bonus action effects. | Resets next encounter |
-| Defiled (2) | 5 additional points | No resources. Placing Presence costs 1 extra card. Invaders gain advanced actions. | Persists to next encounter as level 1 |
-| Desecrated (3) | 7 additional points | Presence tokens here are removed. −1 Weave per turn passively. | Permanent — persists all encounters |
+| Defiled (2) | 5 additional points | No resources. **Cannot place new Presence here** (must cleanse below Level 2 first). Invaders gain advanced actions. | Persists to next encounter as level 1 |
+| Desecrated (3) | 7 additional points | **All Presence destroyed.** −1 Weave per turn passively. Cannot place Presence. | Permanent — persists all encounters |
 
 **Advancing Corruption:** Invader Activate/Ravage actions add corruption points. Invaders outnumbering Natives in a territory at end of turn may also add points (to define during balancing).
 
@@ -618,34 +621,177 @@ All token types use a base `BoardToken` class with type, HP (optional), and `OnT
 
 ---
 
+## 7.6 Presence System — Value, Risk, and Sacrifice
+
+### Why Presence Must Matter
+
+On a 6-territory pyramid, 3 presence tokens cover everything at range 1. Without additional value, presence placement is a solved problem by turn 3 — just place in M1, M2, I1 and you're done. Presence needs ongoing value, vulnerability, and sacrifice uses to create real decisions.
+
+### V1: Presence Amplifies Card Effects (Universal)
+
+**Every card effect targeting a territory with your Presence gets +1 value per Presence token there.**
+
+| Effect type | Without Presence | With 1 Presence | With 2 Presence |
+|---|---|---|---|
+| ReduceCorruption ×2 | Cleanse 2 pts | Cleanse 3 pts | Cleanse 4 pts |
+| DamageInvaders ×4 | 4 damage | 5 damage | 6 damage |
+| GenerateFear ×3 (if territory has invaders) | 3 Fear | 4 Fear | 5 Fear |
+| ShieldNatives ×2 | Shield 2 | Shield 3 | Shield 4 |
+
+This is simple, universal, and makes placement decisions matter: "Do I place in M1 to buff my cleanse there, or M2 to buff my damage?" Stacking multiple presence on one territory creates a "fortress" strategy (high per-territory value) vs. spreading wide (more range coverage + Root's Network Fear).
+
+**This directly addresses Root's damage gap:** Root's starting deck has only 2 damage cards, both bottoms. With 2 presence on a territory, Living Wall's bottom becomes 7 damage (kills Ironclads outright). Ash T1 threshold becomes 2 damage instead of 1. Even Natives' counter-attack pools aren't affected by presence (they fight independently), but the player's targeted damage cards become significantly more effective in presence-heavy territories.
+
+### V1: Presence is Vulnerable to Corruption
+
+Presence is no longer permanent once placed. High corruption threatens your infrastructure:
+
+- **Corruption Level 2 (Defiled, 8+ pts):** Cannot place new Presence in this territory. Existing Presence survives but you can't reinforce. You must cleanse below Level 2 before expanding here again.
+- **Corruption Level 3 (Desecrated, 15+ pts):** All Presence in this territory is destroyed. This is catastrophic — you lose your engine bonus, your range anchor, and (for Root) your Network Fear connections. Preventing Level 3 is now a survival priority, not just a corruption management task.
+
+### V1: Presence Sacrifice (Free Action)
+
+Players can sacrifice 1 Presence as a free action during Vigil or Dusk (no card needed):
+
+**Sacrifice 1 Presence → Cleanse 3 Corruption in that territory.**
+
+This is the emergency brake. When a territory is about to hit Desecrated and you don't have a cleanse card in hand, burn presence to save it. But then your engine is weaker — the territory has less amplification, and Root loses a Network Fear node.
+
+The sacrifice decision creates tension: Do you invest presence for long-term engine value, or hold it in reserve as emergency currency? This is the same kind of push-your-luck dynamic as bottom plays — powerful to use, costly to spend.
+
+### V1: Root's Unique Presence Passive (Network Fear)
+
+Root keeps Network Fear as its unique presence passive (already designed in §8.1). Each adjacent Presence pair generates Fear. The +1 amplification bonus stacks on top — Root benefits from both wide presence (more adjacency pairs) AND stacked presence (stronger targeted effects). This creates a genuine build strategy choice within each encounter.
+
+### Future: Warden-Specific Presence Passives (Post-V1)
+
+Each warden gets a unique passive tied to their presence, in addition to the universal +1 amplification:
+
+| Warden | Presence passive | Design space |
+|---|---|---|
+| Root | Network Fear (adjacency generates Fear) | Already designed |
+| Ember | Smolder: presence territories deal 1 passive fire damage to all invaders at turn start | Aggressive — presence as offensive infrastructure |
+| Veil | Shroud: invaders in presence territories have -1 Advance movement | Defensive — presence as movement control |
+| Teacher | Inspire: Natives in presence territories deal +1 damage | Synergy — presence buffs the counterattack layer |
+
+### Future: Additional Sacrifice Uses (Post-V1)
+
+- **Sacrifice 1 Presence → Push all invaders out of that territory.** Nuclear option. Clears the territory but destroys your foothold.
+- **Root-specific sacrifice: Sacrifice 1 Presence → Awaken 2 dormant cards.** Presence becomes fuel for Root's hand recovery engine.
+- **Ember-specific sacrifice: Sacrifice 1 Presence → Deal 3 damage to all invaders in range 1.** Explosive self-destruction.
+
+### Balance Impact
+
+Presence amplification makes the warden's cards stronger, which means invaders need to be rebalanced. Specifically:
+
+- **Invader HP may need to increase.** If a 2-presence territory turns a 4-damage card into 6-damage, Marchers (3 HP) die even more easily. Consider Marcher HP 4 or adding a shield baseline.
+- **Corruption rates may need to increase.** If presence amplifies cleanse cards (+1 per presence), territories stay cleaner longer. Consider Ravage dealing 3 base corruption instead of 2.
+- **Escalation should threaten presence.** The Corrupt escalation card could include "remove 1 Presence from this territory" in addition to its current effects. This makes Escalation feel dangerous in a new way.
+
+These are playtesting knobs — the numbers above are starting proposals, not commitments.
+
+### D28 Summary — Presence Value System
+
+| Mechanic | Description | Status |
+|---|---|---|
+| **Amplification** | +1 value per presence token for all territorial effects | V1 |
+| **Vulnerability** | Level 2 blocks placement; Level 3 destroys all presence | V1 |
+| **Sacrifice** | Free action (Vigil/Dusk): remove 1 presence → cleanse 3 corruption | V1 |
+
+---
+
 ## 8. Warden Roster
 
 ### 8.1 The Root (V1 — Starter)
 **Archetype:** Tank / Control  
-**Playstyle:** Spreads Presence slowly, passively generates Fear via network. Difficult to exhaust. Wins by blanketing the board and outlasting.
+**Playstyle:** Builds a network of roots that slows, entangles, and overwhelms invaders. Doesn't fight head-on — creates a web of hostile territory. Wins by making every step toward the Heart cost the invaders dearly.
 
 **Element affinity:** Root (heavy), Mist (medium), Shadow (light)
 
-**Presence mechanic:** Root Presence generates passive Fear each turn equal to the number of *adjacent* Presence tokens (network effect — directed edges, each pair counted twice). Spreading wide is as valuable as spreading fast.
+**Presence mechanic — Network Fear + Slowing Web:**
+- Root Presence generates passive Fear each turn equal to the number of *adjacent* Presence tokens (network effect — directed edges, each pair counted twice). Spreading wide is as valuable as spreading fast.
+- **Network Slow:** Invaders in territories adjacent to 2 or more Root Presence territories have −1 Advance movement (minimum 0). A dense Root network acts as a web that physically slows invaders. An invader surrounded by Root presence can't advance at all. This rewards the "spread wide" strategy — wide presence creates a slow zone across multiple territories.
 
-**Starting deck:** 10 cards, all Dormant rarity. Heavy Corruption reduction, moderate Fear generation, some Presence placement, one Weave recovery. Full 28-card pool includes 10 starting + 18 more across Dormant/Awakened/Ancient rarities available as draft rewards.
+**Presence combat — Root's Provocation:**
+- **Natives in territories with Root Presence counter-attack on ANY invader action, not just Ravage/Corrupt.** This is Root's specific exception to the D25 provocation rule. Without Root presence, natives only fight when attacked. With it, they fight every Tide — the roots stir them to action.
+- This makes presence placement about enabling your combat layer. Place presence → natives become aggressive → invaders face opposition every turn in that territory.
+
+**Starting deck:** 10 cards, all Dormant rarity. Corruption reduction, Fear generation, Presence placement, one damage top (Grasping Roots), Weave recovery, and Awaken support. Full 28-card pool includes 10 starting + 18 more across Dormant/Awakened/Ancient rarities available as draft rewards. **Note (D29):** root_025 (Grasping Roots) replaced root_011 (Reclaim the Soil) as a starting card; Reclaim the Soil moved to the draft pool.
+
+**Root's combat approach:** Root has 1 repeatable damage top (Grasping Roots, ×2 r1) and 2 damage bottoms (The Forest Remembers ×4, Living Wall ×5). These are amplified by presence (+1 per presence in target territory). Root's primary combat comes from: presence-activated natives (counter-attack every Tide), Network Slow (buying time for natives and fear actions to whittle invaders), fear actions (deal damage at Tide start), and presence amplification turning modest damage numbers into kills. Root doesn't burst down invaders — it creates a hostile environment where invaders erode over multiple Tides.
+
+**Rest bonus — Roots Grow:** When Root rests, in addition to the normal shuffle + rest-dissolve, **place 1 Presence for free on any territory with existing Presence.** The roots grow while the spirit sleeps. This softens Rest's downside, feeds the presence engine, and partially compensates for presence lost to sacrifice or Desecration.
 
 **Dissolution (bottom) — Dormancy:**  
 When Root plays the bottom of a card, the card enters a **Dormant** state rather than being fully removed. It goes to the **discard pile** (not the draw pile) — the player won't encounter it again until the next Rest shuffles discards back into the deck. While dormant, it is inert (cannot be played — top or bottom — until Awakened). On Boss encounters, double-dissolving a Dormant card removes it permanently.
 
 **Rest-dissolve — also Dormancy:** When Root rests, the rest-dissolved card also goes dormant (not removed), but it **stays in the draw pile** (already shuffled in with the rest of the discards during Rest). Bottom-played dormant cards go to the discard pile and re-enter the deck on the next Rest; rest-dissolved dormant cards are already in the freshly-shuffled deck. In both cases the card is inert dead weight until Awakened. Awaken effects clean up both types. Root's deck never actually shrinks — it fills with dead draws instead.
 
-*Design intent: The Root's power accumulates. Even its sacrifice state is a resource to manage — Dormant cards are fuel for Awaken effects.*
+*Design intent: The Root's power accumulates. Presence, dormant cards, and network connections are all resources to manage. The Root doesn't win by doing big things — it wins by having built enough infrastructure that the invaders can't keep up.*
+
+**D29 Summary — Root Combat Toolkit:**
+
+| Mechanic | Description |
+|---|---|
+| **Network Slow** | −1 movement for invaders adjacent to 2+ presence territories |
+| **Presence Provocation** | Natives counter-attack on all invader actions in presence territories |
+| **Grasping Roots** | Repeatable damage top: 2 + amplification (replaced Reclaim the Soil) |
+| **Rest Growth** | Place 1 free presence on rest (on any territory with existing presence) |
 
 **Resolution style:** Assimilation — at end of encounter, for each Presence territory, all invaders in all adjacent territories are removed. Each removed invader reduces Corruption in that territory by 1 point.
 
-### 8.2 The Ember (Planned)
-**Archetype:** Burst / Aggressive  
-**Element affinity:** Ash (heavy), Shadow (medium), Gale (light)
+### 8.2 The Ember (V1 — Second Warden)
+**Archetype:** Burst Damage / Glass Cannon
+**Playstyle:** A dying fire spirit that poisons the land to fuel its power. Where Ember spreads presence, Corruption spreads with it — but that same Corruption becomes devastating damage at Resolution. Ember wins by building a wide, burning footprint and cashing out with Scorched Earth before the board state collapses.
 
-**Dissolution (bottom) — Fear Pulse:** When Ember plays a bottom, it generates a Fear pulse equal to the card's cost before the card is removed. Higher-cost cards = bigger fear spike on sacrifice.
+**Element affinity:** Ash (primary), Shadow (secondary), Gale (tertiary)
 
-**Resolution style:** Destruction — pure damage output in Resolution turns.
+**Starting deck:** 8 cards, all Dormant rarity — smaller than Root's 10, but every card hits harder.
+
+| # | Card | Elements | Top | Bottom |
+|---|------|----------|-----|--------|
+| 001 | Flame Burst | Ash×2 | Deal 3 damage (range 1) | Deal 6 damage (range 1) |
+| 002 | Kindle | Ash, Gale | Place 1 Presence (range 1) | Place 1 Presence anywhere + 2 damage |
+| 003 | Burning Ground | Ash, Shadow | Deal 2 damage anywhere | Deal 4 damage + 3 Fear anywhere |
+| 004 | Smoke Screen | Shadow, Gale | Generate 3 Fear | Generate 6 Fear |
+| 005 | Stoke the Fire | Ash×2 | Reduce Corruption 2 pts (range 1) | Reduce 4 pts + 2 damage there |
+| 006 | Ember Spread | Ash, Shadow | Place 1 Presence (range 1) | Place 2 Presence (range 2) |
+| 007 | Heat Shimmer | Ash, Gale | Restore 1 Weave | Restore 2 Weave + 2 Fear |
+| 008 | Conflagration | Ash×2, Shadow | Deal 3 damage (range 1) | Deal 5 damage + Slow (range 2) |
+
+*(All damage values currently as shown, subject to balance tuning.)*
+
+**Draft pool:** 10 cards across Dormant, Awakened, and Ancient rarities including Ash Veil, Cinder Presence, Fan the Flames, Purifying Fire, Smoldering Ruins, Fire Storm, Blazing Advance, Flashpoint, Wildfire, and Last Conflagration.
+
+**Passives:**
+
+| Id | Name | Trigger | Effect | Status |
+|----|------|---------|--------|--------|
+| ash_trail | Scorching Path | Tide start | Each presence territory +1 Corruption; all invaders there take 1 damage | **Base** |
+| flame_out | Nothing Burns Forever | On bottom | Bottom removal is always permanent — no Dormancy | **Base** |
+| scorched_earth | Scorched Earth | On Resolution | Damage = total Corruption across presence territories (distributed lowest HP first); smart cleanse: L1→full, L2→halved, L3→unchanged | **Base** |
+| ember_fury | Rising Fury | Passive | All card damage effects get +1 per Tainted (L1+) territory on the board | Unlocks at Ash T1 |
+| heat_wave | Heat Wave | On Rest | Deal 2 damage to all invaders in ALL presence territories | Unlocks at Ash T2 |
+| controlled_burn | Controlled Burn | Tide start | If 3+ territories at Corruption L1: generate 2 Fear | Unlocks at Shadow T1 |
+| phoenix_spark | Phoenix Spark | Card removed | When any card is permanently removed, generate 3 Fear | Unlocks at Gale T1 |
+
+**Key mechanics:**
+
+- **Ash Trail (Scorching Path):** Every presence token becomes a burning wound. Each Tide start, the land scorches — spreading Corruption AND damaging invaders simultaneously. Ember's footprint is both its weapon and its liability.
+
+- **Flame Out (Nothing Burns Forever):** Unlike Root's Dormancy, Ember bottoms are always permanently removed. The deck shrinks every time a bottom is played. Phoenix Spark converts this into Fear.
+
+- **Scorched Earth:** Ember's Resolution payoff. Total Corruption across all presence territories becomes damage, distributed to invaders starting from lowest HP. Then smart cleanse resets the board: Tainted (L1) territories fully cleansed, Defiled (L2) halved, Desecrated (L3) unchanged. More Corruption = more damage, but L3 territories remain locked for next encounter.
+
+- **Ember Fury (Rising Fury):** Each L1+ territory grants +1 to all Ember card damage. Rewards deliberately keeping the board at Tainted rather than over-cleansing.
+
+**Presence tolerance:** Ember tolerates **Defiled (L2)** — only **Desecrated (L3)** blocks presence placement. Root blocks at L2 (Defiled); Ember's higher tolerance reflects its willingness to inhabit corrupted land.
+
+**Dissolution (bottom) — Flame Out:** Playing the bottom of any Ember card permanently removes it. No Dormancy, no return. Phoenix Spark passive converts each removal into 3 Fear — making bottom plays a deliberate sacrifice.
+
+**Resolution style:** Scorched Earth — damage to all invaders equal to total Corruption across presence territories, then partial board cleanse.
+
+*Design intent: Ember's power accumulates through self-destruction. The warden poisons its own territory to fuel devastating bursts. High-skill play is knowing when to let Corruption rise vs. when to cleanse — and timing Resolution for maximum payoff.*
 
 ### 8.3 The Veil (Planned)
 **Archetype:** Control / Disruption  
@@ -983,6 +1129,8 @@ PanelContainer          ← Kenney card frame
 | `ExposeInvaders` | NEW — invaders take increased damage |
 | `BrittleInvaders` | NEW — reduce invader Shield value |
 
+**Data file migration:** Card data has migrated from `data/cards-root.json` to `data/wardens/root.json`. The new format includes warden metadata, passives, and cards in a single unified file loaded by `WardenLoader.cs`. `CardLoader.cs` is retained for backward compatibility but is marked `[Obsolete]`.
+
 ### 11.7 Seeded Randomness & Action Log
 
 All randomness in an encounter flows through a single **`GameRandom`** instance seeded at encounter start. The seed is logged alongside the action log and is exportable for replay.
@@ -1005,6 +1153,12 @@ The log is exportable as a compact string: `seed:actions`. This string fully des
 
 A toggleable full-screen event log for playtesting. Press **D** to show/hide.
 
+### 11.9 Simulation & Replay
+
+**Simulation:** `HollowWardens.Sim` is a console app that runs N automated encounters using `BotStrategy` (a deterministic AI implementing `IPlayerStrategy`). Outputs balance statistics and CSV files for analysis. The first 500-encounter run revealed zero tension (100% Clean outcomes), leading to the D31 balance tuning pass.
+
+**Replay:** `ReplayRunner` rebuilds an encounter deterministically from a seed + recorded action log. `ActionLog.ExportFull(seed)` / `ImportFull(data)` handle serialization. Press **F5** in Godot to copy the export string to clipboard for sharing or offline analysis.
+
 **Logged events (color-coded by type):**
 - Card plays (top and bottom)
 - Element changes and threshold triggers
@@ -1017,6 +1171,21 @@ A toggleable full-screen event log for playtesting. Press **D** to show/hide.
 **Display:** Maximum 200 entries, auto-scrolling to the latest. Events are color-coded so the designer can visually distinguish card play, combat, element activity, and system events at a glance.
 
 **Purpose:** Playtest debugging and design validation. Lets the designer see exactly what the system is doing on each step — essential for verifying that damage models, tide ramp-up, and threshold resolution are behaving as intended.
+
+### 11.10 Warden Selection Flow
+
+A warden selection screen appears at game start before the encounter loads.
+
+**Flow:**
+1. `WardenSelectController` displays at game start — shows available warden choices (currently Root and Ember)
+2. Player clicks a warden → `GameBridge.SelectedWardenId` is set
+3. `BuildEncounter()` reads `SelectedWardenId`, loads the corresponding warden JSON via `WardenLoader`, and creates the matching `IWardenAbility` instance
+4. `EncounterReady` signal fires — all view controllers (PassivePanelController, TerritoryGridController, HandDisplayController, etc.) subscribe to this signal and build their initial state on receipt
+
+**Key files:**
+- `hollow_wardens/godot/views/WardenSelectController.cs` — warden selection UI
+- `src/HollowWardens.Core/Data/WardenLoader.cs` — loads `data/wardens/{id}.json` into `WardenData`
+- `src/HollowWardens.Core/GameBridge.cs` — `SelectedWardenId` property + `EncounterReady` signal
 
 ---
 
@@ -1237,28 +1406,49 @@ One Warden (The Root), 10-card starting deck + 18-card draft pool, 3-2-1 pyramid
 - [x] Update `generate-cards.py` for new schema
 - [x] Update test suite (many existing tests will need rewriting — see CLAUDE-migration.md)
 
-**Phase 6 — UI (Functional, Not Pretty)** ← CURRENT
-- [ ] `Card.tscn` — updated node structure (element icons + top/bottom labels)
-- [ ] Hand display
-- [ ] Territory grid display (pyramid layout)
-- [ ] Element tracker HUD (6 element counters)
-- [ ] Weave bar + Fear counter + Dread Level indicator
-- [ ] Tide preview
-- [ ] Phase indicator
-- [ ] Fear action reveal animation (hidden → revealed at Tide start)
-- [ ] Reward screen
+**Phase 6 — UI (Functional, Not Pretty)** ✅ Complete
+- [x] Card views (element display, top/bottom labels, play buttons)
+- [x] Hand display (horizontal strip, rebuilds on hand changes)
+- [x] Territory grid display (pyramid layout, corruption colors, unit squares)
+- [x] Element tracker HUD (6 element counters with threshold buttons + tooltips)
+- [x] Weave bar + Fear counter + Dread Level indicator
+- [x] Tide preview (current + next action card)
+- [x] Phase indicator
+- [x] Fear action confirm overlay
+- [x] Counter-attack damage assignment
+- [x] Passive panel (bottom-left, Kenney icons, inline descriptions)
+- [x] Debug log overlay (D key toggle, Copy Log button)
+- [x] Targeting mode (card plays, fear actions, threshold effects)
+- [ ] Reward screen (not yet implemented)
 
-**Phase 7 — First Playtest**
-Run through 3 encounters with The Root. Validate:
-- Is bottom-as-dissolve creating real decisions?
-- Are element thresholds triggering often enough to matter?
-- Is the pyramid map creating interesting spatial decisions?
-- Is Native counter-attack meaningful?
-- Does the refill model create visible deck depletion and natural Rest timing?
-- Does rest-dissolve feel like a fair tax or too punishing?
-- Is 10 cards the right starting deck size for 4 play turns before Rest?
-- Does the two-pool action cadence create the right pain/relief rhythm?
-- Are unit-type modifiers readable at a glance?
+**Phase 7 — First Playtest** ✅ Complete
+- [x] Simulation harness (500-encounter automated runs, balance stats)
+- [x] Deterministic replay (seed + actions export/import)
+- [x] First balance tuning pass (Network Fear halved; invader HP and Ravage corruption confirmed unchanged)
+- [x] Manual playtest validation of D28/D29 mechanics
+- [x] Second balance pass (BalanceConfig centralization, outnumber-based Network Slow)
+
+**Phase 8 — Root Tightening** ✅ Complete
+- [x] Passive gating (3 base + 3 unlockable, encounter-level unlock tracking)
+- [x] Network Fear cap (BalanceConfig.NetworkFearCap)
+- [x] Passive panel shows locked/unlocked state with unlock conditions
+
+**Phase 9 — Second Warden (Ember)** ✅ Complete
+- [x] Ember data file (data/wardens/ember.json) + EmberAbility implementation
+- [x] Warden selection screen in Godot (WardenSelectController)
+- [x] EmberBotStrategy for simulation
+- [x] Ember balance patches (corruption sweet spot)
+- [ ] Balance tuning in progress
+
+**Phase 10 — Simulation Workbench** ✅ Complete
+- [x] BotStrategy + EncounterSimulator
+- [x] Deterministic replay (F5 export, paste import)
+- [x] Verbose logging with bot decision reasoning
+- [x] SimProfile JSON-driven configuration
+- [x] BalanceConfig centralization (replaces hardcoded values across 13+ files)
+- [x] Seeds-based CLI (--seeds range)
+- [x] Combo testing scripts
+- [ ] Balance parameter sweeps in progress
 
 ---
 
@@ -1283,6 +1473,24 @@ Run through 3 encounters with The Root. Validate:
 9. ~~**Fear Level vs Fear actions**~~ — **RESOLVED.** Renamed to **Dread Level** (Dread 1–4). Fear = the resource you generate and spend. Dread = the escalation track (total Fear generated, advances every 15). When Dread advances, all queued Fear Actions retroactively upgrade to the new pool. See §4.6.
 
 10. ~~**Invader action preview**~~ — **RESOLVED (D21).** Action card revealed at end of previous Tide (alongside arrival locations). Player enters Vigil with full action knowledge. Arrival unit composition remains hidden until Arrive step. See §4.4 preview timing.
+
+### New Open Questions (from playtesting + presence system design)
+
+11. ~~**Presence amplification balance**~~ — **RESOLVED (D28, D31).** Amplification is +1 per presence, capped at 3 tokens per territory (`PresenceSystem.MaxPresencePerTerritory = 3`). Sim showed tension was too low before the balance pass — Network Fear halving was the primary adjustment (D31), not amplification changes. Spatial-only amplification (cleanse, damage, shield) confirmed; GenerateFear does not benefit. Reference D31.
+
+12. ~~**Invader HP rebalance**~~ — **RESOLVED (D31).** HP confirmed unchanged from initial design: Marcher=3, Ironclad=5, Outrider=2. Fast killing of individual invaders is acceptable — the survival model means threat comes from volume and positioning, not unit durability. Reference D31.
+
+13. ~~**Presence sacrifice UI**~~ — **RESOLVED (D28).** Sacrifice is a free action in TurnManager/TurnActions during Vigil or Dusk. UI uses territory clicking (same targeting mode as card plays). No dedicated sacrifice mode — the player clicks a territory with presence to activate sacrifice.
+
+14. ~~**Root's damage gap**~~ — **RESOLVED (D29).** Root gets Grasping Roots (damage top replacing Reclaim the Soil), Network Slow (-1 Advance near dense presence), natives always counter in Root presence territories, and free presence on Rest. See §8.1.
+
+15. ~~**Corruption rate rebalance**~~ — **RESOLVED (D31).** Base Ravage corruption held at current values: Marcher=2, Ironclad=3, Outrider=1, Pioneer=2. The balance pass addressed tension through Network Fear adjustment rather than corruption rate. Tainted (3 pts) requires 1–2 Ravage actions depending on unit composition — confirmed acceptable pressure. Reference D31.
+
+16. **Ember threshold damage** — Is T1+T2+T3 combined damage too high? Thresholds fire correctly (once per turn per tier) but combined 6+ damage per turn from the element engine alone may trivialize combat before Scorched Earth is needed. Under investigation in balance conversation.
+
+17. **Upgrade system design** — Card upgrades, passive upgrades, draft pool. Blocked on run structure finalization.
+
+18. **Run structure** — Multi-encounter runs with carryover, escalation, rewards. Core loop not yet implemented beyond single encounters.
 
 ---
 
@@ -1311,3 +1519,42 @@ Same 9 custom actions. Territory grid navigation maps to pyramid layout:
 - Row navigation (`ui_navigate_up/down`): A-row ↔ M-row ↔ I-row
 - Column navigation (`ui_navigate_left/right`): within each row
 - `game_confirm`: select focused territory
+
+---
+
+## 17. Simulation & Balance Testing
+
+### Running the Simulation
+```bash
+dotnet run --project src/HollowWardens.Sim/ -- --seeds 1-500 --warden root
+dotnet run --project src/HollowWardens.Sim/ -- --seeds 1-500 --warden ember
+dotnet run --project src/HollowWardens.Sim/ -- --profile sim-profiles/X.json
+```
+
+### Verbose Logging
+Add `--verbose` to get turn-by-turn decision logs (first 5 encounters + any breaches).
+
+### SimProfile
+JSON-driven configuration for A/B testing. See `sim-profiles/` for examples.
+Read `BalanceConfig.cs` for all tunable parameters — all balance constants are centralized there and stored on `EncounterState`.
+
+### Combo Testing
+- `sim-profiles/scripts/combo-cards.sh` — tests all draft card pair combinations
+- `sim-profiles/scripts/sweep-balance.sh` — sweeps a balance parameter across a range
+
+### Bot Decision Priorities
+**Root:** presence expansion → damage → cleanse → fear → any card
+**Ember:** presence expansion → damage → cleanse at 7+ corruption → fear → any card
+
+### Key Files
+
+| File | Role |
+|------|------|
+| `src/HollowWardens.Core/Run/BotStrategy.cs` | Root deterministic AI (implements `IPlayerStrategy`) |
+| `src/HollowWardens.Core/Run/EmberBotStrategy.cs` | Ember deterministic AI |
+| `src/HollowWardens.Core/Run/SimStats.cs` | Per-encounter outcome model |
+| `src/HollowWardens.Core/Run/SimStatsCollector.cs` | Multi-run aggregator |
+| `src/HollowWardens.Sim/SimProfile.cs` | JSON-driven config model |
+| `src/HollowWardens.Sim/SimProfileApplier.cs` | Applies profile overrides to EncounterState |
+| `src/HollowWardens.Sim/VerboseLogger.cs` | Turn-by-turn decision log with reasoning |
+| `src/HollowWardens.Sim/Program.cs` | CLI entry point |

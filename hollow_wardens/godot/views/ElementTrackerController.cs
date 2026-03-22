@@ -89,6 +89,7 @@ public partial class ElementTrackerController : VBoxContainer
         var bridge = GameBridge.Instance;
         if (bridge == null) return;
 
+        bridge.EncounterReady     += Refresh;
         bridge.ElementChanged     += OnElementChanged;
         bridge.ThresholdTriggered += OnThresholdTriggered;
         bridge.ElementsDecayed    += Refresh;
@@ -150,7 +151,7 @@ public partial class ElementTrackerController : VBoxContainer
     private void UpdateRow(Element element)
     {
         var bridge = GameBridge.Instance;
-        if (bridge == null) return;
+        if (bridge?.State == null) return;
 
         int val = bridge.State.Elements?.Get(element) ?? 0;
         int idx = (int)element;

@@ -18,6 +18,10 @@ public partial class CardViewController : PanelContainer
     // Element icon textures loaded in _Ready()
     private readonly Dictionary<Element, Texture2D?> _elemIcons = new();
 
+    // Stored so they can be disconnected in _ExitTree()
+    private GameBridge.PhaseChangedEventHandler?         _onPhaseChanged;
+    private GameBridge.TargetingModeChangedEventHandler? _onTargetingModeChanged;
+
     public override void _Ready()
     {
         CustomMinimumSize = new Vector2(150, 200);
@@ -27,13 +31,14 @@ public partial class CardViewController : PanelContainer
         var cinzel = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
         var imFell = GD.Load<Font>("res://godot/assets/fonts/IMFellEnglish-Regular.ttf");
 
+        // Use same icon filenames and loading approach as ElementTrackerController
         const string IconBase = "res://godot/assets/art/kenney_board-game-icons/PNG/Default (64px)/";
-        _elemIcons[Element.Root]   = TryLoadIcon(IconBase + "token.png");
-        _elemIcons[Element.Mist]   = TryLoadIcon(IconBase + "flask_full.png");
-        _elemIcons[Element.Shadow] = TryLoadIcon(IconBase + "skull.png");
-        _elemIcons[Element.Ash]    = TryLoadIcon(IconBase + "fire.png");
-        _elemIcons[Element.Gale]   = TryLoadIcon(IconBase + "arrow_right.png");
-        _elemIcons[Element.Void]   = TryLoadIcon(IconBase + "hexagon_outline.png");
+        _elemIcons[Element.Root]   = LoadIcon(IconBase + "resource_wood.png");
+        _elemIcons[Element.Mist]   = LoadIcon(IconBase + "flask_half.png");
+        _elemIcons[Element.Shadow] = LoadIcon(IconBase + "skull.png");
+        _elemIcons[Element.Ash]    = LoadIcon(IconBase + "fire.png");
+        _elemIcons[Element.Gale]   = LoadIcon(IconBase + "arrow_right.png");
+        _elemIcons[Element.Void]   = LoadIcon(IconBase + "hexagon_outline.png");
 
         var vbox = new VBoxContainer();
         AddChild(vbox);
@@ -69,8 +74,20 @@ public partial class CardViewController : PanelContainer
         var bridge = GameBridge.Instance;
         if (bridge != null)
         {
-            bridge.PhaseChanged         += _ => Refresh();
-            bridge.TargetingModeChanged += _ => Refresh();
+            _onPhaseChanged         = _ => Refresh();
+            _onTargetingModeChanged = _ => Refresh();
+            bridge.PhaseChanged         += _onPhaseChanged;
+            bridge.TargetingModeChanged += _onTargetingModeChanged;
+        }
+    }
+
+    public override void _ExitTree()
+    {
+        var bridge = GameBridge.Instance;
+        if (bridge != null)
+        {
+            if (_onPhaseChanged         != null) bridge.PhaseChanged         -= _onPhaseChanged;
+            if (_onTargetingModeChanged != null) bridge.TargetingModeChanged -= _onTargetingModeChanged;
         }
     }
 
@@ -178,9 +195,8 @@ public partial class CardViewController : PanelContainer
     private static string FormatEffect(HollowWardens.Core.Effects.EffectData e)
         => $"{e.Type} ×{e.Value}" + (e.Range > 0 ? $" r{e.Range}" : "");
 
-    private static Texture2D? TryLoadIcon(string path)
+    private static Texture2D? LoadIcon(string path)
     {
-        if (!ResourceLoader.Exists(path)) return null;
         try { return GD.Load<Texture2D>(path); }
         catch { return null; }
     }

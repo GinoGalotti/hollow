@@ -91,6 +91,26 @@ public class UnitModifierTests
         Assert.True(mod.FortifyGrantsFutureCorruption);
     }
 
+    // --- Base HP verification (balance tuning) ---
+
+    [Fact]
+    public void Marcher_BaseHp_IsCorrect()
+    {
+        Assert.Equal(4, new MarcherModifier().BaseHp); // D30: was 3
+    }
+
+    [Fact]
+    public void Outrider_BaseHp_IsCorrect()
+    {
+        Assert.Equal(3, new OutriderModifier().BaseHp); // D30: was 2
+    }
+
+    [Fact]
+    public void Ironclad_BaseHp_IsCorrect()
+    {
+        Assert.Equal(5, new IroncladModifier().BaseHp);
+    }
+
     // --- Marcher ---
 
     [Fact]
@@ -98,7 +118,7 @@ public class UnitModifierTests
     {
         var mod = new MarcherModifier();
 
-        Assert.Equal(3, mod.BaseHp);
+        Assert.Equal(4, mod.BaseHp);  // D30: was 3
         Assert.Equal(2, mod.RavageCorruption);     // default
         Assert.Equal(0, mod.ExtraMovement);
         Assert.False(mod.MovesEveryOtherAdvance);

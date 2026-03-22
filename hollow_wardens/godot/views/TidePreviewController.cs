@@ -39,6 +39,7 @@ public partial class TidePreviewController : VBoxContainer
         var bridge = GameBridge.Instance;
         if (bridge == null) return;
 
+        bridge.EncounterReady        += RefreshTide;
         bridge.TurnStarted           += RefreshTide;
         bridge.ActionCardRevealed    += (name, painful) =>
         {
@@ -64,7 +65,7 @@ public partial class TidePreviewController : VBoxContainer
     private void RefreshTide()
     {
         var bridge = GameBridge.Instance;
-        if (bridge == null) return;
+        if (bridge?.State == null) return;
 
         int current = bridge.State.CurrentTide;
         int total   = bridge.State.Config.TideCount;

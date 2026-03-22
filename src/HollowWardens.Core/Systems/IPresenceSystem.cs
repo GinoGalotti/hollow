@@ -9,4 +9,5 @@ public interface IPresenceSystem
     bool IsInRange(string fromTerritoryId, string toTerritoryId, int range);
     List<string> GetTerritoriesInRange(string fromTerritoryId, int range);
     int CalculateNetworkFear();  // Root passive: adjacency counting
+    int MaxPresencePerTerritory => 3;  // D30: cap — override in PresenceSystem
 }

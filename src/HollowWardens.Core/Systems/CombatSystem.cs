@@ -44,7 +44,7 @@ public class CombatSystem : ICombatSystem
 
     private static void ExecuteRavage(Territory territory, List<Invader> invaders, EncounterState state)
     {
-        int totalCorruption = 0;
+        int totalCorruption = state.Balance.BaseRavageCorruption;
 
         foreach (var inv in invaders)
         {
@@ -72,6 +72,7 @@ public class CombatSystem : ICombatSystem
             };
         }
 
+        totalCorruption = (int)(totalCorruption * state.Balance.CorruptionRateMultiplier);
         state.Corruption?.AddCorruption(territory, totalCorruption);
         DistributeDamageToNatives(territory, totalCorruption);
     }

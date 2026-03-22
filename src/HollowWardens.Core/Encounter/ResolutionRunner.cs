@@ -4,7 +4,6 @@ using HollowWardens.Core.Effects;
 using HollowWardens.Core.Events;
 using HollowWardens.Core.Models;
 using HollowWardens.Core.Run;
-using HollowWardens.Core.Turn;
 
 /// <summary>
 /// Runs the resolution phase: N turns (2/3/1 by tier) where the player plays
@@ -44,6 +43,13 @@ public class ResolutionRunner
                 {
                     state.Deck?.PlayTop(card);
                     state.Elements?.AddElements(card.Elements, 1);
+                    state.ActionLog.Record(new GameAction
+                    {
+                        TurnNumber = state.CurrentTide,
+                        Phase      = TurnPhase.Resolution,
+                        Type       = GameActionType.PlayTop,
+                        CardId     = card.Id,
+                    });
                     try
                     {
                         var effect = _resolver.Resolve(card.TopEffect);
@@ -55,6 +61,14 @@ public class ResolutionRunner
                         return true;
                 }
             }
+
+            // Marker so ReplayStrategy knows this resolution turn is complete
+            state.ActionLog.Record(new GameAction
+            {
+                TurnNumber = state.CurrentTide,
+                Phase      = TurnPhase.Resolution,
+                Type       = GameActionType.SkipPhase,
+            });
         }
 
         return state.Weave?.IsGameOver == true;

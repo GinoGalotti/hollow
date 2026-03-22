@@ -1,0 +1,7 @@
+{
+  "name": "combo-root_015+root_018",
+  "warden": "root",
+  "warden_overrides": {
+    "add_cards": ["root_015", "root_018"]
+  }
+}

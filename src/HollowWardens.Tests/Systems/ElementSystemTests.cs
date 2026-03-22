@@ -108,6 +108,86 @@ public class ElementSystemTests : IDisposable
     }
 
     [Fact]
+    public void ThresholdFiresOncePerTurn_MultipleCardPlays()
+    {
+        int tier1Count = 0, tier2Count = 0, tier3Count = 0;
+        GameEvents.ThresholdTriggered += (_, t) =>
+        {
+            if (t == 1) tier1Count++;
+            else if (t == 2) tier2Count++;
+            else if (t == 3) tier3Count++;
+        };
+
+        // Card play 1: pool=5, crosses T1(4) → T1 fires
+        _sut.AddElements(Enumerable.Repeat(Element.Ash, 5).ToArray());
+        Assert.Equal(1, tier1Count);
+        Assert.Equal(0, tier2Count);
+
+        // Card play 2: pool=8, crosses T2(7) → T2 fires; T1 NOT again
+        _sut.AddElements(Enumerable.Repeat(Element.Ash, 3).ToArray());
+        Assert.Equal(1, tier1Count);
+        Assert.Equal(1, tier2Count);
+
+        // Card play 3: pool=12, crosses T3(11) → T3 fires; T1/T2 NOT again
+        _sut.AddElements(Enumerable.Repeat(Element.Ash, 4).ToArray());
+        Assert.Equal(1, tier1Count);
+        Assert.Equal(1, tier2Count);
+        Assert.Equal(1, tier3Count);
+    }
+
+    [Fact]
+    public void ThresholdResetsNextTurn()
+    {
+        int tier1Count = 0;
+        GameEvents.ThresholdTriggered += (_, t) => { if (t == 1) tier1Count++; };
+
+        // Turn 1: pool=4, T1 fires
+        _sut.AddElements(Enumerable.Repeat(Element.Ash, 4).ToArray());
+        Assert.Equal(1, tier1Count);
+
+        // Start of turn 2: reset tracking (pool stays at 4)
+        _sut.OnNewTurn();
+
+        // Turn 2: add 1 more → pool=5, still >= T1 threshold, fires again
+        _sut.AddElements(new[] { Element.Ash });
+        Assert.Equal(2, tier1Count);
+    }
+
+    [Fact]
+    public void ThresholdDoesNotResetBetweenPhases()
+    {
+        int tier1Count = 0;
+        GameEvents.ThresholdTriggered += (_, t) => { if (t == 1) tier1Count++; };
+
+        // Vigil phase: T1 fires
+        _sut.AddElements(Enumerable.Repeat(Element.Ash, 4).ToArray());
+        Assert.Equal(1, tier1Count);
+
+        // Dusk phase (no OnNewTurn between phases): T1 must NOT fire again
+        _sut.AddElements(new[] { Element.Ash });
+        Assert.Equal(1, tier1Count);
+    }
+
+    [Fact]
+    public void AllThreeTiersCanFireInOneTurn()
+    {
+        var firedTiers = new List<int>();
+        GameEvents.ThresholdTriggered += (_, t) => firedTiers.Add(t);
+
+        // Single add from 0 to 12 → T1, T2, T3 all fire once
+        _sut.AddElements(Enumerable.Repeat(Element.Ash, 12).ToArray());
+
+        Assert.Contains(1, firedTiers);
+        Assert.Contains(2, firedTiers);
+        Assert.Contains(3, firedTiers);
+        Assert.Equal(3, firedTiers.Count);
+
+        // Adding more elements: nothing fires again this turn
+        _sut.AddElements(Enumerable.Repeat(Element.Ash, 3).ToArray());
+        Assert.Equal(3, firedTiers.Count);
+    }
+
+    [Fact]
     public void BottomDoubleMultiplier()
     {
         _sut.AddElements(new[] { Element.Root }, multiplier: 2);

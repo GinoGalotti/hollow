@@ -7,8 +7,8 @@ using HollowWardens.Core.Systems;
 using Xunit;
 
 /// <summary>
-/// Verifies the new Ravage damage model: corruption = native damage pool,
-/// per-unit values: Marcher=2, Ironclad=3, Outrider=1, Pioneer=2.
+/// Verifies the Ravage damage model: base +2 corruption per Ravage action, plus per-unit:
+/// Marcher=2 (total 4), Ironclad=3 (total 5), Outrider=1 (total 3), Pioneer=2 (total 4).
 /// Outrider pre-hit is 2 damage.
 /// </summary>
 public class RavageDamageModelTests : IDisposable
@@ -41,7 +41,7 @@ public class RavageDamageModelTests : IDisposable
 
         _sut.ExecuteActivate(RavageCard(), territory, state);
 
-        Assert.Equal(2, territory.CorruptionPoints);
+        Assert.Equal(4, territory.CorruptionPoints); // 2 base + 2 Marcher
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class RavageDamageModelTests : IDisposable
 
         _sut.ExecuteActivate(RavageCard(), territory, state);
 
-        Assert.Equal(3, territory.CorruptionPoints);
+        Assert.Equal(5, territory.CorruptionPoints); // 2 base + 3 Ironclad
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public class RavageDamageModelTests : IDisposable
 
         _sut.ExecuteActivate(RavageCard(), territory, state);
 
-        Assert.Equal(1, territory.CorruptionPoints);
+        Assert.Equal(3, territory.CorruptionPoints); // 2 base + 1 Outrider
     }
 
     [Fact]
@@ -78,24 +78,24 @@ public class RavageDamageModelTests : IDisposable
 
         _sut.ExecuteActivate(RavageCard(), territory, state);
 
-        Assert.Equal(2, territory.CorruptionPoints);
+        Assert.Equal(4, territory.CorruptionPoints); // 2 base + 2 Pioneer
     }
 
     [Fact]
     public void CorruptionEqualsNativeDamagePool()
     {
-        // 1 Marcher = 2 corruption = 2 native damage
+        // 1 Marcher = 4 corruption = 4 native damage (2 base + 2 per-unit)
         var state     = CreateState();
         var territory = state.GetTerritory("A1")!;
         territory.Invaders.Add(MakeInvader(UnitType.Marcher, "A1"));
 
-        var native = new Native { Hp = 3, MaxHp = 3, Damage = 3, TerritoryId = "A1" };
+        var native = new Native { Hp = 5, MaxHp = 5, Damage = 3, TerritoryId = "A1" };
         territory.Natives.Add(native);
 
         _sut.ExecuteActivate(RavageCard(), territory, state);
 
-        Assert.Equal(1, native.Hp); // 3 - 2 = 1
-        Assert.Equal(2, territory.CorruptionPoints);
+        Assert.Equal(1, native.Hp); // 5 - 4 = 1
+        Assert.Equal(4, territory.CorruptionPoints);
     }
 
     [Fact]

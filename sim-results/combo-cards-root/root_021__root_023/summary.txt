@@ -1,0 +1,42 @@
+﻿=== HOLLOW WARDENS SIMULATION — 50 encounters (seeds 42–91) ===
+Profile: combo-root_021+root_023
+Timestamp: 2026-03-21 21:24:42
+Output directory: D:\Workspace\hollow\sim-results\combo-cards-root\root_021__root_023
+
+OUTCOMES:
+  Clean:     44 (88%)
+  Weathered: 6 (12%)
+  Breach:    0 (0%)
+
+SURVIVAL:
+  Avg tides completed:  6
+  Avg final weave:      18.56 / 20
+  Game overs (weave 0): 0
+
+COMBAT:
+  Avg invaders killed:     22.88
+  Avg natives killed:      0.76
+  Avg heart damage events: 0.68
+
+CORRUPTION:
+  Avg peak corruption (single territory): 3.42
+  Desecration events (L3 reached):        0 total across all encounters
+  Avg total corruption at final tide:     0
+
+PRESENCE & SACRIFICE:
+  Avg total presence at final tide: 9.82
+  Avg sacrifices per encounter:     0
+
+FEAR:
+  Avg fear generated per encounter: 40.78
+
+PER-TIDE AVERAGES (across all encounters):
+  Tide 1: weave=20 invaders=3 presence=2.2 corruption=0
+  Tide 2: weave=20 invaders=6.2 presence=4.2 corruption=0
+  Tide 3: weave=20 invaders=8.7 presence=6.2 corruption=7.8
+  Tide 4: weave=18.9 invaders=9.2 presence=8.4 corruption=0.1
+  Tide 5: weave=18.7 invaders=10.5 presence=9.2 corruption=0
+  Tide 6: weave=18.4 invaders=9.7 presence=9.8 corruption=0
+
+[CLOSEST CALL] Encounter with lowest weave (4) — seed 74:
+SEED:74|0:PlayTop:root_006:-|1:SelectTarget:-:M1|2:PlayTop:root_005:-|3:PlayBottom:root_025:-|4:SelectTarget:-:A2|5:PlayTop:root_023:-|6:SelectTarget:-:A1|7:PlayTop:root_004:-|8:PlayBottom:root_002:-|9:SelectTarget:-:A3|10:PlayTop:root_021:-|11:PlayTop:root_008:-|12:PlayBottom:root_001:-|13:SelectTarget:-:A1|14:Rest:-:A1|15:PlayTop:root_003:-|16:PlayTop:root_007:-|17:PlayBottom:root_009:-|18:SelectTarget:-:I1|19:PlayTop:root_025:-|20:SelectTarget:-:A3|21:PlayTop:root_002:-|22:SelectTarget:-:A2|23:PlayBottom:root_006:-|24:SelectTarget:-:A3|25:PlayTop:root_023:-|26:SelectTarget:-:A1|27:PlayTop:root_021:-|28:PlayBottom:root_005:-|29:SelectTarget:-:A1|30:PlayTop:root_004:-|31:PlayTop:root_001:-|32:SkipPhase:-:-|33:PlayTop:root_008:-|34:SkipPhase:-:-

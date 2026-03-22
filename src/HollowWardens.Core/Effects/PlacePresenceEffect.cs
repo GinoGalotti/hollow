@@ -13,8 +13,10 @@ public class PlacePresenceEffect : IEffect
         var territory = state.GetTerritory(target.TerritoryId);
         if (territory == null) return;
 
-        // D28 Vulnerability: Defiled (Level 2, 8+ pts) blocks new Presence placement
-        if (territory.CorruptionLevel >= 2) return;
+        // D28/D31 Vulnerability: block Presence placement at the warden's tolerance threshold.
+        // Default = Level 2 (Defiled). Ember overrides to Level 3 (only Desecrated blocks).
+        int blockLevel = state.Warden?.PresenceBlockLevel() ?? 2;
+        if (territory.CorruptionLevel >= blockLevel) return;
 
         state.Presence?.PlacePresence(territory, _data.Value > 0 ? _data.Value : 1);
     }

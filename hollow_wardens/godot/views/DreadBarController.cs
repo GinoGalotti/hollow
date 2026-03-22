@@ -47,6 +47,7 @@ public partial class DreadBarController : VBoxContainer
         var bridge = GameBridge.Instance;
         if (bridge == null) return;
 
+        bridge.EncounterReady += Refresh;
         bridge.DreadAdvanced  += _ => Refresh();
         bridge.FearGenerated  += _ => Refresh();
         bridge.WeaveChanged   += _ => Refresh();
@@ -57,7 +58,7 @@ public partial class DreadBarController : VBoxContainer
     private void Refresh()
     {
         var bridge = GameBridge.Instance;
-        if (bridge == null) return;
+        if (bridge?.State == null) return;
 
         int level = bridge.State.Dread?.DreadLevel ?? 1;
         int total = bridge.State.Dread?.TotalFearGenerated ?? 0;

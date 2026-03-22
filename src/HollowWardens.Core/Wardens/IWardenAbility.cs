@@ -19,4 +19,11 @@ public interface IWardenAbility
 
     // D29: Warden-specific rest behavior (e.g., Root places free presence)
     void OnRest(EncounterState state, string? targetTerritoryId) { }
+
+    // Ember: Tide-start effect (e.g., Ash Trail — corruption + damage in presence territories)
+    void OnTideStart(EncounterState state) { }
+
+    // D31: Corruption level that blocks new Presence placement. Default = 2 (Defiled blocks).
+    // Ember overrides to 3 (only Desecrated blocks — Ember lives in corrupted land).
+    int PresenceBlockLevel() => 2;
 }

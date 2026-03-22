@@ -11,7 +11,7 @@ using Xunit;
 /// <summary>
 /// Tier 2 and Tier 3 threshold effects for all 6 elements.
 /// All tests use AutoResolve to bypass the pending queue.
-/// HP reference: Marcher=3, Ironclad=5, Outrider=2, Pioneer=2.
+/// HP reference: Marcher=4, Ironclad=5, Outrider=3, Pioneer=2.
 /// </summary>
 public class ThresholdT2T3Tests : IDisposable
 {
@@ -191,15 +191,15 @@ public class ThresholdT2T3Tests : IDisposable
     {
         var (state, faction) = BuildState();
         var territory = state.GetTerritory("M1")!;
-        var i1 = MakeMarcher(faction, "M1"); // MaxHp=3
+        var i1 = MakeMarcher(faction, "M1"); // MaxHp=4
         var i2 = MakeMarcher(faction, "M1");
         territory.Invaders.Add(i1);
         territory.Invaders.Add(i2);
 
         new ThresholdResolver().AutoResolve(Element.Ash, 2, state);
 
-        Assert.Equal(1, i1.Hp); // 3-2=1
-        Assert.Equal(1, i2.Hp);
+        Assert.Equal(2, i1.Hp); // 4-2=2
+        Assert.Equal(2, i2.Hp);
     }
 
     [Fact]
@@ -220,8 +220,9 @@ public class ThresholdT2T3Tests : IDisposable
     public void AshTier3_DealsThreeDamageToAllBoardInvaders()
     {
         var (state, faction) = BuildState();
-        var m1inv = MakeMarcher(faction, "M1");  // MaxHp=3 → 3 damage kills
-        var a1inv = MakeOutrider(faction, "A1"); // MaxHp=2 → 3 damage kills
+        var m1inv = MakeMarcher(faction, "M1");  // wounded to 3 → 3 damage kills
+        m1inv.Hp = 3;
+        var a1inv = MakeOutrider(faction, "A1"); // MaxHp=3 → 3 damage kills
         state.GetTerritory("M1")!.Invaders.Add(m1inv);
         state.GetTerritory("A1")!.Invaders.Add(a1inv);
 
@@ -232,8 +233,9 @@ public class ThresholdT2T3Tests : IDisposable
     }
 
     [Fact]
-    public void AshTier3_AddsOneCorruptionToEachAffectedTerritory()
+    public void AshTier3_NoCorruptionAdded_CorruptionRiderRemoved()
     {
+        // D31 fix: Ash T3 no longer adds +1 corruption to each territory.
         var (state, faction) = BuildState();
         var m1 = state.GetTerritory("M1")!;
         var a1 = state.GetTerritory("A1")!;
@@ -242,8 +244,8 @@ public class ThresholdT2T3Tests : IDisposable
 
         new ThresholdResolver().AutoResolve(Element.Ash, 3, state);
 
-        Assert.Equal(1, m1.CorruptionPoints);
-        Assert.Equal(1, a1.CorruptionPoints);
+        Assert.Equal(0, m1.CorruptionPoints);
+        Assert.Equal(0, a1.CorruptionPoints);
     }
 
     [Fact]
@@ -333,14 +335,14 @@ public class ThresholdT2T3Tests : IDisposable
     public void VoidTier2_AllInvadersOnBoardTakeOneDamage()
     {
         var (state, faction) = BuildState();
-        var m1inv = MakeMarcher(faction, "M1");   // MaxHp=3
+        var m1inv = MakeMarcher(faction, "M1");   // MaxHp=4
         var m2inv = MakeIronclad(faction, "M2");  // MaxHp=5
         state.GetTerritory("M1")!.Invaders.Add(m1inv);
         state.GetTerritory("M2")!.Invaders.Add(m2inv);
 
         new ThresholdResolver().AutoResolve(Element.Void, 2, state);
 
-        Assert.Equal(2, m1inv.Hp); // 3-1=2
+        Assert.Equal(3, m1inv.Hp); // 4-1=3
         Assert.Equal(4, m2inv.Hp); // 5-1=4
     }
 
@@ -363,14 +365,14 @@ public class ThresholdT2T3Tests : IDisposable
     public void VoidTier3_AllInvadersTakeTwoDamage()
     {
         var (state, faction) = BuildState();
-        var m1inv = MakeMarcher(faction, "M1");   // MaxHp=3 → 3-2=1
+        var m1inv = MakeMarcher(faction, "M1");   // MaxHp=4 → 4-2=2
         var m2inv = MakeIronclad(faction, "M2");  // MaxHp=5 → 5-2=3
         state.GetTerritory("M1")!.Invaders.Add(m1inv);
         state.GetTerritory("M2")!.Invaders.Add(m2inv);
 
         new ThresholdResolver().AutoResolve(Element.Void, 3, state);
 
-        Assert.Equal(1, m1inv.Hp);
+        Assert.Equal(2, m1inv.Hp);
         Assert.Equal(3, m2inv.Hp);
     }
 
@@ -378,7 +380,8 @@ public class ThresholdT2T3Tests : IDisposable
     public void VoidTier3_KillsOutrider_WithTwoDamage()
     {
         var (state, faction) = BuildState();
-        var inv = MakeOutrider(faction, "M1"); // MaxHp=2 → dies to 2 damage
+        var inv = MakeOutrider(faction, "M1"); // wounded to 2 → dies to 2 damage
+        inv.Hp = 2;
         state.GetTerritory("M1")!.Invaders.Add(inv);
 
         new ThresholdResolver().AutoResolve(Element.Void, 3, state);

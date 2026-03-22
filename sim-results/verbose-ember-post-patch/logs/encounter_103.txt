@@ -1,0 +1,309 @@
+﻿=== ENCOUNTER LOG — seed 103 ===
+Warden: ember  Tides: 6
+
+  [PHASE: Vigil]
+    PLAY (Vigil): ember_006 [Ember Spread] | PRIORITY: presence_expansion — only 1 presence territories, need 3+
+      Elements: Ash,Shadow  Top: PlacePresence(1)  Bot: PlacePresence(2)
+    PLAY (Vigil): ember_005 [Stoke the Fire] | PRIORITY: any_card — playing ember_005
+      Elements: Ash,Ash  Top: ReduceCorruption(2)  Bot: ReduceCorruption(4)
+    CORRUPTION: A1 → 0pts (L0)
+--- TIDE 1 ---
+  Action Card: Ravage (Painful) advance=1
+  Board state:
+    A1   pres=0 corr=0/L0  inv=[—]  nat=[—]
+    A2   pres=0 corr=0/L0  inv=[—]  nat=[—]
+    A3   pres=0 corr=0/L0  inv=[—]  nat=[—]
+    I1   pres=1 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M1   pres=1 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M2   pres=0 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+  Hand:
+    ember_001  Flame Burst              | Ash,Ash              | Top:DamageInvaders(3) Bot:DamageInvaders(6)
+    ember_008  Conflagration            | Ash,Ash,Shadow       | Top:DamageInvaders(3) Bot:DamageInvaders(5)
+    ember_003  Burning Ground           | Ash,Shadow           | Top:DamageInvaders(2) Bot:DamageInvaders(4)
+    CORRUPTION: M1 → 1pts (L0)
+    CORRUPTION: I1 → 1pts (L0)
+  [TIDE STEP: Advance]
+  [TIDE STEP: Arrive]
+    ARRIVED: Marcher [a2151cdf] → A1
+    ARRIVED: Marcher [f155ed8c] → A2
+    ARRIVED: Marcher [937c7e23] → A3
+  [TIDE STEP: Preview]
+  [TIDE 1 COMPLETE] weave=20 dread=1
+  [PHASE: Dusk]
+    PLAY (Dusk): ember_001 [Flame Burst] | PRIORITY: best_bottom — DamageInvaders (priority 100)
+      Elements: Ash,Ash  Top: DamageInvaders(3)  Bot: DamageInvaders(6)
+    THRESHOLD: Ash T1 triggered
+    THRESHOLD RESOLVED: Ash T1 — Ash T1: 1 damage to all in most-invaded territory
+    THRESHOLD: Ash T2 triggered
+    CORRUPTION: A1 → 1pts (L0)
+    THRESHOLD RESOLVED: Ash T2 — Ash T2: 2 damage to all in one territory + 1 Corruption
+    KILLED: Marcher [a2151cdf] at A1
+    THRESHOLD: Ash T1 triggered
+    THRESHOLD RESOLVED: Ash T1 — Ash T1: 1 damage to all in most-invaded territory
+  [PHASE: Vigil]
+    PLAY (Vigil): ember_002 [Kindle] | PRIORITY: presence_expansion — only 2 presence territories, need 3+
+      Elements: Ash,Gale  Top: PlacePresence(1)  Bot: PlacePresence(1)
+    THRESHOLD: Ash T1 triggered
+    THRESHOLD RESOLVED: Ash T1 — Ash T1: 1 damage to all in most-invaded territory
+    THRESHOLD: Ash T2 triggered
+    KILLED: Marcher [f155ed8c] at A2
+    CORRUPTION: A2 → 1pts (L0)
+    THRESHOLD RESOLVED: Ash T2 — Ash T2: 2 damage to all in one territory + 1 Corruption
+    PLAY (Vigil): ember_008 [Conflagration] | PRIORITY: damage — A3 has 1 invaders, playing Ember card
+      Elements: Ash,Ash,Shadow  Top: DamageInvaders(3)  Bot: DamageInvaders(5)
+--- TIDE 2 ---
+  Action Card: Regroup (Easy) advance=0
+  Board state:
+    A1   pres=0 corr=1/L0  inv=[—]  nat=[—]
+    A2   pres=1 corr=1/L0  inv=[—]  nat=[—]
+    A3   pres=0 corr=0/L0  inv=[Marcher(1/4)]  nat=[—]
+    I1   pres=1 corr=1/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M1   pres=1 corr=1/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M2   pres=0 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+  Hand:
+    ember_003  Burning Ground           | Ash,Shadow           | Top:DamageInvaders(2) Bot:DamageInvaders(4)
+    ember_007  Heat Shimmer             | Ash,Gale             | Top:RestoreWeave(1) Bot:RestoreWeave(2)
+    ember_004  Smoke Screen             | Shadow,Gale          | Top:GenerateFear(3) Bot:GenerateFear(6)
+    CORRUPTION: A2 → 2pts (L0)
+    CORRUPTION: M1 → 2pts (L0)
+    CORRUPTION: I1 → 2pts (L0)
+
+--- TIDE 3 — FEAR STEP ---
+  [TIDE STEP: Activate]
+  [TIDE STEP: Advance]
+  [TIDE STEP: Arrive]
+    ARRIVED: Marcher [b35eb410] → A1
+    ARRIVED: Outrider [574c3917] → A1
+    ARRIVED: Marcher [6967d8ba] → A3
+    ARRIVED: Marcher [83d99bbd] → A3
+  [TIDE STEP: Escalate]
+  [TIDE STEP: Preview]
+  [TIDE 2 COMPLETE] weave=20 dread=1
+  [PHASE: Dusk]
+    PLAY (Dusk): ember_003 [Burning Ground] | PRIORITY: best_bottom — DamageInvaders (priority 100)
+      Elements: Ash,Shadow  Top: DamageInvaders(2)  Bot: DamageInvaders(4)
+    THRESHOLD: Ash T3 triggered
+    KILLED: Outrider [574c3917] at A1
+    KILLED: Marcher [937c7e23] at A3
+    THRESHOLD RESOLVED: Ash T3 — Ash T3: 3 damage to ALL invaders on board
+    FEAR: +3 generated
+    THRESHOLD: Ash T1 triggered
+    KILLED: Marcher [6967d8ba] at A3
+    KILLED: Marcher [83d99bbd] at A3
+    THRESHOLD RESOLVED: Ash T1 — Ash T1: 1 damage to all in most-invaded territory
+    THRESHOLD: Ash T2 triggered
+    KILLED: Marcher [b35eb410] at A1
+    CORRUPTION: A1 → 2pts (L0)
+    THRESHOLD RESOLVED: Ash T2 — Ash T2: 2 damage to all in one territory + 1 Corruption
+  [PHASE: Vigil]
+    PLAY (Vigil): ember_004 [Smoke Screen] | PRIORITY: fear — generating fear (Phoenix Spark may trigger)
+      Elements: Shadow,Gale  Top: GenerateFear(3)  Bot: GenerateFear(6)
+    THRESHOLD: Ash T1 triggered
+    THRESHOLD RESOLVED: Ash T1 — Ash T1: 1 damage to all in most-invaded territory
+    THRESHOLD: Ash T2 triggered
+    THRESHOLD RESOLVED: Ash T2 — Ash T2: 2 damage to all in one territory + 1 Corruption
+    FEAR: +3 generated
+    PLAY (Vigil): ember_007 [Heat Shimmer] | PRIORITY: any_card — playing ember_007
+      Elements: Ash,Gale  Top: RestoreWeave(1)  Bot: RestoreWeave(2)
+    THRESHOLD: Ash T3 triggered
+    THRESHOLD RESOLVED: Ash T3 — Ash T3: 3 damage to ALL invaders on board
+    WEAVE: → 20
+--- TIDE 3 ---
+  Action Card: March (Painful) advance=2
+  Board state:
+    A1   pres=0 corr=2/L0  inv=[—]  nat=[—]
+    A2   pres=1 corr=2/L0  inv=[—]  nat=[—]
+    A3   pres=0 corr=0/L0  inv=[—]  nat=[—]
+    I1   pres=1 corr=2/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M1   pres=1 corr=2/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M2   pres=0 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+  Hand:
+    ember_005  Stoke the Fire           | Ash,Ash              | Top:ReduceCorruption(2) Bot:ReduceCorruption(4)
+    ember_002  Kindle                   | Ash,Gale             | Top:PlacePresence(1) Bot:PlacePresence(1)
+    CORRUPTION: A2 → 3pts (L1)
+    CORRUPTION: M1 → 3pts (L1)
+    CORRUPTION: I1 → 3pts (L1)
+
+--- TIDE 4 — FEAR STEP ---
+    FEAR ACTION: [fa1_strike] Deal 1 damage to 1 invader
+  [TIDE STEP: Activate]
+  [TIDE STEP: Advance]
+  [TIDE STEP: Arrive]
+    ARRIVED: Marcher [6dfdc11b] → A2
+    ARRIVED: Ironclad [27533977] → A2
+    ARRIVED: Outrider [044cf6bc] → A1
+    ARRIVED: Marcher [0ede5939] → A3
+  [TIDE STEP: Escalate]
+  [TIDE STEP: Preview]
+  [TIDE 3 COMPLETE] weave=20 dread=1
+  [PHASE: Dusk]
+    PLAY (Dusk): ember_002 [Kindle] | PRIORITY: best_bottom — PlacePresence (priority 50)
+      Elements: Ash,Gale  Top: PlacePresence(1)  Bot: PlacePresence(1)
+    THRESHOLD: Gale T1 triggered
+    ADVANCE: Outrider [044cf6bc] A1 → A2
+    THRESHOLD RESOLVED: Gale T1 — Gale T1: Push 1 invader toward spawn
+    KILLED: Marcher [0ede5939] at A3
+    THRESHOLD: Ash T1 triggered
+    THRESHOLD RESOLVED: Ash T1 — Ash T1: 1 damage to all in most-invaded territory
+    THRESHOLD: Ash T2 triggered
+    KILLED: Outrider [044cf6bc] at A2
+    CORRUPTION: A2 → 4pts (L1)
+    THRESHOLD RESOLVED: Ash T2 — Ash T2: 2 damage to all in one territory + 1 Corruption
+    THRESHOLD: Ash T3 triggered
+    KILLED: Marcher [6dfdc11b] at A2
+    KILLED: Ironclad [27533977] at A2
+    THRESHOLD RESOLVED: Ash T3 — Ash T3: 3 damage to ALL invaders on board
+    FEAR: +3 generated
+  [PHASE: Vigil]
+    PLAY (Vigil): ember_004 [Smoke Screen] | PRIORITY: fear — generating fear (Phoenix Spark may trigger)
+      Elements: Shadow,Gale  Top: GenerateFear(3)  Bot: GenerateFear(6)
+    THRESHOLD: Ash T1 triggered
+    THRESHOLD RESOLVED: Ash T1 — Ash T1: 1 damage to all in most-invaded territory
+    THRESHOLD: Ash T2 triggered
+    THRESHOLD RESOLVED: Ash T2 — Ash T2: 2 damage to all in one territory + 1 Corruption
+    THRESHOLD: Ash T3 triggered
+    THRESHOLD RESOLVED: Ash T3 — Ash T3: 3 damage to ALL invaders on board
+    THRESHOLD: Gale T1 triggered
+    THRESHOLD RESOLVED: Gale T1 — Gale T1: Push 1 invader toward spawn
+    FEAR: +3 generated
+    PLAY (Vigil): ember_005 [Stoke the Fire] | PRIORITY: any_card — playing ember_005
+      Elements: Ash,Ash  Top: ReduceCorruption(2)  Bot: ReduceCorruption(4)
+    CORRUPTION: A2 → 1pts (L0)
+--- TIDE 4 ---
+  Action Card: Rest (Easy) advance=1
+  Board state:
+    A1   pres=0 corr=2/L0  inv=[—]  nat=[—]
+    A2   pres=1 corr=1/L0  inv=[—]  nat=[—]
+    A3   pres=1 corr=0/L0  inv=[—]  nat=[—]
+    I1   pres=1 corr=3/L1  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M1   pres=1 corr=3/L1  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M2   pres=0 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+  Hand: (empty)
+    CORRUPTION: A2 → 2pts (L0)
+    CORRUPTION: A3 → 1pts (L0)
+    CORRUPTION: M1 → 4pts (L1)
+    CORRUPTION: I1 → 4pts (L1)
+
+--- TIDE 5 — FEAR STEP ---
+    FEAR ACTION: [fa1_cleanse] Reduce 1 Corruption point from 1 territory
+  [TIDE STEP: Activate]
+  [TIDE STEP: Advance]
+  [TIDE STEP: Arrive]
+    ARRIVED: Marcher [ee8b08e4] → A1
+    ARRIVED: Pioneer [bf4b3755] → A1
+    ARRIVED: Outrider [a0cc1ef6] → A2
+    ARRIVED: Marcher [35cdc720] → A3
+  [TIDE STEP: Escalate]
+  [TIDE STEP: Preview]
+  [TIDE 4 COMPLETE] weave=20 dread=1
+  [PHASE: Dusk]
+    THRESHOLD: Ash T1 triggered
+    THRESHOLD RESOLVED: Ash T1 — Ash T1: 1 damage to all in most-invaded territory
+    THRESHOLD: Ash T2 triggered
+    KILLED: Pioneer [bf4b3755] at A1
+    CORRUPTION: A1 → 3pts (L1)
+    THRESHOLD RESOLVED: Ash T2 — Ash T2: 2 damage to all in one territory + 1 Corruption
+    THRESHOLD: Ash T3 triggered
+    KILLED: Marcher [ee8b08e4] at A1
+    KILLED: Outrider [a0cc1ef6] at A2
+    THRESHOLD RESOLVED: Ash T3 — Ash T3: 3 damage to ALL invaders on board
+    DREAD: advanced to level 2
+    FEAR: +3 generated
+    KILLED: Marcher [35cdc720] at A3
+  [PHASE: Vigil]
+    PLAY (Vigil): ember_004 [Smoke Screen] | PRIORITY: fear — generating fear (Phoenix Spark may trigger)
+      Elements: Shadow,Gale  Top: GenerateFear(3)  Bot: GenerateFear(6)
+    THRESHOLD: Ash T1 triggered
+    THRESHOLD RESOLVED: Ash T1 — Ash T1: 1 damage to all in most-invaded territory
+    THRESHOLD: Ash T2 triggered
+    THRESHOLD RESOLVED: Ash T2 — Ash T2: 2 damage to all in one territory + 1 Corruption
+    THRESHOLD: Ash T3 triggered
+    THRESHOLD RESOLVED: Ash T3 — Ash T3: 3 damage to ALL invaders on board
+    THRESHOLD: Gale T1 triggered
+    THRESHOLD RESOLVED: Gale T1 — Gale T1: Push 1 invader toward spawn
+    FEAR: +3 generated
+--- TIDE 5 ---
+  Action Card: pm_corrupt (Painful) advance=1 ESCALATION
+  Board state:
+    A1   pres=0 corr=3/L1  inv=[—]  nat=[—]
+    A2   pres=1 corr=2/L0  inv=[—]  nat=[—]
+    A3   pres=1 corr=1/L0  inv=[—]  nat=[—]
+    I1   pres=1 corr=4/L1  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M1   pres=1 corr=4/L1  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M2   pres=0 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+  Hand: (empty)
+    CORRUPTION: A2 → 3pts (L1)
+    CORRUPTION: A3 → 2pts (L0)
+    CORRUPTION: M1 → 5pts (L1)
+    CORRUPTION: I1 → 5pts (L1)
+
+--- TIDE 6 — FEAR STEP ---
+    FEAR ACTION: [fa2_terror] Generate 3 Fear
+    FEAR: +3 generated
+  [TIDE STEP: Activate]
+  [TIDE STEP: CounterAttack]
+  [TIDE STEP: Advance]
+  [TIDE STEP: Arrive]
+    ARRIVED: Marcher [143f71f0] → A2
+    ARRIVED: Outrider [a8003732] → A2
+    ARRIVED: Ironclad [4926363d] → A1
+    ARRIVED: Marcher [f23cb3c5] → A3
+  [TIDE STEP: Escalate]
+  [TIDE STEP: Preview]
+  [TIDE 5 COMPLETE] weave=20 dread=2
+  [PHASE: Dusk]
+    THRESHOLD: Ash T1 triggered
+    THRESHOLD RESOLVED: Ash T1 — Ash T1: 1 damage to all in most-invaded territory
+    THRESHOLD: Ash T2 triggered
+    KILLED: Outrider [a8003732] at A2
+    CORRUPTION: A2 → 4pts (L1)
+    THRESHOLD RESOLVED: Ash T2 — Ash T2: 2 damage to all in one territory + 1 Corruption
+    THRESHOLD: Ash T3 triggered
+    KILLED: Marcher [143f71f0] at A2
+    THRESHOLD RESOLVED: Ash T3 — Ash T3: 3 damage to ALL invaders on board
+    FEAR: +3 generated
+    KILLED: Marcher [f23cb3c5] at A3
+  [PHASE: Vigil]
+--- TIDE 6 ---
+  Action Card: Settle (Easy) advance=0
+  Board state:
+    A1   pres=0 corr=3/L1  inv=[Ironclad(2/5)]  nat=[—]
+    A2   pres=1 corr=4/L1  inv=[—]  nat=[—]
+    A3   pres=1 corr=2/L0  inv=[—]  nat=[—]
+    I1   pres=1 corr=5/L1  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M1   pres=1 corr=5/L1  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M2   pres=0 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+  Hand: (empty)
+    CORRUPTION: A2 → 5pts (L1)
+    CORRUPTION: A3 → 3pts (L1)
+    CORRUPTION: M1 → 6pts (L1)
+    CORRUPTION: I1 → 6pts (L1)
+
+--- TIDE 7 — FEAR STEP ---
+    FEAR ACTION: [fa2_weave] Restore 1 Weave
+    WEAVE: → 20
+  [TIDE STEP: Activate]
+  [TIDE STEP: Advance]
+  [TIDE STEP: Arrive]
+    ARRIVED: Ironclad [d3793422] → A2
+    ARRIVED: Outrider [1ea9fa29] → A2
+    ARRIVED: Ironclad [3952a368] → A1
+    ARRIVED: Marcher [bcce3e4b] → A3
+  [TIDE STEP: Escalate]
+  [TIDE STEP: Preview]
+  [TIDE 6 COMPLETE] weave=20 dread=2
+  [PHASE: Dusk]
+  [PHASE: Resolution]
+  [PHASE: Resolution]
+    KILLED: Ironclad [4926363d] at A1
+    KILLED: Outrider [1ea9fa29] at A2
+    KILLED: Marcher [bcce3e4b] at A3
+    KILLED: Ironclad [3952a368] at A1
+    KILLED: Ironclad [d3793422] at A2
+    CORRUPTION: A2 → 0pts (L0)
+    CORRUPTION: A3 → 0pts (L0)
+    CORRUPTION: M1 → 0pts (L0)
+    CORRUPTION: I1 → 0pts (L0)
+
+=== ENCOUNTER RESULT: Weathered ===
+Final weave: 20

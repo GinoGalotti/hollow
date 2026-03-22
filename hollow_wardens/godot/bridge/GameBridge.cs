@@ -63,11 +63,19 @@ public partial class GameBridge : Node
     [Signal] public delegate void ThresholdExpiredEventHandler(int element, int tier);
     [Signal] public delegate void ThresholdResolvedEventHandler(int element, int tier, string description);
 
+    [Signal] public delegate void PassiveUnlockedEventHandler(string passiveId);
+
     [Signal] public delegate void FearActionPendingEventHandler(string description, bool needsTarget);
     [Signal] public delegate void CounterAttackPendingGodotEventHandler(string territoryId, int pool);
 
+    /// <summary>Emitted after BuildEncounter() completes — State is valid, first turn not yet started.</summary>
+    [Signal] public delegate void EncounterReadyEventHandler();
+
     // ── Public State ─────────────────────────────────────────────────────────
     public static GameBridge? Instance { get; private set; }
+
+    /// <summary>Set before the encounter starts to select which warden to play.</summary>
+    public static string SelectedWardenId { get; set; } = "root";
 
     public EncounterState State { get; private set; } = null!;
 
@@ -132,6 +140,9 @@ public partial class GameBridge : Node
     private List<FearActionData>   _pendingFearActions = new();
     private int                    _fearActionIndex;
     private bool                   _isFearTargeting;
+    private bool                   _isThresholdTargeting;
+    private Element                _pendingThresholdElement;
+    private int                    _pendingThresholdTier;
     private List<Territory>        _counterAttackTargets = new();
     private int                    _counterAttackTargetIndex;
 
@@ -172,8 +183,17 @@ public partial class GameBridge : Node
     public override void _Ready()
     {
         Instance = this;
+        // BuildEncounter is deferred — WardenSelectController calls StartWithWarden() after selection.
+        // If no WardenSelectController is present (e.g. in tests), call StartWithWarden("root") directly.
+    }
+
+    /// <summary>Called by WardenSelectController after the player chooses a warden.</summary>
+    public void StartWithWarden(string wardenId)
+    {
+        SelectedWardenId = wardenId;
         BuildEncounter();
         SubscribeToGameEvents();
+        EmitSignal(SignalName.EncounterReady);
         Callable.From(StartFirstTurn).CallDeferred();
     }
 
@@ -194,13 +214,29 @@ public partial class GameBridge : Node
     }
 
     /// <summary>
-    /// Parses an exported state string and logs the seed + action count.
-    /// Full replay is not yet implemented — this is a stub for future use.
+    /// Parses an exported state string and replays the encounter with the recorded seed.
+    /// Results are logged to the console; the current live encounter is not affected.
     /// </summary>
     public void ImportAndReplay(string data)
     {
         var (seed, rawActions) = ActionLog.ImportFull(data);
-        GD.Print($"[ImportAndReplay] seed={seed}  actions={rawActions.Length}");
+        GD.Print($"[Replay] seed={seed}  actions={rawActions.Length}");
+
+        var resDir   = ProjectSettings.GlobalizePath("res://");
+        var jsonPath = System.IO.Path.GetFullPath(
+            System.IO.Path.Combine(resDir, "..", "data", "wardens", "root.json"));
+
+        var runner = new ReplayRunner(seed, rawActions, jsonPath);
+        runner.ActionReplayed += (idx, action, state) =>
+        {
+            GD.Print($"[Replay] Action {idx}: {action.Type} card={action.CardId} target={action.TargetTerritoryId}");
+        };
+        runner.ReplayCompleted += state =>
+        {
+            GD.Print($"[Replay] Complete. Weave={state.Weave?.CurrentWeave} Tides={state.CurrentTide}");
+        };
+
+        runner.Replay();
     }
 
     /// <summary>True when a top-half play is currently permitted (Vigil under 2-play limit, or Resolution).</summary>
@@ -209,17 +245,41 @@ public partial class GameBridge : Node
     /// <summary>True when a bottom-half play is currently permitted (Dusk under 1-play limit).</summary>
     public bool CanPlayBottom() => _turnManager.CanPlayBottom();
 
-    /// <summary>Resolves a player-pending threshold action and emits card-play feedback.</summary>
+    /// <summary>Resolves a player-pending threshold action, entering targeting mode when needed.</summary>
     public void ResolveThreshold(int elementIdx, int tier)
     {
-        // TODO: threshold targeting needs proper implementation
-        // Effects like Root T1 (PlacePresence) and Gale T2 (PushAllInTerritory) should enter
-        // targeting mode so the player can pick the territory. For now they auto-resolve
-        // using built-in heuristics (first available adjacent, most-invaded, etc.).
-        GD.Print($"[Threshold] {(Element)elementIdx} T{tier} auto-resolved (targeting not yet implemented)");
         var element = (Element)elementIdx;
+        var targetEffect = ThresholdResolver.GetTargetEffect(element, tier);
+        if (targetEffect != null)
+        {
+            EnterThresholdTargetingMode(element, tier, targetEffect);
+            return;
+        }
+
         _thresholdResolver.Resolve(element, tier, State);
         EmitSignal(SignalName.CardPlayFeedback, $"★ {element} T{tier}", "", 3);
+    }
+
+    private void EnterThresholdTargetingMode(Element element, int tier, EffectData effect)
+    {
+        _isThresholdTargeting    = true;
+        _pendingThresholdElement = element;
+        _pendingThresholdTier    = tier;
+        IsWaitingForTarget       = true;
+        PendingCard              = null;
+        PendingEffect            = effect;
+        IsPendingBottom          = false;
+        EmitSignal(SignalName.TargetingModeChanged, true);
+    }
+
+    private void ResolveThresholdTargeted(string territoryId)
+    {
+        var element = _pendingThresholdElement;
+        var tier    = _pendingThresholdTier;
+        _isThresholdTargeting = false;
+        ExitTargetingMode();
+        _thresholdResolver.Resolve(element, tier, State, territoryId);
+        EmitSignal(SignalName.CardPlayFeedback, $"★ {element} T{tier}", territoryId, 3);
     }
 
     public void PlayTop(Card card)
@@ -283,7 +343,12 @@ public partial class GameBridge : Node
     {
         if (!IsWaitingForTarget) return;
 
-        // Fear action targeting takes priority over card play targeting
+        if (_isThresholdTargeting)
+        {
+            ResolveThresholdTargeted(territoryId);
+            return;
+        }
+
         if (_isFearTargeting)
         {
             ResolveFearActionTargeted(territoryId);
@@ -327,10 +392,16 @@ public partial class GameBridge : Node
         EmitDeckCounts();
     }
 
-    /// <summary>Cancels targeting mode without resolving the pending card or fear action.</summary>
+    /// <summary>Cancels targeting mode without resolving the pending card, threshold, or fear action.</summary>
     public void CancelTargeting()
     {
         if (!IsWaitingForTarget) return;
+        if (_isThresholdTargeting)
+        {
+            _isThresholdTargeting = false;
+            ExitTargetingMode();
+            return;
+        }
         if (_isFearTargeting)
         {
             // Reset fear targeting but stay in FearActions sub-phase (re-show overlay)
@@ -378,42 +449,57 @@ public partial class GameBridge : Node
 
     private void BuildEncounter()
     {
-        var random = GameRandom.NewRandom();
+        var random  = GameRandom.NewRandom();
+        var balance = new HollowWardens.Core.Encounter.BalanceConfig();
         GD.Print($"Encounter seed: {random.Seed}");
 
         var territories = BoardState.CreatePyramid().Territories.Values.ToList();
-        var dread       = new DreadSystem();
-        var presence    = new PresenceSystem(() => territories);
-        var warden      = new RootAbility(presence);
-
-        var config = EncounterLoader.CreatePaleMarchStandard();
-
-        State = new EncounterState
-        {
-            Config      = config,
-            Territories = territories,
-            Elements    = new ElementSystem(),
-            Dread       = dread,
-            Weave       = new WeaveSystem(20),
-            Combat      = new CombatSystem(),
-            Presence    = presence,
-            Corruption  = new CorruptionSystem(),
-            FearActions = new FearActionSystem(dread, FearActionPool.Build(), random),
-            Warden      = warden,
-            Random      = random,
-            ActionLog   = new ActionLog()
-        };
+        var dread       = new DreadSystem(balance);
+        var presence    = new PresenceSystem(() => territories, balance.MaxPresencePerTerritory);
 
         var resDir   = ProjectSettings.GlobalizePath("res://");
         var jsonPath = System.IO.Path.GetFullPath(
-            System.IO.Path.Combine(resDir, "..", "data", "wardens", "root.json"));
-        var wardenData    = WardenLoader.Load(jsonPath);
+            System.IO.Path.Combine(resDir, "..", "data", "wardens", $"{SelectedWardenId}.json"));
+        var wardenData = WardenLoader.Load(jsonPath);
+
+        IWardenAbility warden = wardenData.WardenId switch
+        {
+            "root"  => new RootAbility(presence, balance),
+            "ember" => new EmberAbility(),
+            _       => throw new ArgumentException($"Unknown warden: {wardenData.WardenId}")
+        };
+
+        var gating = new PassiveGating(wardenData.WardenId);
+        if (warden is RootAbility rootAbility)
+            rootAbility.Gating = gating;
+        gating.PassiveUnlocked += (id, _) => EmitSignal(SignalName.PassiveUnlocked, id);
+
+        var config  = EncounterLoader.CreatePaleMarchStandard();
+        var faction = new PaleMarchFaction();
+        faction.HpBonus = balance.InvaderHpBonus;
+        State = new EncounterState
+        {
+            Config        = config,
+            Territories   = territories,
+            Elements      = new ElementSystem(balance),
+            Dread         = dread,
+            Weave         = new WeaveSystem(balance.StartingWeave, balance.MaxWeave),
+            Combat        = new CombatSystem(),
+            Presence      = presence,
+            Corruption    = new CorruptionSystem(),
+            FearActions   = new FearActionSystem(dread, FearActionPool.Build(), random, balance),
+            Warden        = warden,
+            Random        = random,
+            ActionLog     = new ActionLog(),
+            PassiveGating = gating,
+            Balance       = balance
+        };
+
         var startingCards = wardenData.Cards.Where(c => c.IsStarting).ToList();
         State.Deck        = new DeckManager(warden, startingCards, random, shuffle: true);
         State.WardenData  = wardenData;
 
         _resolver   = new EffectResolver();
-        var faction = new PaleMarchFaction();
         _actionDeck = new ActionDeck(faction.BuildPainfulPool(), faction.BuildEasyPool(), random, shuffle: true);
         _cadence    = new CadenceManager(config.Cadence);
         _spawn      = new SpawnManager(config.Waves, random);
@@ -429,12 +515,14 @@ public partial class GameBridge : Node
     private void InitialEncounterSetup()
     {
         // Spawn natives per config
+        int nativeHp     = State.Balance.DefaultNativeHp;
+        int nativeDamage = State.Balance.DefaultNativeDamage;
         foreach (var (territoryId, count) in State.Config.NativeSpawns)
         {
             var territory = State.GetTerritory(territoryId);
             if (territory == null || count <= 0) continue;
             for (int i = 0; i < count; i++)
-                territory.Natives.Add(new Native { Hp = 2, MaxHp = 2, Damage = 3, TerritoryId = territoryId });
+                territory.Natives.Add(new Native { Hp = nativeHp, MaxHp = nativeHp, Damage = nativeDamage, TerritoryId = territoryId });
         }
 
         // Place starting Presence from warden data
@@ -571,12 +659,17 @@ public partial class GameBridge : Node
     private void ExecuteCurrentFearAction(TargetInfo target)
     {
         if (CurrentFearAction == null) return;
+        State.FearActions?.BeginResolution(); // Bugfix: prevent fear loop during resolution
         try
         {
             var effect = _resolver.Resolve(CurrentFearAction.Effect);
             effect.Resolve(State, target);
         }
         catch (NotImplementedException) { }
+        finally
+        {
+            State.FearActions?.EndResolution();
+        }
     }
 
     private void EnterFearTargetingMode(FearActionData fa)
@@ -819,7 +912,11 @@ public partial class GameBridge : Node
 
         _hElementChanged      = (e, v) => EmitSignal(SignalName.ElementChanged,    (int)e, v);
         _hThresholdTriggered  = (e, t) => EmitSignal(SignalName.ThresholdTriggered, (int)e, t);
-        _hThresholdAutoResolve = (e, t) => _thresholdResolver.OnThresholdTriggered(e, t, State);
+        _hThresholdAutoResolve = (e, t) =>
+        {
+            _thresholdResolver.OnThresholdTriggered(e, t, State);
+            State.PassiveGating?.OnThresholdTriggered(e, t);
+        };
         _hElementsDecayed      = ()     => EmitSignal(SignalName.ElementsDecayed);
         GameEvents.ElementChanged     += _hElementChanged;
         GameEvents.ThresholdTriggered += _hThresholdTriggered;

@@ -21,5 +21,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HollowWardens.Core\HollowWardens.Core.csproj" />
+    <ProjectReference Include="..\HollowWardens.Sim\HollowWardens.Sim.csproj" />
   </ItemGroup>
 </Project>

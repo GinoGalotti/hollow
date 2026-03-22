@@ -1,0 +1,9 @@
+{
+    "name": "A/B test — Marcher HP 5 (invader_hp_bonus +1)",
+    "seeds": "1-500",
+    "warden": "root",
+    "encounter": "pale_march_standard",
+    "balance_overrides": {
+        "invader_hp_bonus": 1
+    }
+}

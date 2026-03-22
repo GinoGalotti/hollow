@@ -23,14 +23,14 @@ public class TurnActions
     public void PlayTop(Card card, TargetInfo? target = null)
     {
         _state.Deck?.PlayTop(card);
-        _state.Elements?.AddElements(card.Elements, 1);
+        _state.Elements?.AddElements(card.Elements, _state.Balance.TopElementMultiplier);
         ResolveEffect(card.TopEffect, target);
     }
 
     public void PlayBottom(Card card, TargetInfo? target = null)
     {
         _state.Deck?.PlayBottom(card, _state.Config.Tier);
-        _state.Elements?.AddElements(card.Elements, 2);
+        _state.Elements?.AddElements(card.Elements, _state.Balance.BottomElementMultiplier);
         ResolveEffect(card.BottomEffect, target);
         if (card.BottomSecondary != null)
             ResolveEffect(card.BottomSecondary, target);
@@ -56,8 +56,8 @@ public class TurnActions
         var territory = _state.GetTerritory(territoryId);
         if (territory == null || !territory.HasPresence) return false;
 
-        _state.Presence?.RemovePresence(territory, 1);
-        _state.Corruption?.ReduceCorruption(territory, 3);
+        _state.Presence?.RemovePresence(territory, _state.Balance.SacrificePresenceCost);
+        _state.Corruption?.ReduceCorruption(territory, _state.Balance.SacrificeCorruptionCleanse);
 
         GameEvents.PresenceSacrificed?.Invoke(territory, 1);
         return true;

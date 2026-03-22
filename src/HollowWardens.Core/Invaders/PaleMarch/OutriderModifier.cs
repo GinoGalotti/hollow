@@ -5,7 +5,7 @@ using HollowWardens.Core.Models;
 public class OutriderModifier : UnitTypeModifier
 {
     public override UnitType UnitType => UnitType.Outrider;
-    public override int BaseHp => 2;
+    public override int BaseHp => 3;  // was 2
 
     // Ravage: only 1 Corruption, but 2 damage to one Native first
     public override int RavageCorruption => 1;

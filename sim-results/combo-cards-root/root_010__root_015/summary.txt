@@ -1,0 +1,42 @@
+﻿=== HOLLOW WARDENS SIMULATION — 50 encounters (seeds 42–91) ===
+Profile: combo-root_010+root_015
+Timestamp: 2026-03-21 21:23:24
+Output directory: D:\Workspace\hollow\sim-results\combo-cards-root\root_010__root_015
+
+OUTCOMES:
+  Clean:     43 (86%)
+  Weathered: 7 (14%)
+  Breach:    0 (0%)
+
+SURVIVAL:
+  Avg tides completed:  6
+  Avg final weave:      17.64 / 20
+  Game overs (weave 0): 0
+
+COMBAT:
+  Avg invaders killed:     22.82
+  Avg natives killed:      0.76
+  Avg heart damage events: 1.02
+
+CORRUPTION:
+  Avg peak corruption (single territory): 3.6
+  Desecration events (L3 reached):        0 total across all encounters
+  Avg total corruption at final tide:     0
+
+PRESENCE & SACRIFICE:
+  Avg total presence at final tide: 9.7
+  Avg sacrifices per encounter:     0
+
+FEAR:
+  Avg fear generated per encounter: 35.76
+
+PER-TIDE AVERAGES (across all encounters):
+  Tide 1: weave=20 invaders=3 presence=2.2 corruption=0
+  Tide 2: weave=20 invaders=6.3 presence=4.1 corruption=0
+  Tide 3: weave=20 invaders=9.2 presence=5.8 corruption=8.5
+  Tide 4: weave=18.6 invaders=9.3 presence=8.4 corruption=0.4
+  Tide 5: weave=18.2 invaders=10.7 presence=9.2 corruption=0
+  Tide 6: weave=17.4 invaders=9.8 presence=9.7 corruption=0
+
+[CLOSEST CALL] Encounter with lowest weave (4) — seed 74:
+SEED:74|0:PlayTop:root_006:-|1:SelectTarget:-:M1|2:PlayTop:root_005:-|3:PlayBottom:root_025:-|4:SelectTarget:-:A2|5:PlayTop:root_004:-|6:PlayTop:root_015:-|7:SelectTarget:-:A1|8:PlayBottom:root_002:-|9:SelectTarget:-:A3|10:PlayTop:root_010:-|11:PlayTop:root_008:-|12:PlayBottom:root_001:-|13:SelectTarget:-:A1|14:Rest:-:A1|15:PlayTop:root_003:-|16:PlayTop:root_007:-|17:PlayBottom:root_009:-|18:SelectTarget:-:I1|19:PlayTop:root_025:-|20:SelectTarget:-:A3|21:PlayTop:root_002:-|22:SelectTarget:-:A2|23:PlayBottom:root_006:-|24:SelectTarget:-:A3|25:PlayTop:root_004:-|26:PlayTop:root_010:-|27:PlayBottom:root_005:-|28:SelectTarget:-:A1|29:PlayTop:root_008:-|30:PlayTop:root_015:-|31:SkipPhase:-:-|32:PlayTop:root_001:-|33:SkipPhase:-:-

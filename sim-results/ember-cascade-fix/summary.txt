@@ -1,0 +1,41 @@
+﻿=== HOLLOW WARDENS SIMULATION — 500 encounters (seeds 1–500) ===
+Timestamp: 2026-03-21 21:32:22
+Output directory: D:\Workspace\hollow\sim-results\ember-cascade-fix\
+
+OUTCOMES:
+  Clean:     242 (48.4%)
+  Weathered: 258 (51.6%)
+  Breach:    0 (0%)
+
+SURVIVAL:
+  Avg tides completed:  6
+  Avg final weave:      20 / 20
+  Game overs (weave 0): 0
+
+COMBAT:
+  Avg invaders killed:     22.75
+  Avg natives killed:      0.14
+  Avg heart damage events: 0
+
+CORRUPTION:
+  Avg peak corruption (single territory): 6.46
+  Desecration events (L3 reached):        0 total across all encounters
+  Avg total corruption at final tide:     23.63
+
+PRESENCE & SACRIFICE:
+  Avg total presence at final tide: 4.55
+  Avg sacrifices per encounter:     0
+
+FEAR:
+  Avg fear generated per encounter: 28.37
+
+PER-TIDE AVERAGES (across all encounters):
+  Tide 1: weave=20 invaders=3 presence=2.3 corruption=2.3
+  Tide 2: weave=20 invaders=4.8 presence=3 corruption=6
+  Tide 3: weave=20 invaders=4.9 presence=3 corruption=11.4
+  Tide 4: weave=20 invaders=4 presence=4.4 corruption=14.3
+  Tide 5: weave=20 invaders=4 presence=4.6 corruption=18.5
+  Tide 6: weave=20 invaders=5 presence=4.6 corruption=23.6
+
+[CLOSEST CALL] Encounter with lowest weave (20) — seed 1:
+SEED:1|0:PlayTop:ember_002:-|1:SelectTarget:-:M1|2:PlayTop:ember_006:-|3:SelectTarget:-:A1|4:PlayBottom:ember_001:-|5:SelectTarget:-:A1|6:Rest:-:-|7:PlayTop:ember_003:-|8:PlayTop:ember_008:-|9:SelectTarget:-:A2|10:PlayBottom:ember_004:-|11:Rest:-:-|12:PlayTop:ember_008:-|13:SelectTarget:-:A3|14:PlayTop:ember_007:-|15:PlayBottom:ember_002:-|16:SelectTarget:-:A2|17:Rest:-:-|18:PlayTop:ember_005:-|19:SelectTarget:-:A1|20:PlayTop:ember_008:-|21:Rest:-:-|22:PlayTop:ember_008:-|23:SelectTarget:-:A3|24:Rest:-:-|25:SkipPhase:-:-|26:SkipPhase:-:-

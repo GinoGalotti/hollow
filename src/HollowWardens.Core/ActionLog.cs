@@ -1,3 +1,10 @@
+// Export format (produced by ExportFull / imported by ImportFull):
+//   "SEED:{seed}|{action1}|{action2}|..."
+// Each action token is:
+//   "{Timestamp}:{Type}:{CardId}:{TargetTerritoryId}"
+// where CardId and TargetTerritoryId are "-" when absent.
+// Example: "SEED:42|0:PlayTop:root-grasping-roots:-|1:SelectTarget:-:M1|2:PlayBottom:root-mist-walk:-"
+
 namespace HollowWardens.Core;
 
 using HollowWardens.Core.Models;

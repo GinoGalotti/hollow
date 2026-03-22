@@ -1,0 +1,6 @@
+{
+    "name": "Ember — baseline balance check",
+    "seeds": "1-500",
+    "warden": "ember",
+    "encounter": "pale_march_standard"
+}

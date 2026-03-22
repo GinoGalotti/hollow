@@ -59,10 +59,13 @@ public class D29_RootCombatTests : IDisposable
     [Fact]
     public void NetworkSlow_TwoPresenceNeighbors_ReturnsPenalty1()
     {
-        // M1 neighbors: A1, A2, M2, I1
+        // M1 neighbors: A1, A2, M2, I1 — 2 presence neighbors > 1 invader → slow
         var territories = AllTerritories().ToList();
         territories.First(t => t.Id == "A1").PresenceCount = 1;
         territories.First(t => t.Id == "A2").PresenceCount = 1;
+        // D30: must have invader in target territory for slow to apply
+        territories.First(t => t.Id == "M1").Invaders.Add(
+            new Invader { Id = "i1", UnitType = UnitType.Marcher, Hp = 3, MaxHp = 3, TerritoryId = "M1" });
 
         var root = new RootAbility();
         Assert.Equal(1, root.GetMovementPenalty("M1", territories));
@@ -81,14 +84,99 @@ public class D29_RootCombatTests : IDisposable
     [Fact]
     public void NetworkSlow_ThreePresenceNeighbors_StillReturnsPenalty1()
     {
-        // Penalty caps at 1 regardless of neighbor count
+        // Penalty caps at 1 regardless of neighbor count — 3 presence > 1 invader
         var territories = AllTerritories().ToList();
         territories.First(t => t.Id == "A1").PresenceCount = 1;
         territories.First(t => t.Id == "A2").PresenceCount = 1;
         territories.First(t => t.Id == "M2").PresenceCount = 1;
+        // D30: must have invader in target territory
+        territories.First(t => t.Id == "M1").Invaders.Add(
+            new Invader { Id = "i1", UnitType = UnitType.Marcher, Hp = 3, MaxHp = 3, TerritoryId = "M1" });
 
         var root = new RootAbility();
         Assert.Equal(1, root.GetMovementPenalty("M1", territories));
+    }
+
+    [Fact]
+    public void NetworkSlow_OneInvader_TwoPresenceNeighbors_Slowed()
+    {
+        // 2 presence > 1 invader → penalty 1
+        var territories = AllTerritories().ToList();
+        territories.First(t => t.Id == "A1").PresenceCount = 1;
+        territories.First(t => t.Id == "A2").PresenceCount = 1;
+        territories.First(t => t.Id == "M1").Invaders.Add(
+            new Invader { Id = "i1", UnitType = UnitType.Marcher, Hp = 3, MaxHp = 3, TerritoryId = "M1" });
+
+        Assert.Equal(1, new RootAbility().GetMovementPenalty("M1", territories));
+    }
+
+    [Fact]
+    public void NetworkSlow_TwoInvaders_TwoPresenceNeighbors_NotSlowed()
+    {
+        // 2 presence == 2 invaders → NOT outnumbered → penalty 0
+        var territories = AllTerritories().ToList();
+        territories.First(t => t.Id == "A1").PresenceCount = 1;
+        territories.First(t => t.Id == "A2").PresenceCount = 1;
+        var m1 = territories.First(t => t.Id == "M1");
+        m1.Invaders.Add(new Invader { Id = "i1", UnitType = UnitType.Marcher, Hp = 3, MaxHp = 3, TerritoryId = "M1" });
+        m1.Invaders.Add(new Invader { Id = "i2", UnitType = UnitType.Marcher, Hp = 3, MaxHp = 3, TerritoryId = "M1" });
+
+        Assert.Equal(0, new RootAbility().GetMovementPenalty("M1", territories));
+    }
+
+    [Fact]
+    public void NetworkSlow_ThreeInvaders_TwoPresenceNeighbors_NotSlowed()
+    {
+        // 2 presence < 3 invaders → NOT outnumbered → penalty 0
+        var territories = AllTerritories().ToList();
+        territories.First(t => t.Id == "A1").PresenceCount = 1;
+        territories.First(t => t.Id == "A2").PresenceCount = 1;
+        var m1 = territories.First(t => t.Id == "M1");
+        for (int i = 0; i < 3; i++)
+            m1.Invaders.Add(new Invader { Id = $"i{i}", UnitType = UnitType.Marcher, Hp = 3, MaxHp = 3, TerritoryId = "M1" });
+
+        Assert.Equal(0, new RootAbility().GetMovementPenalty("M1", territories));
+    }
+
+    [Fact]
+    public void NetworkSlow_OneInvader_ThreePresenceNeighbors_Slowed()
+    {
+        // 3 presence > 1 invader → penalty 1
+        var territories = AllTerritories().ToList();
+        territories.First(t => t.Id == "A1").PresenceCount = 1;
+        territories.First(t => t.Id == "A2").PresenceCount = 1;
+        territories.First(t => t.Id == "M2").PresenceCount = 1;
+        territories.First(t => t.Id == "M1").Invaders.Add(
+            new Invader { Id = "i1", UnitType = UnitType.Marcher, Hp = 3, MaxHp = 3, TerritoryId = "M1" });
+
+        Assert.Equal(1, new RootAbility().GetMovementPenalty("M1", territories));
+    }
+
+    [Fact]
+    public void NetworkSlow_ZeroInvaders_ReturnsZero()
+    {
+        // No invaders in territory → penalty 0 regardless of presence neighbors
+        var territories = AllTerritories().ToList();
+        territories.First(t => t.Id == "A1").PresenceCount = 1;
+        territories.First(t => t.Id == "A2").PresenceCount = 1;
+        // No invaders added to M1
+
+        Assert.Equal(0, new RootAbility().GetMovementPenalty("M1", territories));
+    }
+
+    [Fact]
+    public void NetworkSlow_WaveBreaksThrough()
+    {
+        // 4 invaders vs 3 presence neighbors → 3 ≤ 4 → NOT outnumbered → penalty 0
+        var territories = AllTerritories().ToList();
+        territories.First(t => t.Id == "A1").PresenceCount = 1;
+        territories.First(t => t.Id == "A2").PresenceCount = 1;
+        territories.First(t => t.Id == "M2").PresenceCount = 1;
+        var m1 = territories.First(t => t.Id == "M1");
+        for (int i = 0; i < 4; i++)
+            m1.Invaders.Add(new Invader { Id = $"i{i}", UnitType = UnitType.Marcher, Hp = 3, MaxHp = 3, TerritoryId = "M1" });
+
+        Assert.Equal(0, new RootAbility().GetMovementPenalty("M1", territories));
     }
 
     [Fact]

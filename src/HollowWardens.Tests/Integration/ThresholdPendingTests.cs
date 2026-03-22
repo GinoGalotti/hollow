@@ -64,18 +64,19 @@ public class ThresholdPendingTests : IDisposable
     }
 
     [Fact]
-    public void PlayerResolves_Tier2_ClearsPendingWithoutEffect()
+    public void PlayerResolves_Tier2_ReducesCorruptionInHighestPresenceTerritory()
     {
-        // T2 effect not yet implemented — resolving removes from pending but does nothing else
+        // Root T2: Reduce Corruption by 3 in the territory with presence and highest corruption
         var state    = BuildState();
         var resolver = new ThresholdResolver();
-        int presenceBefore = state.Territories.Sum(t => t.PresenceCount);
+
+        state.GetTerritory("I1")!.CorruptionPoints = 7; // I1 has presence=1 (from BuildState)
 
         resolver.OnThresholdTriggered(Element.Root, 2, state);
         resolver.Resolve(Element.Root, 2, state);
 
         Assert.Empty(resolver.Pending);
-        Assert.Equal(presenceBefore, state.Territories.Sum(t => t.PresenceCount));
+        Assert.Equal(4, state.GetTerritory("I1")!.CorruptionPoints); // 7 - 3
     }
 
     [Fact]

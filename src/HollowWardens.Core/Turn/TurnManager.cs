@@ -69,7 +69,7 @@ public class TurnManager
     {
         if (CurrentPhase == TurnPhase.Vigil)
         {
-            if (VigilPlaysThisTurn >= 2) return false;
+            if (VigilPlaysThisTurn >= _state.Balance.VigilPlayLimit) return false;
             VigilPlaysThisTurn++;
         }
         _actions.PlayTop(card, target);
@@ -98,7 +98,7 @@ public class TurnManager
     {
         if (CurrentPhase == TurnPhase.Dusk)
         {
-            if (DuskPlaysThisTurn >= 1) return false;
+            if (DuskPlaysThisTurn >= _state.Balance.DuskPlayLimit) return false;
             DuskPlaysThisTurn++;
         }
         _actions.PlayBottom(card, target);
@@ -128,13 +128,13 @@ public class TurnManager
         GameEvents.PhaseChanged?.Invoke(TurnPhase.Rest);
     }
 
-    /// <summary>True when a top play is currently allowed (Vigil phase, under the 2-play limit).</summary>
+    /// <summary>True when a top play is currently allowed (Vigil phase, under the VigilPlayLimit).</summary>
     public bool CanPlayTop()
-        => CurrentPhase == TurnPhase.Vigil && VigilPlaysThisTurn < 2;
+        => CurrentPhase == TurnPhase.Vigil && VigilPlaysThisTurn < _state.Balance.VigilPlayLimit;
 
-    /// <summary>True when a bottom play is currently allowed (Dusk phase, under the 1-play limit).</summary>
+    /// <summary>True when a bottom play is currently allowed (Dusk phase, under the DuskPlayLimit).</summary>
     public bool CanPlayBottom()
-        => CurrentPhase == TurnPhase.Dusk && DuskPlaysThisTurn < 1;
+        => CurrentPhase == TurnPhase.Dusk && DuskPlaysThisTurn < _state.Balance.DuskPlayLimit;
 
     /// <summary>D28: True when sacrifice is allowed — Vigil or Dusk phase only.</summary>
     public bool CanSacrifice()

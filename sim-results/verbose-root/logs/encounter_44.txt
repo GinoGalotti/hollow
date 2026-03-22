@@ -1,0 +1,350 @@
+﻿=== ENCOUNTER LOG — seed 44 ===
+Warden: root  Tides: 6
+
+  [PHASE: Vigil]
+    PLAY (Vigil): root_009 [Living Wall] | PRIORITY: presence_expansion — only 1 presence territories, need 3+
+      Elements: Root,Void  Top: PlacePresence(1)  Bot: DamageInvaders(5)
+    PLAY (Vigil): root_008 [Stir the Sleeping] | PRIORITY: passive_unlock — playing Shadow to unlock network_slow
+      Elements: Root,Shadow  Top: AwakeDormant(1)  Bot: AwakeDormant(0)
+--- TIDE 1 ---
+  Action Card: Ravage (Painful) advance=1
+  Board state:
+    A1   pres=0 corr=0/L0  inv=[—]  nat=[—]
+    A2   pres=0 corr=0/L0  inv=[—]  nat=[—]
+    A3   pres=0 corr=0/L0  inv=[—]  nat=[—]
+    I1   pres=1 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M1   pres=1 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M2   pres=0 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+  Hand:
+    root_007   Healing Earth            | Mist,Root            | Top:RestoreWeave(1) Bot:RestoreWeave(3)
+    root_005   The Forest Remembers     | Root,Shadow          | Top:GenerateFear(2) Bot:DamageInvaders(4)
+    root_001   Tendrils of Reclamation  | Root,Mist            | Top:ReduceCorruption(2) Bot:ReduceCorruption(5)
+  [TIDE STEP: Advance]
+  [TIDE STEP: Arrive]
+    ARRIVED: Marcher [ae36f002] → A2
+    ARRIVED: Marcher [f33f6c4f] → A2
+    ARRIVED: Marcher [5fee1870] → A3
+  [TIDE STEP: Preview]
+  [TIDE 1 COMPLETE] weave=20 dread=1
+  [PHASE: Dusk]
+    PLAY (Dusk): root_005 [The Forest Remembers] | PRIORITY: best_bottom — DamageInvaders (priority 100)
+      Elements: Root,Shadow  Top: GenerateFear(2)  Bot: DamageInvaders(4)
+    THRESHOLD: Root T1 triggered
+    THRESHOLD RESOLVED: Root T1 — Root T1: Place Presence adjacent
+    KILLED: Marcher [ae36f002] at A2
+    KILLED: Marcher [f33f6c4f] at A2
+    FEAR: +2 generated
+  [PHASE: Vigil]
+    PLAY (Vigil): root_007 [Healing Earth] | PRIORITY: any_card — playing root_007
+      Elements: Mist,Root  Top: RestoreWeave(1)  Bot: RestoreWeave(3)
+    THRESHOLD: Root T1 triggered
+    THRESHOLD RESOLVED: Root T1 — Root T1: Place Presence adjacent
+    WEAVE: → 20
+    PLAY (Vigil): root_001 [Tendrils of Reclamation] | PRIORITY: any_card — playing root_001
+      Elements: Root,Mist  Top: ReduceCorruption(2)  Bot: ReduceCorruption(5)
+    CORRUPTION: A1 → 0pts (L0)
+--- TIDE 2 ---
+  Action Card: Regroup (Easy) advance=0
+  Board state:
+    A1   pres=1 corr=0/L0  inv=[—]  nat=[—]
+    A2   pres=1 corr=0/L0  inv=[—]  nat=[—]
+    A3   pres=0 corr=0/L0  inv=[Marcher(4/4)]  nat=[—]
+    I1   pres=1 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M1   pres=1 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M2   pres=0 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+  Hand:
+    root_006   Spreading Growth         | Root,Root            | Top:PlacePresence(1) Bot:PlacePresence(2)
+    root_003   Earthen Mending          | Root,Root            | Top:ReduceCorruption(2) Bot:ReduceCorruption(4)
+    root_002   Deep Roots               | Root                 | Top:PlacePresence(1) Bot:PlacePresence(1)
+
+--- TIDE 3 — FEAR STEP ---
+    FEAR: +4 generated
+    FEAR ACTION: [fa1_push] Push 1 invader back toward spawn
+  [TIDE STEP: Activate]
+  [TIDE STEP: Advance]
+  [TIDE STEP: Arrive]
+    ARRIVED: Marcher [6c0ccfa9] → A1
+    ARRIVED: Marcher [61278001] → A1
+    ARRIVED: Marcher [efa373e8] → A3
+    ARRIVED: Outrider [b54be494] → A3
+  [TIDE STEP: Escalate]
+  [TIDE STEP: Preview]
+  [TIDE 2 COMPLETE] weave=20 dread=1
+  [PHASE: Dusk]
+    PLAY (Dusk): root_006 [Spreading Growth] | PRIORITY: best_bottom — PlacePresence (priority 50)
+      Elements: Root,Root  Top: PlacePresence(1)  Bot: PlacePresence(2)
+    THRESHOLD: Root T2 triggered
+    THRESHOLD RESOLVED: Root T2 — Root T2: Reduce Corruption ×3 in one territory
+    THRESHOLD: Root T1 triggered
+    THRESHOLD RESOLVED: Root T1 — Root T1: Place Presence adjacent
+    THRESHOLD: Root T2 triggered
+    THRESHOLD RESOLVED: Root T2 — Root T2: Reduce Corruption ×3 in one territory
+  [PHASE: Vigil]
+    PLAY (Vigil): root_004 [Shiver of the Ancient] | PRIORITY: passive_unlock — playing Shadow to unlock network_slow
+      Elements: Shadow,Mist  Top: GenerateFear(3)  Bot: GenerateFear(7)
+    THRESHOLD: Root T1 triggered
+    THRESHOLD RESOLVED: Root T1 — Root T1: Place Presence adjacent
+    THRESHOLD: Root T2 triggered
+    THRESHOLD RESOLVED: Root T2 — Root T2: Reduce Corruption ×3 in one territory
+    FEAR: +3 generated
+    PLAY (Vigil): root_025 [Grasping Roots] | PRIORITY: damage — A3 has 3 invaders
+      Elements: Root,Root  Top: DamageInvaders(2)  Bot: DamageInvaders(3)
+    KILLED: Marcher [5fee1870] at A3
+    KILLED: Marcher [efa373e8] at A3
+    KILLED: Outrider [b54be494] at A3
+--- TIDE 3 ---
+  Action Card: March (Painful) advance=2
+  Board state:
+    A1   pres=2 corr=0/L0  inv=[Marcher(4/4) Marcher(4/4)]  nat=[—]
+    A2   pres=1 corr=0/L0  inv=[—]  nat=[—]
+    A3   pres=3 corr=0/L0  inv=[—]  nat=[—]
+    I1   pres=1 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M1   pres=1 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M2   pres=1 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+  Hand:
+    root_003   Earthen Mending          | Root,Root            | Top:ReduceCorruption(2) Bot:ReduceCorruption(4)
+    root_002   Deep Roots               | Root                 | Top:PlacePresence(1) Bot:PlacePresence(1)
+    root_007   Healing Earth            | Mist,Root            | Top:RestoreWeave(1) Bot:RestoreWeave(3)
+
+--- TIDE 4 — FEAR STEP ---
+    FEAR: +4 generated
+    FEAR ACTION: [fa1_push] Push 1 invader back toward spawn
+  [TIDE STEP: Activate]
+  [TIDE STEP: Advance]
+    ADVANCE: Marcher [6c0ccfa9] A1 → I1
+    ARRIVED: Marcher [6c0ccfa9] → I1
+    ADVANCE: Marcher [61278001] A1 → I1
+    ARRIVED: Marcher [61278001] → I1
+  [TIDE STEP: Arrive]
+    ARRIVED: Outrider [e16c0226] → A1
+    ARRIVED: Outrider [a610dad2] → A1
+    ARRIVED: Ironclad [1fd7f5e0] → A2
+    ARRIVED: Marcher [c1f3a7e4] → A3
+  [TIDE STEP: Escalate]
+  [TIDE STEP: Preview]
+  [TIDE 3 COMPLETE] weave=20 dread=1
+  [PHASE: Dusk]
+    PLAY (Dusk): root_002 [Deep Roots] | PRIORITY: best_bottom — PlacePresence (priority 50)
+      Elements: Root  Top: PlacePresence(1)  Bot: PlacePresence(1)
+    THRESHOLD: Root T3 triggered
+    CORRUPTION: A1 → 0pts (L0)
+    CORRUPTION: A2 → 0pts (L0)
+    CORRUPTION: A3 → 0pts (L0)
+    CORRUPTION: M1 → 0pts (L0)
+    CORRUPTION: M2 → 0pts (L0)
+    CORRUPTION: I1 → 0pts (L0)
+    THRESHOLD RESOLVED: Root T3 — Root T3: Place 2 Presence + Reduce Corruption ×2 each
+    CORRUPTION: A2 → 0pts (L0)
+  [PHASE: Vigil]
+    PLAY (Vigil): root_008 [Stir the Sleeping] | PRIORITY: passive_unlock — playing Shadow to unlock network_slow
+      Elements: Root,Shadow  Top: AwakeDormant(1)  Bot: AwakeDormant(0)
+    THRESHOLD: Root T1 triggered
+    THRESHOLD RESOLVED: Root T1 — Root T1: Place Presence adjacent
+    THRESHOLD: Root T2 triggered
+    THRESHOLD RESOLVED: Root T2 — Root T2: Reduce Corruption ×3 in one territory
+    THRESHOLD: Root T3 triggered
+    CORRUPTION: A1 → 0pts (L0)
+    CORRUPTION: A2 → 0pts (L0)
+    CORRUPTION: A3 → 0pts (L0)
+    CORRUPTION: M1 → 0pts (L0)
+    CORRUPTION: M2 → 0pts (L0)
+    CORRUPTION: I1 → 0pts (L0)
+    THRESHOLD RESOLVED: Root T3 — Root T3: Place 2 Presence + Reduce Corruption ×2 each
+    PLAY (Vigil): root_005 [The Forest Remembers] | PRIORITY: passive_unlock — playing Shadow to unlock network_slow
+      Elements: Root,Shadow  Top: GenerateFear(2)  Bot: DamageInvaders(4)
+    DREAD: advanced to level 2
+    FEAR: +2 generated
+--- TIDE 4 ---
+  Action Card: Settle (Easy) advance=0
+  Board state:
+    A1   pres=3 corr=0/L0  inv=[Outrider(3/3) Outrider(3/3)]  nat=[—]
+    A2   pres=2 corr=0/L0  inv=[Ironclad(5/5)]  nat=[—]
+    A3   pres=3 corr=0/L0  inv=[Marcher(4/4)]  nat=[—]
+    I1   pres=1 corr=0/L0  inv=[Marcher(4/4) Marcher(4/4)]  nat=[Native(2/2) Native(2/2)]
+    M1   pres=1 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M2   pres=1 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+  Hand:
+    root_003   Earthen Mending          | Root,Root            | Top:ReduceCorruption(2) Bot:ReduceCorruption(4)
+    root_007   Healing Earth            | Mist,Root            | Top:RestoreWeave(1) Bot:RestoreWeave(3)
+    root_001   Tendrils of Reclamation  | Root,Mist            | Top:ReduceCorruption(2) Bot:ReduceCorruption(5)
+
+--- TIDE 5 — FEAR STEP ---
+    FEAR: +4 generated
+    FEAR ACTION: [fa2_assault] Deal 2 damage to all invaders in 1 territory
+  [TIDE STEP: Activate]
+  [TIDE STEP: CounterAttack]
+    KILLED: Marcher [6c0ccfa9] at I1
+  [TIDE STEP: Advance]
+    ADVANCE: Outrider [e16c0226] A1 → M1
+    ADVANCE: Outrider [a610dad2] A1 → M1
+    WEAVE: → 18
+  [TIDE STEP: Arrive]
+    ARRIVED: Marcher [9a569c1b] → A2
+    ARRIVED: Marcher [e827ff1d] → A2
+    ARRIVED: Pioneer [74f7acd4] → A1
+    ARRIVED: Outrider [8ced32fc] → A3
+  [TIDE STEP: Escalate]
+  [TIDE STEP: Preview]
+  [TIDE 4 COMPLETE] weave=18 dread=2
+  [PHASE: Dusk]
+    PLAY (Dusk): root_003 [Earthen Mending] | PRIORITY: best_bottom — ReduceCorruption (priority 10)
+      Elements: Root,Root  Top: ReduceCorruption(2)  Bot: ReduceCorruption(4)
+    THRESHOLD: Root T1 triggered
+    THRESHOLD RESOLVED: Root T1 — Root T1: Place Presence adjacent
+    THRESHOLD: Root T2 triggered
+    THRESHOLD RESOLVED: Root T2 — Root T2: Reduce Corruption ×3 in one territory
+    THRESHOLD: Root T3 triggered
+    CORRUPTION: A1 → 0pts (L0)
+    CORRUPTION: A2 → 0pts (L0)
+    CORRUPTION: A3 → 0pts (L0)
+    CORRUPTION: M1 → 0pts (L0)
+    CORRUPTION: M2 → 0pts (L0)
+    CORRUPTION: I1 → 0pts (L0)
+    THRESHOLD RESOLVED: Root T3 — Root T3: Place 2 Presence + Reduce Corruption ×2 each
+  [PHASE: Vigil]
+    PLAY (Vigil): root_007 [Healing Earth] | PRIORITY: any_card — playing root_007
+      Elements: Mist,Root  Top: RestoreWeave(1)  Bot: RestoreWeave(3)
+    THRESHOLD: Root T1 triggered
+    THRESHOLD RESOLVED: Root T1 — Root T1: Place Presence adjacent
+    THRESHOLD: Root T2 triggered
+    THRESHOLD RESOLVED: Root T2 — Root T2: Reduce Corruption ×3 in one territory
+    THRESHOLD: Root T3 triggered
+    CORRUPTION: A1 → 0pts (L0)
+    CORRUPTION: A2 → 0pts (L0)
+    CORRUPTION: A3 → 0pts (L0)
+    CORRUPTION: M1 → 0pts (L0)
+    CORRUPTION: M2 → 0pts (L0)
+    CORRUPTION: I1 → 0pts (L0)
+    THRESHOLD RESOLVED: Root T3 — Root T3: Place 2 Presence + Reduce Corruption ×2 each
+    WEAVE: → 19
+    PLAY (Vigil): root_001 [Tendrils of Reclamation] | PRIORITY: any_card — playing root_001
+      Elements: Root,Mist  Top: ReduceCorruption(2)  Bot: ReduceCorruption(5)
+    CORRUPTION: A1 → 0pts (L0)
+--- TIDE 5 ---
+  Action Card: pm_corrupt (Painful) advance=1 ESCALATION
+  Board state:
+    A1   pres=3 corr=0/L0  inv=[Pioneer(2/2)]  nat=[—]
+    A2   pres=2 corr=0/L0  inv=[Ironclad(5/5) Marcher(4/4) Marcher(4/4)]  nat=[—]
+    A3   pres=3 corr=0/L0  inv=[Marcher(4/4) Outrider(3/3)]  nat=[—]
+    I1   pres=1 corr=0/L0  inv=[Marcher(2/4)]  nat=[Native(2/2) Native(2/2)]
+    M1   pres=1 corr=0/L0  inv=[Outrider(3/3) Outrider(3/3)]  nat=[Native(2/2) Native(2/2)]
+    M2   pres=1 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+  Hand:
+    root_009   Living Wall              | Root,Void            | Top:PlacePresence(1) Bot:DamageInvaders(5)
+    root_006   Spreading Growth         | Root,Root            | Top:PlacePresence(1) Bot:PlacePresence(2)
+    root_008   Stir the Sleeping        | Root,Shadow          | Top:AwakeDormant(1) Bot:AwakeDormant(0) [DORMANT]
+
+--- TIDE 6 — FEAR STEP ---
+    FEAR: +4 generated
+    FEAR ACTION: [fa2_assault] Deal 2 damage to all invaders in 1 territory
+  [TIDE STEP: Activate]
+  [TIDE STEP: CounterAttack]
+    KILLED: Outrider [e16c0226] at M1
+    KILLED: Outrider [a610dad2] at M1
+    KILLED: Marcher [61278001] at I1
+  [TIDE STEP: Advance]
+    ADVANCE: Pioneer [74f7acd4] A1 → M1
+    ADVANCE: Ironclad [1fd7f5e0] A2 → M1
+    ADVANCE: Marcher [9a569c1b] A2 → M1
+    ADVANCE: Marcher [e827ff1d] A2 → M1
+    ADVANCE: Marcher [c1f3a7e4] A3 → M2
+    ADVANCE: Outrider [8ced32fc] A3 → I1
+    ARRIVED: Outrider [8ced32fc] → I1
+  [TIDE STEP: Arrive]
+    ARRIVED: Ironclad [b824300e] → A1
+    ARRIVED: Outrider [66670715] → A1
+    ARRIVED: Marcher [93f87a9b] → A2
+    ARRIVED: Marcher [bf526e97] → A3
+  [TIDE STEP: Escalate]
+  [TIDE STEP: Preview]
+  [TIDE 5 COMPLETE] weave=19 dread=2
+  [PHASE: Dusk]
+    PLAY (Dusk): root_009 [Living Wall] | PRIORITY: best_bottom — DamageInvaders (priority 100)
+      Elements: Root,Void  Top: PlacePresence(1)  Bot: DamageInvaders(5)
+    KILLED: Pioneer [74f7acd4] at M1
+    KILLED: Ironclad [1fd7f5e0] at M1
+    KILLED: Marcher [9a569c1b] at M1
+    KILLED: Marcher [e827ff1d] at M1
+  [PHASE: Vigil]
+    PLAY (Vigil): root_005 [The Forest Remembers] | PRIORITY: passive_unlock — playing Shadow to unlock network_slow
+      Elements: Root,Shadow  Top: GenerateFear(2)  Bot: DamageInvaders(4)
+    THRESHOLD: Root T1 triggered
+    THRESHOLD RESOLVED: Root T1 — Root T1: Place Presence adjacent
+    THRESHOLD: Root T2 triggered
+    THRESHOLD RESOLVED: Root T2 — Root T2: Reduce Corruption ×3 in one territory
+    THRESHOLD: Root T3 triggered
+    CORRUPTION: A1 → 0pts (L0)
+    CORRUPTION: A2 → 0pts (L0)
+    CORRUPTION: A3 → 0pts (L0)
+    CORRUPTION: M1 → 0pts (L0)
+    CORRUPTION: M2 → 0pts (L0)
+    CORRUPTION: I1 → 0pts (L0)
+    THRESHOLD RESOLVED: Root T3 — Root T3: Place 2 Presence + Reduce Corruption ×2 each
+    FEAR: +2 generated
+    PLAY (Vigil): root_006 [Spreading Growth] | PRIORITY: any_card — playing root_006
+      Elements: Root,Root  Top: PlacePresence(1)  Bot: PlacePresence(2)
+--- TIDE 6 ---
+  Action Card: Rest (Easy) advance=1
+  Board state:
+    A1   pres=3 corr=0/L0  inv=[Ironclad(5/5) Outrider(3/3)]  nat=[—]
+    A2   pres=2 corr=0/L0  inv=[Marcher(4/4)]  nat=[—]
+    A3   pres=3 corr=0/L0  inv=[Marcher(4/4)]  nat=[—]
+    I1   pres=1 corr=0/L0  inv=[Outrider(3/3)]  nat=[Native(2/2) Native(2/2)]
+    M1   pres=2 corr=0/L0  inv=[—]  nat=[Native(2/2) Native(2/2)]
+    M2   pres=1 corr=0/L0  inv=[Marcher(4/4)]  nat=[Native(2/2) Native(2/2)]
+  Hand:
+    root_008   Stir the Sleeping        | Root,Shadow          | Top:AwakeDormant(1) Bot:AwakeDormant(0) [DORMANT]
+    root_003   Earthen Mending          | Root,Root            | Top:ReduceCorruption(2) Bot:ReduceCorruption(4) [DORMANT]
+    root_002   Deep Roots               | Root                 | Top:PlacePresence(1) Bot:PlacePresence(1)
+
+--- TIDE 7 — FEAR STEP ---
+    FEAR: +4 generated
+    FEAR ACTION: [fa2_weave] Restore 1 Weave
+    WEAVE: → 20
+  [TIDE STEP: Activate]
+  [TIDE STEP: CounterAttack]
+    KILLED: Marcher [c1f3a7e4] at M2
+    KILLED: Outrider [8ced32fc] at I1
+  [TIDE STEP: Advance]
+    ADVANCE: Outrider [66670715] A1 → I1
+    ARRIVED: Outrider [66670715] → I1
+    ADVANCE: Marcher [93f87a9b] A2 → M1
+    ADVANCE: Marcher [bf526e97] A3 → M2
+  [TIDE STEP: Arrive]
+    ARRIVED: Ironclad [92ee1f0b] → A1
+    ARRIVED: Marcher [13c726c1] → A1
+    ARRIVED: Ironclad [552cb7c9] → A2
+    ARRIVED: Outrider [adf2eb53] → A3
+  [TIDE STEP: Escalate]
+  [TIDE STEP: Preview]
+  [TIDE 6 COMPLETE] weave=20 dread=2
+  [PHASE: Dusk]
+    PLAY (Dusk): root_002 [Deep Roots] | PRIORITY: best_bottom — PlacePresence (priority 50)
+      Elements: Root  Top: PlacePresence(1)  Bot: PlacePresence(1)
+    CORRUPTION: M2 → 0pts (L0)
+  [PHASE: Resolution]
+    PLAY (Vigil): root_004 [Shiver of the Ancient] | PRIORITY: passive_unlock — playing Shadow to unlock network_slow
+      Elements: Shadow,Mist  Top: GenerateFear(3)  Bot: GenerateFear(7)
+    DREAD: advanced to level 3
+    FEAR: +3 generated
+    PLAY (Vigil): root_025 [Grasping Roots] | PRIORITY: damage — A1 has 3 invaders
+      Elements: Root,Root  Top: DamageInvaders(2)  Bot: DamageInvaders(3)
+  [PHASE: Resolution]
+    KILLED: Ironclad [552cb7c9] at A2
+    CORRUPTION: A2 → 0pts (L0)
+    KILLED: Marcher [93f87a9b] at M1
+    CORRUPTION: M1 → 0pts (L0)
+    KILLED: Marcher [13c726c1] at A1
+    KILLED: Ironclad [b824300e] at A1
+    CORRUPTION: A1 → 0pts (L0)
+    KILLED: Outrider [adf2eb53] at A3
+    CORRUPTION: A3 → 0pts (L0)
+    KILLED: Marcher [bf526e97] at M2
+    CORRUPTION: M2 → 0pts (L0)
+    KILLED: Ironclad [92ee1f0b] at A1
+    CORRUPTION: A1 → 0pts (L0)
+    KILLED: Outrider [66670715] at I1
+    CORRUPTION: I1 → 0pts (L0)
+
+=== ENCOUNTER RESULT: Clean ===
+Final weave: 20

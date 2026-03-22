@@ -1,0 +1,13 @@
+﻿seed,tide,weave,alive_invaders,total_presence,total_corruption,fear_generated_this_tide,invaders_killed_this_tide,invaders_arrived_this_tide
+42,1,20,3,3,0,0,0,3
+42,2,20,6,5,0,6,1,4
+42,3,20,7,6,0,7,3,7
+42,4,14,10,8,0,7,1,5
+42,5,17,9,8,0,4,5,5
+42,6,19,7,8,0,7,6,4
+43,1,20,3,2,0,2,0,3
+43,2,20,7,4,0,6,0,4
+43,3,20,8,6,0,7,3,8
+43,4,20,8,8,0,4,4,4
+43,5,20,11,8,0,9,1,5
+43,6,20,9,8,0,4,6,4

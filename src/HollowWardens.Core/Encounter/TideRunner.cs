@@ -20,9 +20,6 @@ public class TideRunner
     // Card drawn during Preview for use in the next tide
     private ActionCard? _previewedCard;
 
-    // True after SpawnInitialWave has run — prevents wave 1 from spawning twice
-    private bool _initialWaveSpawned;
-
     /// <summary>
     /// Optional handler for player-assigned counter-attack damage.
     /// Receives (territory, damagePool, state) and returns per-invader assignments.
@@ -51,13 +48,12 @@ public class TideRunner
     public void PreloadPreview(ActionCard card) => _previewedCard = card;
 
     /// <summary>
-    /// Spawns the Wave 1 invaders before the first Vigil so A-row is populated at game start.
-    /// Marks the wave as spawned so Tide 1's Arrive step does not spawn it again.
+    /// Spawns Wave 1 invaders before the first Vigil so A-row is populated at game start.
+    /// Tide 1's Arrive step will then spawn Wave 2, Tide 2 spawns Wave 3, etc.
     /// </summary>
     public void SpawnInitialWave(EncounterState state)
     {
         SpawnWaveForTide(1, state);
-        _initialWaveSpawned = true;
     }
 
     /// <summary>
@@ -88,6 +84,9 @@ public class TideRunner
             foreach (var inv in t.Invaders)
                 inv.IsSlowed = false;
 
+        // Warden tide-start effect (e.g., Ember Ash Trail)
+        state.Warden?.OnTideStart(state);
+
         // ── Step 1: Fear Actions (skipped on Tide 1) ────────────────────────
         if (!isFirstTide)
         {
@@ -103,14 +102,22 @@ public class TideRunner
 
             // Reveal and resolve queued fear actions
             var fearActions = state.FearActions?.RevealAndDequeue() ?? new List<FearActionData>();
-            foreach (var fa in fearActions)
+            state.FearActions?.BeginResolution(); // Bugfix: prevent loop during resolution
+            try
             {
-                try
+                foreach (var fa in fearActions)
                 {
-                    var effect = _resolver.Resolve(fa.Effect);
-                    effect.Resolve(state, new TargetInfo());
+                    try
+                    {
+                        var effect = _resolver.Resolve(fa.Effect);
+                        effect.Resolve(state, new TargetInfo());
+                    }
+                    catch (NotImplementedException) { }
                 }
-                catch (NotImplementedException) { }
+            }
+            finally
+            {
+                state.FearActions?.EndResolution();
             }
         }
 
@@ -158,7 +165,7 @@ public class TideRunner
 
         // ── Step 5: Arrive ─────────────────────────────────────────────────
         GameEvents.TideStepStarted?.Invoke(TideStep.Arrive);
-        SpawnWaveForTide(tideNumber, state);
+        SpawnWaveForTide(tideNumber + 1, state);
 
         // ── Step 6: Escalate (skipped on Tide 1) ───────────────────────────
         if (!isFirstTide)
@@ -191,6 +198,9 @@ public class TideRunner
         foreach (var t in state.Territories)
             foreach (var inv in t.Invaders)
                 inv.IsSlowed = false;
+
+        // Warden tide-start effect (e.g., Ember Ash Trail)
+        state.Warden?.OnTideStart(state);
 
         return actionCard;
     }
@@ -237,11 +247,11 @@ public class TideRunner
         state.Combat?.ExecuteHeartMarch(state);
     }
 
-    /// <summary>Runs the Arrive step — spawns the wave for this tide.</summary>
+    /// <summary>Runs the Arrive step — spawns the next wave (tideNumber + 1).</summary>
     public void RunArrive(int tideNumber, EncounterState state)
     {
         GameEvents.TideStepStarted?.Invoke(TideStep.Arrive);
-        SpawnWaveForTide(tideNumber, state);
+        SpawnWaveForTide(tideNumber + 1, state);
     }
 
     /// <summary>Runs the Escalate step.</summary>
@@ -264,8 +274,6 @@ public class TideRunner
 
     private void SpawnWaveForTide(int tideNumber, EncounterState state)
     {
-        if (_initialWaveSpawned && tideNumber == 1) return;
-
         // SpawnManager.PreviewWave returns the wave for this tide (fires WaveLocationsRevealed)
         var wave = _spawn.PreviewWave(tideNumber);
         if (wave == null) return;

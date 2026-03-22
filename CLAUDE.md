@@ -56,104 +56,128 @@ When working on Claude Code features (hooks, skills, subagents, MCP servers, etc
 
 ## Project Overview
 
+This repo is the working directory for **Hollow Wardens** — a card roguelike built in Godot 4.x (.NET / C#). See `master.md` for the full game design document and technical architecture.
 
+- **Engine:** Godot 4.6.1 (.NET build) — exe at `D:\Downloads\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64_console.exe`
+- **Language:** C# (primary) — do NOT mix GDScript
+- **Project dir:** `hollow_wardens/` (subdirectory)
+- **Status:** Phase 6+ active development — 312 tests passing, functional prototype playable
 
-## ALWAYS START WITH THESE COMMANDS FOR COMMON TASKS
+## Project Architecture
 
-**Task: "List/summarize all files and directories"**
+| Layer | Path | Notes |
+|-------|------|-------|
+| Pure C# logic | `src/HollowWardens.Core/` | No Godot dependencies — all game logic, encounter engine, card system |
+| xUnit tests | `src/HollowWardens.Tests/` | Run with `dotnet test`, no Godot required |
+| Godot UI layer | `hollow_wardens/godot/` | Bridge + view controllers only — delegates to Core |
+| Old scripts (backup) | `hollow_wardens/scripts_old_backup/` | **DO NOT USE** — pending deletion |
 
-```bash
-fd . -t f           # Lists ALL files recursively (FASTEST)
-# OR
-rg --files          # Lists files (respects .gitignore)
-```
+## Card Data Authoring
 
-**Task: "Search for content in files"**
+Card definitions are **decoupled from code**. Edit JSON only — no generation step needed.
 
-```bash
-rg "search_term"    # Search everywhere (FASTEST)
-```
+| File | Role |
+|------|------|
+| `data/cards-root.json` | Source of truth — v2.1 schema, 10 starting + 14 draft cards |
+| `src/HollowWardens.Core/Data/CardLoader.cs` | Loads cards at runtime from JSON |
 
-**Task: "Find files by name"**
+**To update cards:** edit `data/cards-root.json` directly. Changes are picked up at runtime.
+**To add a new Warden's cards:** create `data/cards-{warden}.json` following the v2.1 schema.
+See `master.md §11.6` for full schema documentation and effect type reference.
 
-```bash
-fd "filename"       # Find by name pattern (FASTEST)
-```
+## Running Tests
 
-### Directory/File Exploration
-
-```bash
-# FIRST CHOICE - List all files/dirs recursively:
-fd . -t f           # All files (fastest)
-fd . -t d           # All directories
-rg --files          # All files (respects .gitignore)
-
-# For current directory only:
-ls -la              # OK for single directory view
-```
-
-### BANNED - Never Use These Slow Tools
-
-* ❌ `tree` - NOT INSTALLED, use `fd` instead
-* ❌ `find` - use `fd` or `rg --files`
-* ❌ `grep` or `grep -r` - use `rg` instead
-* ❌ `ls -R` - use `rg --files` or `fd`
-* ❌ `cat file | grep` - use `rg pattern file`
-
-### Use These Faster Tools Instead
+After any code changes, run:
 
 ```bash
-# ripgrep (rg) - content search 
-rg "search_term"                # Search in all files
-rg -i "case_insensitive"        # Case-insensitive
-rg "pattern" -t py              # Only Python files
-rg "pattern" -g "*.md"          # Only Markdown
-rg -1 "pattern"                 # Filenames with matches
-rg -c "pattern"                 # Count matches per file
-rg -n "pattern"                 # Show line numbers 
-rg -A 3 -B 3 "error"            # Context lines
-rg " (TODO| FIXME | HACK)"      # Multiple patterns
+# Unit + integration tests (no Godot needed)
+cd src/HollowWardens.Tests && dotnet test
 
-# ripgrep (rg) - file listing 
-rg --files                      # List files (respects •gitignore)
-rg --files | rg "pattern"       # Find files by name 
-rg --files -t md                # Only Markdown files 
+# Godot build check
+cd hollow_wardens && dotnet build HollowWardens.csproj
 
-# fd - file finding 
-fd -e js                        # All •js files (fast find) 
-fd -x command {}                # Exec per-file 
-fd -e md -x ls -la {}           # Example with ls 
-
-# jq - JSON processing 
-jq. data.json                   # Pretty-print 
-jq -r .name file.json           # Extract field 
-jq '.id = 0' x.json             # Modify field
+# Launch game
+& "D:\Downloads\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64_console.exe" --path "D:\Workspace\hollow\hollow_wardens"
 ```
 
-### Search Strategy
+## Key Design Documents
 
-1. Start broad, then narrow: `rg "partial" | rg "specific"`
-2. Filter by type early: `rg -t python "def function_name"`
-3. Batch patterns: `rg "(pattern1|pattern2|pattern3)"`
-4. Limit scope: `rg "pattern" src/`
+| File | Purpose |
+|------|---------|
+| `master.md` | Full game design document — updated through D27 |
+| `CLAUDE-decisions.md` | Architecture decisions D1–D27 with rationale |
+| `ARCHITECTURE-v2.md` | Pure C# architecture plan and class structure |
+| `BUILD-PLAYBOOK.md` | Agent prompts for parallel development |
+| `data/cards-root.json` | Root warden card definitions v2.1 |
 
-### INSTANT DECISION TREE
+## Debug Shortcuts (In-Game)
 
-```
-User asks to "list/show/summarize/explore files"?
-  → USE: fd . -t f  (fastest, shows all files)
-  → OR: rg --files  (respects .gitignore)
+| Key | Action |
+|-----|--------|
+| `D` | Toggle debug log overlay |
+| `P` | Print encounter seed + action log to console |
+| `Space` | Advance phase / confirm |
+| `R` | Rest |
+| `Escape` | Cancel targeting |
 
-User asks to "search/grep/find text content"?
-  → USE: rg "pattern"  (NOT grep!)
+## Environment Architecture
 
-User asks to "find file/directory by name"?
-  → USE: fd "name"  (NOT find!)
+This repo is a Claude Code configuration environment. The "codebase" is primarily the `.claude/` directory. Future Claude instances should understand what tools are available before starting work.
 
-User asks for "directory structure/tree"?
-  → USE: fd . -t d  (directories) + fd . -t f  (files)
-  → NEVER: tree (not installed!)
+### Subagents (`.claude/agents/`)
 
-Need just current directory?
-  → USE: ls -la  (OK for single dir)
+| Agent | When to use |
+|-------|-------------|
+| `code-searcher` | Codebase search, function/class location, security analysis, CoD mode for token-efficient searches |
+| `memory-bank-synchronizer` | Sync CLAUDE-*.md memory files when code has changed significantly |
+| `get-current-datetime` | Timestamps (Brisbane/AEST timezone) |
+| `ux-design-expert` | UI/UX design guidance, Tailwind CSS, Highcharts data visualization |
+| `zai-cli` | Z.AI GLM 4.7 perspective on code analysis |
+| `codex-cli` | OpenAI Codex (GPT-5.2) perspective on code analysis |
+
+### Skills (`.claude/skills/`)
+
+| Skill | When to use |
+|-------|-------------|
+| `claude-docs-consultant` | Fetch official docs.claude.com pages for Claude Code features |
+| `consult-zai` | Dual-AI analysis: Z.AI + code-searcher together |
+| `consult-codex` | Dual-AI analysis: Codex + code-searcher together |
+
+### Slash Commands (`.claude/commands/`)
+
+| Command | Purpose |
+|---------|---------|
+| `/update-memory-bank` | Update CLAUDE.md and all CLAUDE-*.md memory files |
+| `/cleanup-context` | Reduce token bloat in memory bank files |
+| `/ccusage-daily` | Claude Code daily usage cost summary |
+| `/apply-thinking-to` | Enhance a prompt with extended thinking |
+| `/convert-to-todowrite-tasklist-prompt` | Convert a prompt to parallel TodoWrite task format |
+| `/security-audit` | Full security audit of the codebase |
+| `/check-best-practices` | Check code against best practices |
+| `/secure-prompts` | Analyze prompts for injection vulnerabilities |
+| `/refactor-code` | Refactoring analysis |
+| `/explain-architecture-pattern` | Explain an architecture pattern |
+| `/create-readme-section` | Generate a README section |
+| `/create-release-note` | Generate a release note |
+
+### MCP Servers
+
+| Server | Purpose |
+|--------|---------|
+| `context7` | Up-to-date library documentation (active — use `mcp__context7__query-docs`) |
+| `cf-docs` | Cloudflare platform documentation |
+| `chrome-devtools` | Browser automation via Chrome DevTools Protocol |
+
+## Search Commands
+
+Prefer `rg` and `fd` over `grep`/`find`/`tree` (not installed on Windows):
+
+```bash
+rg "search_term"          # Content search (FASTEST)
+rg --files                # List files (respects .gitignore)
+rg --files | rg "pattern" # Find files by name
+fd "filename"             # Find files by name pattern
+fd . -t f                 # All files recursively
+fd . -t d                 # All directories
+fd -e gd                  # All GDScript files (once Godot project exists)
 ```

@@ -1,6 +1,7 @@
 namespace HollowWardens.Core.Systems;
 
 using HollowWardens.Core;
+using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Events;
 using HollowWardens.Core.Models;
 
@@ -9,28 +10,36 @@ public class FearActionSystem : IFearActionSystem
     private readonly IDreadSystem _dread;
     private readonly Dictionary<int, List<FearActionData>> _pools;
     private readonly GameRandom _rng;
+    private readonly int _fearPerAction;
     private readonly Queue<FearActionData> _queue = new();
     private int _fearBuffer = 0;
     private int _nextDrawElevation = 0;
+    private bool _resolvingActions;
 
     public FearActionSystem(
         IDreadSystem dread,
         Dictionary<int, List<FearActionData>> pools,
-        GameRandom? rng = null)
+        GameRandom? rng = null,
+        BalanceConfig? config = null)
     {
         _dread = dread;
         _pools = pools;
         _rng = rng ?? GameRandom.NewRandom();
+        _fearPerAction = config?.FearPerAction ?? 5;
     }
 
     public int QueuedCount => _queue.Count;
 
+    public void BeginResolution() => _resolvingActions = true;
+    public void EndResolution()   => _resolvingActions = false;
+
     public void OnFearSpent(int amount)
     {
+        if (_resolvingActions) return; // Bugfix: don't queue during resolution (prevents infinite loop)
         _fearBuffer += amount;
-        while (_fearBuffer >= 5)
+        while (_fearBuffer >= _fearPerAction)
         {
-            _fearBuffer -= 5;
+            _fearBuffer -= _fearPerAction;
             int drawLevel = _dread.DreadLevel + _nextDrawElevation;
             _nextDrawElevation = 0; // consume elevation for this one draw only
             _queue.Enqueue(DrawFromPool(drawLevel));

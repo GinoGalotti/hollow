@@ -26,6 +26,8 @@ public class EncounterState
     public GameRandom? Random { get; set; }
     public ActionLog ActionLog { get; set; } = new();
     public WardenData? WardenData { get; set; }
+    public PassiveGating? PassiveGating { get; set; }
+    public BalanceConfig Balance { get; set; } = new();
 
     public Territory? GetTerritory(string id) => Territories.FirstOrDefault(t => t.Id == id);
     public IEnumerable<Territory> TerritoriesWithInvaders() => Territories.Where(t => t.Invaders.Any(i => i.IsAlive));

@@ -1,5 +1,6 @@
 namespace HollowWardens.Core.Run;
 
+using HollowWardens.Core.Effects;
 using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Models;
 
@@ -19,4 +20,7 @@ public interface IPlayerStrategy
 
     // D29: Choose target territory for Rest Growth (null = skip)
     string? ChooseRestGrowthTarget(EncounterState state) => null;
+
+    /// <summary>Choose a target territory for a targeted effect. Return null for untargeted effects.</summary>
+    string? ChooseTarget(EffectData effect, EncounterState state) => null;
 }

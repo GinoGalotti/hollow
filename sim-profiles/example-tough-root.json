@@ -1,0 +1,19 @@
+{
+    "name": "Root — tough encounter 3 (drafted cards, carryover corruption)",
+    "seeds": "42-241",
+    "warden": "root",
+    "encounter": "pale_march_standard",
+    "warden_overrides": {
+        "add_cards": ["root_015", "root_017"],
+        "force_passives": ["network_slow"],
+        "starting_elements": { "Root": 2 }
+    },
+    "encounter_overrides": {
+        "tide_count": 8,
+        "starting_corruption": { "A1": 5, "M1": 3 }
+    },
+    "balance_overrides": {
+        "max_weave": 18,
+        "starting_weave": 16
+    }
+}

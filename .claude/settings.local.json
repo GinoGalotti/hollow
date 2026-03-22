@@ -92,7 +92,10 @@
       "Skill(consult-zai)",
       "Bash(git cherry-pick:*)",
       "Bash(zai:*)",
-      "WebFetch(domain:developers.cloudflare.com)"
+      "WebFetch(domain:developers.cloudflare.com)",
+      "Bash(cd D:/Workspace/hollow/hollow_wardens && dotnet build HollowWardens.csproj 2>&1)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "defaultMode": "plan"
