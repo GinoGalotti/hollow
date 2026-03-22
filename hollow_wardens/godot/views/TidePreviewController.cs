@@ -54,7 +54,7 @@ public partial class TidePreviewController : VBoxContainer
         bridge.PhaseChanged          += _ => RefreshTide();
         bridge.ResolutionTurnStarted += n =>
         {
-            _tideLabel.Text    = $"Resolution {n}/{GameBridge.Instance?.State.Config.ResolutionTurns ?? 0}";
+            _tideLabel.Text    = $"Resolution {n}/{GameBridge.Instance?.State?.Config?.ResolutionTurns ?? 0}";
             _currentLabel.Text = "";
             _nextLabel.Text    = "";
         };

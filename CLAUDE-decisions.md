@@ -203,7 +203,7 @@ d) **WARDEN PASSIVES:** Each warden has a unique presence passive in addition to
 **Rationale:** On a 6-territory pyramid, 3 presence covers everything at range 1. Without additional value, placement is a solved problem by turn 3. The amplification bonus creates an ongoing engine (stack for power vs spread for coverage), vulnerability creates stakes (losing presence to Desecration is devastating), and sacrifice creates emergency options (burn your engine to survive).
 
 **Balance impact (requires playtesting — see open questions 11–15):**
-- Invader HP may need to increase (Marchers from 3→4?) since damage cards are now stronger.
+- Invader HP increased: Marchers 3→4, Outriders 2→3 (resolved — implemented in D31 tuning pass).
 - Base corruption rate may need to increase if amplified cleanse is too strong.
 - Escalation cards (Corrupt) should threaten presence directly — "remove 1 Presence from this territory" as an additional effect.
 
@@ -240,7 +240,7 @@ d) **REST GROWTH:** When Root rests, place 1 free Presence on any territory with
 **Changes made based on 500-encounter simulation (100% Clean, zero tension):**
 - **Network Fear halved:** Changed from directed edges (2 Fear per pair) to undirected (1 Fear per pair) — the primary balance lever. See D3.
 - **Presence cap:** 3 tokens per territory, enforced by `PresenceSystem.PlacePresence()` via `MaxPresencePerTerritory = 3`. `Territory.PresenceCount` is an unbounded `int`; the cap lives in the system layer.
-- **Invader HP — confirmed unchanged:** Marcher=3, Ironclad=5, Outrider=2. HP is not the primary difficulty lever at this encounter scale.
+- **Invader HP — tuned:** Marcher=4, Ironclad=5, Outrider=3. HP was increased from the D28 baseline (Marcher 3→4, Outrider 2→3) to account for stronger card damage after the amplification system landed. HP is not the primary difficulty lever at this encounter scale.
 - **Ravage corruption — confirmed unchanged:** Marcher=2, Ironclad=3, Outrider=1, Pioneer=2. Base corruption rates held; Network Fear adjustment resolved the tension deficit.
 **Next pass:** Manual playtest data + second sim run will inform HP/corruption tuning if needed.
 
@@ -334,6 +334,68 @@ dotnet run --project src/HollowWardens.Sim/ -- --seeds 1-5 --verbose
 
 ### D5: AwakeDormant Value=0 means "awaken all" — unchanged
 No change. Still valid.
+
+### D35: Territory targeting required for global-range effects
+**Decision:** `DamageInvaders`, `ReduceCorruption`, `ShieldNatives`, `BoostNatives`, `SlowInvaders` at `Range=0` always enter targeting mode (or auto-resolve) — they do NOT play silently with an empty `TargetInfo`.
+**Rationale:** `Range=0` has two different semantics: for `PlacePresence` it means "reinforce existing territory only (no range extension)". For damage/cleanse/buff effects it means "anywhere on board." Without the `TerritoryAtAnyRangeTypes` set in `TargetValidator`, these effects silently no-op because `GetTerritory("")` returns null. Cards like `ember_003 top` (DamageInvaders Range=0) were completely non-functional.
+**Implementation:** `TargetValidator.TerritoryAtAnyRangeTypes` — static `HashSet<EffectType>`. `NeedsTarget` returns true if effect type is in this set regardless of Range. `GetValidTargets` uses `TerritoryGraph.AllTerritoryIds` for Range=0 in this set (not distance-based). Filters remove territories with no valid targets (e.g., no alive invaders for DamageInvaders).
+**Auto-resolve logic (GameBridge):** 0 valid targets = fall through noop. 1 valid target = `AutoPlayTop`/`AutoPlayBottom` (bypasses targeting UI). 2+ = `EnterTargetingMode`.
+
+### D36: Localization infrastructure — CSV key-value, fallback to key
+**Decision:** Player-facing strings use `Loc.Get("KEY")` from `HollowWardens.Core.Localization.Loc`. Strings are loaded from `data/localization/strings.csv` at startup. Missing keys return the key itself (fail visible, not silent).
+**Format:** CSV with header row `KEY,en` (extensible to `KEY,en,es,fr,...`). Locale column selected by name. Quoted fields handle commas. Template strings use `{0}` `{1}` placeholders — `Loc.Get("PHASE_TIDE_N", 3, 6)` → `"Tide 3/6"`.
+**Load path:** Godot loads via `Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "data", "localization", "strings.csv")` — same `res://../data/` pattern used for warden JSON. Sim loads via `Path.GetDirectoryName(dataDir) + "/localization/strings.csv"`.
+**Proof of concept:** `WardenSelectController.cs` fully migrated. Other controllers (~165 strings) are a future bulk pass — existing hardcoded strings remain until explicitly migrated.
+**Testing:** `Loc.LoadFromDict(dict)` allows test isolation without CSV files. `Loc.Clear()` resets state between tests.
+
+### D37: Encounter variety — 5 configs, 4 board layouts, 22 levers
+**Decision:** All encounter variety is data-driven via `EncounterConfig` fields. `EncounterLoader.Create(id)` dispatches to 5 factory methods.
+
+**5 encounter configs:**
+| ID | Tier | Tides | Board | Identity |
+|----|------|-------|-------|----------|
+| `pale_march_standard` | Standard | 6 | standard | Tutorial — mixed Marcher/Outrider |
+| `pale_march_scouts` | Standard | 6 | standard | Outrider-heavy, fast pressure |
+| `pale_march_siege` | Standard | 8 | standard | Ironclad + Pioneer, stamina check |
+| `pale_march_elite` | Elite | 6 | standard | Starting corruption, hard capstone |
+| `pale_march_frontier` | Standard | 7 | wide | Wide board (4-row), coverage challenge |
+
+**4 board layouts** in `TerritoryGraph.cs`: `standard` (3-2-1, 6 territories), `wide` (4-3-2-1, 10), `narrow` (2-1-1, 4), `twin_peaks` (3-2-2-1, 8; M1↔M2 not adjacent).
+
+**22 encounter levers** — easy: element_decay_override, threshold_damage_bonus, native hp/damage, fear_multiplier, heart_damage_multiplier. Medium (most interesting): surge_tides, invader_corruption_scaling, extra_invaders_per_wave, invader_advance_bonus, presence_placement_corruption_cost. Hard: corruption_spread, blight_pulse_interval, native_erosion_per_tide. Full reference in `SIM_REFERENCE.md`.
+
+**Board carryover** — `BoardCarryover.cs` + SimProfile `board_carryover` field: starting_weave, starting_corruption, dread_level, total_fear, removed_cards. Only `starting_weave` has a real gameplay effect (confirmed via chain sim — dread/fear carryover = zero).
+
+**Confirmed run order for Realm 1:** standard → scouts → siege → elite (frontier = optional capstone).
+
+### D38: Root B2 — AddB2Marchers as universal balance fix
+**Decision:** `EncounterLoader.AddB2Marchers(waves)` adds one `UnitType.Marcher` to A1 in every `SpawnWaveOption`, applied to standard/scouts/siege/elite. Frontier excluded.
+
+**Rationale:** Sim confirmed one lever (`extra_invaders_per_wave: 1`) brings Root into the 50–70% Clean / 5–15% Breach target on all four main encounters simultaneously. Root is too easy without it (93%+ Clean at baseline). Evidence in `CLAUDE-balance.md §B2`.
+
+**Why not per-encounter wave tuning:** Extra invaders via B2 are encounter-agnostic — the same lever works across 4 different encounter designs. Tuning each encounter's wave composition individually would couple balance to content design and make future encounters harder to calibrate.
+
+**Frontier excluded:** Already at 8.4% Breach at baseline (wide board creates its own difficulty). B2 would make it unwinnable.
+
+### D39: Warden asymmetry as emergent design feature
+**Decision:** Root and Ember's encounter-type asymmetry is intentional and should be preserved. It emerged with zero explicit tuning from passive mechanics alone.
+
+- **Root = anti-tank:** Network Slow + Assimilation hard-counter slow Ironclads. Root's danger is frontier (wide board, coverage problem).
+- **Ember = anti-swarm:** Ash Trail one-shots fragile Outriders (HP 3 = Ash 1 + DI×2). Ember's comfort is scouts; its danger is siege (Ironclads absorb Ash Trail, board corrupts without clearing).
+
+**Sim evidence:** Root at 0% Breach on siege baseline. Ember at 100% Weathered on siege baseline (always has I1 invaders at encounter end, but never takes weave damage).
+
+**Design implication:** Different encounter types naturally favor different wardens. Lean into this — Ember is the right pick for scouts, Root for siege. Future wardens should each have a comfort encounter and a challenge encounter.
+
+### D40: Ember carryover gap — deferred to playtest
+**Finding:** Ember's "Weathered" outcome = invaders reached I1 at encounter end (board-state classification), NOT weave damage. Ember never takes weave damage on any encounter in sim. Its run arc is completely flat — any carryover percentile produces identical subsequent encounter outcomes. This is the structural opposite of Root's progressive weave attrition arc.
+
+**Options considered:**
+- A: `heart_damage_multiplier: 1.5` on siege and elite — forces Ember to take real weave damage on hard encounters, creating meaningful carryover
+- B: New `starting_invaders` carryover field — residual I1 invaders carry into next encounter as starting board state (architecturally heavier)
+- C: Accept asymmetry — Ember's run challenge is cumulative board degradation (always weathered), not weave attrition; if weave is used for future upgrades/healing, Ember's preserved weave becomes a design choice
+
+**Decision:** Deferred. The sim bot plays optimally. Real players are expected to take weave damage even when the bot doesn't. Playtest data needed before adding a new mechanic. See `CLAUDE-balance.md §B3` for full chain arc findings.
 
 ---
 

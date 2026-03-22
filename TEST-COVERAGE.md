@@ -1,5 +1,5 @@
 # Hollow Wardens — BDD Test Coverage Report
-_Generated 2026-03-21 · 355 tests passing_
+_Updated 2026-03-22 · 487 tests passing_
 
 ## How to read
 Each line: `MethodName → what rule/behaviour it verifies — PASS`
@@ -432,7 +432,7 @@ ShadowTier3_GeneratesFiveFear                            → Shadow T3 generates
 AshTier2_DealsTwoDamageToAllInvadersInMostInvadedTerritory → Ash T2 deals 2 damage to all invaders in auto-selected territory — PASS
 AshTier2_AddsOneCorruptionToTargetTerritory                 → Ash T2 adds 1 Corruption to the targeted territory — PASS
 AshTier3_DealsThreeDamageToAllBoardInvaders                 → Ash T3 deals 3 damage to every invader on the board — PASS
-AshTier3_AddsOneCorruptionToEachAffectedTerritory           → Ash T3 adds 1 Corruption to each territory that had invaders — PASS
+AshTier3_NoCorruptionAdded_CorruptionRiderRemoved            → Ash T3 does NOT add corruption (D31 fix — was adds 1 per territory) — PASS
 AshTier3_IroncladSurvivesThreeDamage                        → Ash T3 leaves Ironclad (HP 5) alive at HP 2 — PASS
 ```
 
@@ -604,6 +604,172 @@ ExportString_ContainsSeedPrefix            → export starts with "SEED:N|" — 
 ImportFull_RoundTrips_Seed                 → imported seed matches original — PASS
 Replay_ProducesSameFinalWeave              → replay produces same final weave as original run — PASS
 Replay_ProducesSameActionCount             → replay produces same number of recorded actions — PASS
+```
+
+---
+
+## [BoardLayoutTests] — 4 Board Layouts
+```
+StandardLayout_Has6Territories        → standard (3-2-1) has 6 territories — PASS
+WideLayout_Has10Territories           → wide (4-3-2-1) has 10 territories — PASS
+NarrowLayout_Has4Territories          → narrow (2-1-1) has 4 territories — PASS
+TwinPeaksLayout_Has8Territories       → twin_peaks (3-2-2-1) has 8 territories — PASS
+WideLayout_ArrivalRowHas4             → wide board has 4 arrival territories — PASS
+NarrowLayout_ArrivalRowHas2           → narrow board has 2 arrival territories — PASS
+TwinPeaks_MiddleRowNotAdjacent        → M1 and M2 are NOT adjacent in twin_peaks — PASS
+WideLayout_DistanceA1ToI1Is3          → wide board is 3 steps deep — PASS
+NarrowLayout_DistanceA1ToI1Is2        → narrow board is 2 steps deep — PASS
+AllLayouts_HaveExactlyOneHeart        → all 4 layouts have HeartId="I1" — PASS
+Create_UnknownLayout_DefaultsToStandard → unknown layout ID falls back to standard — PASS
+```
+
+## [EncounterVarietyTests] — 5 Encounter Configs + B2 Verification
+```
+CreatePaleMarchScouts_HasCorrectTideCount       → scouts = 6 tides — PASS
+CreatePaleMarchScouts_WavesAreOutriderHeavy     → scouts wave 1 has Outriders — PASS
+CreatePaleMarchSiege_Has8Tides                  → siege = 8 tides — PASS
+CreatePaleMarchSiege_HasIronclads               → siege waves contain Ironclads — PASS
+CreatePaleMarchElite_HasStartingCorruption       → elite has A1 corruption = 3 — PASS
+CreatePaleMarchElite_IsEliteTier                → elite tier = EncounterTier.Elite — PASS
+CreatePaleMarchStandard_HasCorrectTideCount     → standard = 6 tides — PASS
+CreatePaleMarchStandard_UsesPyramidBoard        → standard uses default/standard board layout — PASS
+CreatePaleMarchFrontier_Has7Tides               → frontier = 7 tides — PASS
+CreatePaleMarchFrontier_UsesWideBoard           → frontier BoardLayout = "wide" — PASS
+CreatePaleMarchFrontier_HasFourArrivalPoints    → frontier waves use A4 (wide board) — PASS
+EncounterLoader_Create_ReturnsCorrectType       → Create() dispatcher returns correct encounter for all 5 IDs — PASS
+EncounterLoader_Create_UnknownId_Throws         → unknown ID throws ArgumentException — PASS
+B2Applied_Standard_EveryWaveOptionHasA1Marcher  → every option in standard has A1 Marcher (B2) — PASS
+B2Applied_Scouts_EveryWaveOptionHasA1Marcher    → every option in scouts has A1 Marcher (B2) — PASS
+B2Applied_Siege_EveryWaveOptionHasA1Marcher     → every option in siege has A1 Marcher (B2) — PASS
+B2Applied_Elite_EveryWaveOptionHasA1Marcher     → every option in elite has A1 Marcher (B2) — PASS
+```
+_Note: B2 tests (last 4) would fail if `AddB2Marchers()` is removed, as several options in each encounter originally have no A1 entry._
+
+## [EncounterLeverTests] — 22 Encounter Levers
+```
+SurgeTide_SpawnsDoubleWave                    → surge_tides causes double spawn on that tide — PASS
+InvaderAdvanceBonus_IncreasesMovement         → invader_advance_bonus adds extra movement steps — PASS
+InvaderCorruptionScaling_BonusHp_MatchesL1Count → invaders gain +HP per L1+ territory on arrival — PASS
+InvaderHpBonus_AppliedOnCreation              → invader_hp_bonus increases base HP at spawn — PASS
+InvaderArrivalShield_AppliedOnSpawn           → invaders spawn with shield points — PASS
+PresencePlacementCorruptionCost_AddsCorruption → placing presence adds corruption to territory — PASS
+CorruptionSpread_L1Territory_SpreadsToAdjacentL0 → L1+ territories spread corruption to clean neighbours — PASS
+CorruptionSpread_L0Territory_DoesNotSpread    → clean territories don't spread — PASS
+BlightPulse_AddsCorruptionEveryNTides         → blight_pulse_interval triggers every N tides — PASS
+NativeErosion_ReducesHpEachTide               → native_erosion_per_tide reduces native HP per tide — PASS
+NativeErosion_KillsNativeAtZero               → natives at 0 HP are removed — PASS
+NativeOverride_CustomHpAndDamage              → native_hp_override and native_damage_override applied at spawn — PASS
+NativeSpawns_PopulatesTerritoriesWithCorrectCount → NativeSpawns field places correct native counts — PASS
+NativeSpawns_NativesHaveCorrectStats          → spawned natives use config hp/damage — PASS
+ElementDecayOverride_UsedInsteadOfGlobal      → element_decay_override replaces global decay rate — PASS
+ThresholdDamageBonus_AppliedToAllTiers        → threshold_damage_bonus adds to T1/T2/T3 damage — PASS
+FearMultiplier_HalvesFear                     → fear_multiplier = 0.5 halves generated fear — PASS
+HeartDamageMultiplier_IncreasesWeaveLoss      → heart_damage_multiplier increases weave loss on heart hit — PASS
+PlayLimitOverrides_RestrictCardPlays          → play_limit_overrides cap top/bottom play counts — PASS
+ApplyStartingCorruption_SetsPoints            → StartingCorruption field pre-corrupts territories — PASS
+```
+
+## [BoardCarryoverTests] — Run Arc Carryover
+```
+ExtractCarryover_CleanBoard_EmptyCorruption           → clean board extracts empty corruption map — PASS
+ExtractCarryover_DefiledTerritory_PersistsAsL1        → L2 (Defiled) persists as 3 pts (L1 threshold) — PASS
+ExtractCarryover_DesecratedTerritory_FullPersistence  → L3 (Desecrated) persists at full points — PASS
+ExtractCarryover_WeavePreserved                       → final weave captured in carryover — PASS
+ExtractCarryover_DreadPreserved                       → dread level captured in carryover — PASS
+ApplyCarryover_SetsCorruption                         → ApplyCarryover pre-corrupts territories as specified — PASS
+ApplyCarryover_SetsWeave                              → ApplyCarryover sets starting weave — PASS
+ApplyCarryover_RemovesCards                           → PermanentlyRemovedCards removed from starting deck — PASS
+```
+
+## [LocalizationTests] — Loc.cs Key-Value System
+```
+Get_ExistingKey_ReturnsValue             → Loc.Get returns value for loaded key — PASS
+Get_MissingKey_ReturnsKeyItself          → missing key falls back to key string (fail visible) — PASS
+Get_WithFormatArgs_FormatsCorrectly      → Loc.Get(key, args) formats {0} {1} placeholders — PASS
+Get_WithBadFormatArgs_ReturnsTemplate    → bad format args returns template string (no throw) — PASS
+Has_ReturnsTrueForLoaded                 → Loc.Has returns true for loaded key — PASS
+Has_ReturnsFalseForMissing               → Loc.Has returns false for missing key — PASS
+Clear_RemovesAllStrings                  → Loc.Clear resets state — PASS
+LoadFromCsv_ParsesCorrectly              → CSV file loaded and parsed — PASS
+LoadFromCsv_HandlesQuotedCommas          → quoted CSV fields with commas parsed correctly — PASS
+LoadFromCsv_MissingFile_NoException      → missing CSV file does not throw — PASS
+```
+
+## [SimProfileTests] — Sim Profile Loading & Application
+```
+LoadProfile_ParsesAllFields              → all SimProfile JSON fields deserialized — PASS
+CliFlags_OverrideProfileValues           → CLI --warden/--seeds flags override profile — PASS
+ApplyBalanceOverrides_SetsConfigFields   → balance_overrides fields applied to BalanceConfig — PASS
+ApplyEncounterOverrides_ChangesTideCount → encounter_overrides.tide_count applied — PASS
+ApplyWardenOverrides_AddsCards           → warden_overrides.add_cards applied to deck — PASS
+ApplyWardenOverrides_RemovesCards        → warden_overrides.remove_cards removes from deck — PASS
+ApplyWardenOverrides_UpgradesCardValue   → warden_overrides.upgrade_cards changes card value — PASS
+ApplyPassiveOverrides_ForcesLock         → passive_overrides force_lock disables passive — PASS
+ApplyPassiveOverrides_ForcesUnlock       → passive_overrides force_unlock enables passive — PASS
+ApplyCarryover_RemovesCards              → board_carryover.removed_cards removes from deck — PASS
+SimProfile_ElementOverrides_Applied      → element_overrides applied to BalanceConfig — PASS
+```
+
+## [BalanceConfigTests] — Data-Driven Threshold Overrides
+```
+DefaultConfig_MatchesCurrentHardcodedValues        → default BalanceConfig values are as designed — PASS
+GetThreshold_DefaultsToGlobal                      → element without override uses global threshold — PASS
+GetThreshold_UsesElementOverride                   → element with override uses per-element threshold — PASS
+GetThreshold_OtherElementsUnaffected               → override for one element doesn't affect others — PASS
+GetThresholdDamage_DefaultsToGlobal                → threshold damage uses global when no override — PASS
+GetThresholdDamage_UsesElementOverride             → threshold damage uses per-element override — PASS
+Config_Clone_IsIndependent                         → Clone() creates independent copy (no shared dict) — PASS
+PerElementThreshold_IntegratesWithElementSystem    → overrides wired end-to-end through ElementSystem — PASS
+```
+
+## [EmberAbilityTests] — Ember Warden Passives
+```
+Ember_AshTrail_AddsCorruption_AndDamagesInvaders   → Ash Trail adds 1 corruption + 1 damage per presence territory — PASS
+Ember_AshTrail_OnlyAffectsPresenceTerritories      → Ash Trail only fires in territories with presence — PASS
+Ember_AshT3_DealsOnlyDamage_NoCorruption           → Ash T3 (B1 nerf path) — see AshTier3 in ThresholdT2T3Tests — PASS
+Ember_AshTrail_Ash_T3 tests → see [ThresholdT2T3Tests] Ash section — PASS
+Ember_EmberFury_BonusDamage_PerCorruptedTerritory  → EmberFury adds +1 damage per L1+ territory — PASS
+Ember_EmberFury_Inactive_WhenLocked                → EmberFury passive locked = no bonus damage — PASS
+Ember_ControlledBurn_Generates2Fear_With3PlusL1Territories → Controlled Burn generates 2 fear at 3+ L1 — PASS
+Ember_ControlledBurn_NoFear_WithFewerThan3L1       → below 3 L1 territories = no fear — PASS
+Ember_ControlledBurn_OnlyCountsL1_NotL2OrL0        → only L1 (Tainted) territories count, not L2/L3 — PASS
+Ember_ScorchedEarth_DamageEqualsCorruptionSum       → Resolution damage = sum of corruption in presence territories — PASS
+Ember_ScorchedEarth_FullyCleansesL0AndL1           → Resolution cleanses L0 and L1 fully — PASS
+Ember_ScorchedEarth_HalvesLevel2                   → Resolution halves L2 corruption (round down) — PASS
+Ember_ScorchedEarth_NoChangeLevel3                 → Resolution does not change L3 (permanent) — PASS
+Ember_ScorchedEarth_MixedBoard_CorrectCleanse       → mixed board: L0 cleansed, L2 halved, L3 unchanged — PASS
+Ember_PhoenixSpark_GeneratesFear_OnPermanentRemoval → PhoenixSpark generates 3 fear when card permanently removed — PASS
+Ember_PresencePlacement_AllowedAtLevel2             → Ember can place presence in Defiled (L2) territory — PASS
+Ember_PresencePlacement_BlockedAtLevel3             → Ember blocked from Desecrated (L3) territory — PASS
+Ember_CleanWin_Possible_WhenAllPresenceAtL1         → Ember can achieve Clean outcome with correct play — PASS
+```
+
+## [EmberLoaderTests] — Ember JSON Loading
+```
+EmberLoad_WardenId_IsEmber          → wardenId = "ember" — PASS
+EmberLoad_ElementAffinity_IsAsh_Shadow_Gale → element affinity = Ash/Shadow/Gale — PASS
+EmberLoad_StartingCards_Is8         → 8 starting cards (smaller deck = faster cycling) — PASS
+EmberLoad_Cards_TotalCount          → total card pool count — PASS
+EmberLoad_Passives_Count            → 7 passives (6 unlockable + base set) — PASS
+```
+
+## [PassiveGatingTests] — Passive Unlock/Lock System
+```
+Root_StartsWithThreeActivePassives          → Root has 3 base passives active at encounter start — PASS
+Root_NetworkSlowInactive_AtStart            → network_slow locked at start (unlocks on Shadow T1) — PASS
+Root_ProvocationInactive_AtStart            → presence_provocation locked at start — PASS
+Root_RestGrowthInactive_AtStart             → rest_growth locked at start — PASS
+Root_RestGrowth_UnlocksOnRootT1             → rest_growth unlocks when Root T1 fires — PASS
+Root_NetworkSlow_UnlocksOnShadowT1          → network_slow unlocks when Shadow T1 fires — PASS
+Root_Provocation_UnlocksOnRootT2            → presence_provocation unlocks when Root T2 fires — PASS
+Root_DuplicateThreshold_DoesNotReUnlock     → threshold firing twice doesn't re-unlock — PASS
+Root_UnlockFiresEvent                       → PassiveUnlocked event fires on unlock — PASS
+Root_Reset_ClearsUnlocks                    → Reset() restores warden defaults — PASS
+Root_GetMovementPenalty_ReturnsZero_WhenNetworkSlowLocked → locked network_slow returns 0 penalty — PASS
+Root_NetworkFearCapped_At4                  → Network Fear capped at 4 per BalanceConfig — PASS
+Root_ProvokesNatives_ReturnsFalse_WhenLocked → locked provocation = false — PASS
+ApplyPassiveOverrides_ForcesUnlock          → force_unlock overrides gating — PASS
+ApplyPassiveOverrides_ForcesLock            → force_lock prevents unlock — PASS
 ```
 
 ---

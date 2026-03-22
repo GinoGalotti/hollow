@@ -177,6 +177,36 @@ Different Wardens resolve encounters differently, even against identical invader
 
 This creates a clear risk gradient. In Standard encounters you use bottoms more freely. In Elites you hesitate. In Boss fights every bottom is a permanent decision.
 
+### 3.6 Encounter Instances — Pale March (V1)
+
+Five named encounter configs are implemented as the Realm 1 encounters.
+
+| ID | Tier | Tides | Board | Identity |
+|----|------|-------|-------|----------|
+| `pale_march_standard` | Standard | 6 | standard | Tutorial — mixed Marcher/Outrider, gentle escalation at T4 |
+| `pale_march_scouts` | Standard | 6 | standard | Outrider-heavy, natives on A-row, fast pressure — Ember's comfort |
+| `pale_march_siege` | Standard | 8 | standard | Ironclad + Pioneer, dual escalation at T3 + T6 — Root's comfort |
+| `pale_march_elite` | Elite | 6 | standard | Starting corruption A1/A2/M1, 3 resolution turns, hard capstone |
+| `pale_march_frontier` | Standard | 7 | wide | 4-row board (A1–A4), wider wave spread — coverage challenge |
+
+**Confirmed Realm 1 run order:** standard → scouts → siege → elite
+(frontier = optional alternate capstone or post-game challenge)
+
+**Board layouts** available in `TerritoryGraph.cs`:
+| ID | Territories | Shape | Used by |
+|----|-------------|-------|---------|
+| `standard` | 6 | 3-2-1 pyramid | standard, scouts, siege, elite |
+| `wide` | 10 | 4-3-2-1 pyramid | frontier |
+| `narrow` | 4 | 2-1-1 | future use |
+| `twin_peaks` | 8 | 3-2-2-1 (M1↔M2 not adjacent) | future use |
+
+**Encounter levers** (fields on `EncounterConfig`) allow difficulty tuning without editing wave data. Key levers:
+- *Easy:* `element_decay_override`, `threshold_damage_bonus`, native stats, `fear_multiplier`, `heart_damage_multiplier`
+- *Medium:* `surge_tides` (double waves on specific tides), `extra_invaders_per_wave`, `invader_corruption_scaling`, `invader_advance_bonus`, `presence_placement_corruption_cost`
+- *Hard:* `corruption_spread`, `blight_pulse_interval`, `native_erosion_per_tide`
+
+Full lever reference: `SIM_REFERENCE.md`.
+
 ---
 
 ## 4. Invader System
@@ -836,6 +866,22 @@ Each Realm: 3 standard/elite encounters + 1 boss.
 | Realm 2 | 2 factions | Some territories pre-Tainted (3 pts) | 4-3-2-1 pyramid (10 territories) |
 | Realm 3 | 2–3 factions | Some territories pre-Defiled (8 pts) | 4-3-2-1 pyramid + side route |
 
+#### Realm 1 Encounter Sequence (confirmed, sim-validated)
+
+```
+E1: pale_march_standard  → Tutorial (mixed Marcher/Outrider)
+E2: pale_march_scouts    → Fast pressure — Ember's comfort, Root's warmup
+E3: pale_march_siege     → Stamina check — Root's comfort, Ember's challenge
+E4: pale_march_elite     → Hard capstone (starting corruption, Elite tier)
+    pale_march_frontier  → Optional alternate capstone / post-game (wide board)
+```
+
+**Warden asymmetry (emergent):** Root and Ember have natural comfort/challenge encounters due to their passives alone.
+- Root = anti-tank: strong on siege (Ironclads), challenged by frontier (wide board coverage)
+- Ember = anti-swarm: strong on scouts (Outriders), challenged by siege (Ironclads absorb Ash Trail)
+
+**Carryover:** Only weave damage carries forward meaningfully. Dread/fear carryover has zero gameplay effect (confirmed via chain sim). See `CLAUDE-balance.md §B3` for full chain arc data.
+
 ### 9.3 Between-Encounter Rewards
 
 | Performance | Rewards |
@@ -927,6 +973,29 @@ Unlocks happen between runs:
 - Dread Level 2 → 3 transition (30 Fear total): expect mid-Realm 2
 - Fear Actions per encounter average: 2–3 in Standard, 4–6 in Boss
 - Dread upgrade timing: pushing past a Dread threshold upgrades all queued Fear Actions retroactively — incentivizes frontloading Fear generation to hit Dread 2 before queued actions reveal
+
+### 10.6 Sim-Validated Balance Results (Realm 1, 500 seeds each)
+
+Current shipped balance: **B1** (Ember nerf) + **B2** (Root +1 invader/wave).
+
+**Balance targets:** Clean 50–70%, Weathered 20–35%, Breach 5–15%
+
+**Root with B2 (`extra_invaders_per_wave: 1`):**
+| Encounter | Clean% | Weathered% | Breach% | Assessment |
+|-----------|--------|-----------|---------|------------|
+| standard | 56% | 34.6% | 9.4% | ✅ All 5 targets |
+| scouts | 62% | 33.8% | 4.2% | ✅ All 5 targets |
+| siege | 61.6% | 38% | 0.4% | ✅ Near targets (breach low) |
+| elite | 33% | 63.2% | 3.8% | Hard E3 — acceptable |
+| frontier | 10.2% | 81.4% | 8.4% | No B2 — wide board difficulty |
+
+**Ember with B1 (card tops 3→2) and B2 where applied:**
+- standard (B2): 19% Clean / 0% Breach — Ember challenged here; board-state outcomes
+- scouts (B2): 51.4% Clean / 0% Breach ✅ — Ember's comfort encounter
+- siege: 0% Clean / 100% Weathered / 0% Breach — always weathered (Ironclads absorb Ash Trail)
+- elite (B2): 4.2% Clean / 0% Breach — very hard for Ember
+
+**Key insight — Ember "Weathered" ≠ damage:** For Ember, Weathered means invaders at I1 at encounter end. Ember never takes weave damage in sim (bot plays optimally). Real players will generate more breach. Ember's run arc is flat across all percentile carryovers — see `CLAUDE-balance.md §B3`.
 
 ---
 
@@ -1496,17 +1565,50 @@ One Warden (The Root), 10-card starting deck + 18-card draft pool, 3-2-1 pyramid
 
 ## 15. Localization System
 
-*(unchanged from v0.4 — schema same, new keys needed for elements, natives, fear actions)*
+### Architecture
+Custom CSV-based localization — **not** Godot's built-in `Tr()`. Lives in `HollowWardens.Core` (no Godot dependency).
 
-New key patterns:
+**`src/HollowWardens.Core/Localization/Loc.cs`** — static class:
+- `Loc.Get("KEY")` — returns localized string; returns key itself if missing (fail visible)
+- `Loc.Get("KEY", arg0, arg1, ...)` — format args (`{0}`, `{1}` placeholders)
+- `Loc.Has("KEY")` — existence check
+- `Loc.Load(csvPath, locale)` — loads from CSV; locale column selected by header name
+- `Loc.LoadFromDict(dict)` — for unit tests (no file I/O)
+- `Loc.Clear()` — resets state
+
+**`data/localization/strings.csv`** — source of truth, 83+ keys, format:
+```csv
+KEY,en
+PHASE_VIGIL,Vigil
+PHASE_TIDE_N,"Tide {0}/{1}"
+WARDEN_ROOT_NAME,The Root
 ```
-ELEMENT_ROOT / MIST / SHADOW / ASH / GALE / VOID
-ELEMENT_THRESHOLD_{ELEMENT}_{N}   — e.g. ELEMENT_THRESHOLD_ROOT_2
-NATIVE_COUNTER_ATTACK
-NATIVE_DEFEATED
-DREAD_LEVEL_{N}
-FEAR_ACTION_{ID}_DESC
-INVADER_ACTION_{FACTION}_{NUM}_DESC
+To add future locales: add columns (`KEY,en,es,fr,...`) and pass locale to `Loc.Load()`.
+
+### Load Points
+- **Godot:** `GameBridge._Ready()` loads via `res://../data/localization/strings.csv`. Logs `[Loc] Loaded N strings`.
+- **Sim:** `Program.cs` loads after resolving data dir.
+
+### Usage in Code
+```csharp
+using HollowWardens.Core.Localization;
+
+label.Text = Loc.Get("WARDEN_SELECT_TITLE");
+label.Text = Loc.Get("PHASE_TIDE_N", currentTide, totalTides);
+```
+All **new** player-facing strings must use `Loc.Get()`. Bulk migration of existing ~165 hardcoded strings in view controllers is a future pass.
+
+### Key Naming Conventions
+```
+PHASE_{NAME}           — phase names (PHASE_VIGIL, PHASE_TIDE_N)
+BTN_{ACTION}           — button labels (BTN_PLAY_TOP, BTN_CONFIRM)
+LABEL_{SECTION}        — section headers (LABEL_ELEMENTS)
+WARDEN_{ID}_{FIELD}    — warden data (WARDEN_ROOT_NAME, WARDEN_ROOT_DESC)
+ENCOUNTER_{ID}_{FIELD} — encounter data (ENCOUNTER_STANDARD_NAME)
+ELEMENT_{NAME}         — element names (ELEMENT_ASH)
+ELEMENT_SHORT_{NAME}   — 3-letter abbreviations (ELEMENT_SHORT_ASH)
+INVADER_TYPE_{NAME}    — invader names (INVADER_TYPE_MARCHER)
+INVADER_SHORT_{NAME}   — single-char initials (INVADER_SHORT_MARCHER)
 ```
 
 ---
@@ -1528,8 +1630,28 @@ Same 9 custom actions. Territory grid navigation maps to pyramid layout:
 ```bash
 dotnet run --project src/HollowWardens.Sim/ -- --seeds 1-500 --warden root
 dotnet run --project src/HollowWardens.Sim/ -- --seeds 1-500 --warden ember
+dotnet run --project src/HollowWardens.Sim/ -- --seeds 1-500 --warden root --encounter pale_march_siege
 dotnet run --project src/HollowWardens.Sim/ -- --profile sim-profiles/X.json
 ```
+
+### CLI Flags
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--seeds N` or `--seeds N-M` | `1-500` | Seed range |
+| `--warden root\|ember` | `root` | Warden to simulate |
+| `--encounter <id>` | `pale_march_standard` | Encounter type |
+| `--profile <path>` | — | JSON sim profile (overrides CLI flags) |
+| `--output <dir>` | `sim-results` | Output directory |
+| `--verbose` | — | Full logs for first 5 encounters + all breaches |
+
+### Encounter Types
+| ID | Name | Description |
+|----|------|-------------|
+| `pale_march_standard` | Standard | Classic Pale March |
+| `pale_march_scouts` | Scouts | Fast Outriders, 6 Tides |
+| `pale_march_siege` | Siege | 8 Tides, Heavy Ironclads |
+| `pale_march_elite` | Elite | Veteran Forces, Starting Corruption |
+| `pale_march_frontier` | Frontier | 7 Tides, Wide Pressure |
 
 ### Verbose Logging
 Add `--verbose` to get turn-by-turn decision logs (first 5 encounters + any breaches).
@@ -1537,6 +1659,29 @@ Add `--verbose` to get turn-by-turn decision logs (first 5 encounters + any brea
 ### SimProfile
 JSON-driven configuration for A/B testing. See `sim-profiles/` for examples.
 Read `BalanceConfig.cs` for all tunable parameters — all balance constants are centralized there and stored on `EncounterState`.
+
+**Key SimProfile fields:**
+- `warden` — `"root"` or `"ember"`
+- `encounter` — encounter ID (e.g., `"pale_march_scouts"`)
+- `seeds` — seed range as string (e.g., `"1-500"`)
+- `encounter_overrides` — override any `EncounterConfig` lever: `{ "extra_invaders_per_wave": 1, "surge_tides": [3] }`
+- `balance_overrides` — override `BalanceConfig` constants: `{ "heart_damage_multiplier": 1.5 }`
+- `passive_overrides` — force-lock or force-unlock specific passives by name
+- `board_carryover` — simulate board state carried from a previous encounter:
+  - `starting_weave` — initial weave value (default 20; carry damage forward)
+  - `starting_corruption` — pre-corrupted territories: `{ "A1": 3, "M1": 2 }`
+  - `dread_level` — carry dread level (**no gameplay effect** — confirmed via chain sim)
+  - `total_fear` — carry accumulated fear (**no gameplay effect** — confirmed)
+  - `removed_cards` — deck degradation: list of card IDs permanently removed from starting deck
+
+**Balance targets (sim-validated):**
+| Outcome | Target range | Definition |
+|---------|-------------|------------|
+| Clean% | 50–70% | No invaders in I1 or Heart at encounter end |
+| Weathered% | 20–35% | Cleared but weave took damage (Root) / invaders at I1 at end (Ember) |
+| Breach% | 5–15% | Invaders remain after all Resolution turns |
+
+**Note on Ember "Weathered":** For Ember, Weathered = invaders at I1 at encounter end (board-state classification), NOT heart damage. Ember never takes weave damage in sim at current difficulty. The Weathered/Clean distinction for Ember is about board coverage, not survival.
 
 ### Combo Testing
 - `sim-profiles/scripts/combo-cards.sh` — tests all draft card pair combinations

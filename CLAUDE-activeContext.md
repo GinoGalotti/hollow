@@ -1,63 +1,110 @@
 # Hollow Wardens — Active Context
 
 ## Current Status
-**Phase 5 complete** — 111/111 tests passing (41 original + 70 new... wait: 41+10 from Phases 1-4 + 8 Group I + 2 I1 sub-tests = let me just say 111 total)
+**Phase 6+ active development** — 478 tests passing, functional prototype playable.
+Both Root and Ember wardens implemented. Two-screen warden/encounter selection. 5 encounter configs live. B1/B2 balance shipped and pushed.
 
 ## Phase Completion
 | Phase | Description | Tests | Status |
 |-------|-------------|-------|--------|
-| 1 | Data layer + project setup | 41 | ✅ Done |
-| 2 | Territory graph + turn/tide managers | +10 | ✅ Done |
-| 3 | CardEngine (play, resolve, dissolve) | +20 | ✅ Done |
-| 4 | Encounter loop (clean/weathered/breach) | +11 | ✅ Done |
+| 1–4 | Data layer, territory graph, card engine, encounter loop | 82 | ✅ Done |
 | 5 | Root Warden implementation | +10 | ✅ Done |
+| 6a | Pure C# architecture migration (Core/Sim/Tests split) | major rewrite | ✅ Done |
+| 6b | Ember Warden + passive gating + sim workbench | +~150 | ✅ Done |
+| 6c | Data-driven thresholds (BalanceConfig per-element overrides) | +7 | ✅ Done |
+| 6d | Territory targeting for global-range effects | 0 new | ✅ Done |
+| 6e | Localization infrastructure (Loc.cs + CSV) | +10 | ✅ Done |
+| 6f | Encounter variety: 5 configs, 4 board layouts, 22 levers | +63 | ✅ Done |
+| 6g | Balance sim: B1 (Ember nerf) + B2 (Root +1/wave) shipped | 0 new | ✅ Done |
 
-## Phase 5 Deliverables
+## Architecture Summary
+| Layer | Path | Notes |
+|-------|------|-------|
+| Pure C# logic | `src/HollowWardens.Core/` | No Godot deps — all game logic |
+| xUnit tests | `src/HollowWardens.Tests/` | `dotnet test`, no Godot needed |
+| Godot UI | `hollow_wardens/godot/` | Bridge + view controllers only |
+| Sim console | `src/HollowWardens.Sim/` | Balance simulation, `--warden`, `--encounter`, `--profile` |
 
-### Code changes
-- `CardEffect.cs` — Added `AwakeDormant` (enum value 12)
-- `CardEngine.cs` — IsDormant guard in TryPlayCard; DissolveCard signals moved after OnDissolve; AwakeDormant ResolveEffect case
-- `Warden.cs` — Added `virtual void OnTideStart()`
-- `TurnManager.cs` — Calls `CurrentWarden.OnTideStart()` in EndVigil
-- `EncounterManager.cs` — Calls `CurrentWarden.OnResolutionStart(territories)` in BeginResolutionPhase
-- `WardenRoot.cs` (new) — Dormancy, Network Fear, Assimilation
-- `TestRunner.cs` — Group I (10 assertions, 8 test blocks)
+## Encounter Configs (live in EncounterLoader.cs)
 
-### Resources
-- `resources/cards/root/root_001.tres` … `root_030.tres` — 30 Root card definitions
-- `root_001` and `root_011` have custom DissolveEffect; others use default (PlacePresence 1 rng0)
+| ID | Tier | Tides | Board | Identity |
+|----|------|-------|-------|----------|
+| `pale_march_standard` | Standard | 6 | standard | Tutorial — mixed Marcher/Outrider |
+| `pale_march_scouts` | Standard | 6 | standard | Outrider-heavy, fast pressure (Ember comfort) |
+| `pale_march_siege` | Standard | 8 | standard | Ironclad + Pioneer, dual escalation (Root comfort) |
+| `pale_march_elite` | Elite | 6 | standard | Starting corruption A1/A2/M1, hard capstone |
+| `pale_march_frontier` | Standard | 7 | wide | 4-row board, coverage challenge for both wardens |
 
-## Phase 6 Foundation (Complete)
+**Confirmed Realm 1 run order:** standard → scouts → siege → elite
+(frontier = optional alternate capstone or post-game challenge)
 
-Localization + controller support infrastructure baked in before any UI scenes built.
+## Balance Status — B1 + B2 Shipped (commit 6d508ab)
 
-### Changes
-- **Data class property renames**: `CardName→CardNameKey`, `Description→DescriptionKey` (CardEffect, EffectCondition, EscalateEvent), `WardenName→WardenNameKey`, `Archetype→ArchetypeKey`, `DissolveDescription→DissolveDescKey`, `ResolutionStyle→ResolutionDescKey`, `FactionName→FactionNameKey`, `DreadEventDescription→DreadDescKey`
-- **TestRunner.cs**: All renamed property usages updated (~16 locations)
-- **TideExecutor.cs**: `e.Description` → `e.DescriptionKey`
-- **translations.csv**: `hollow_wardens/locale/translations.csv` — 38 UI strings + all 30 Root card keys (auto-generated block)
-- **project.godot**: 9 custom input actions (keyboard + controller) + locale registration
-- **generate-cards.py**: Key derivation helper, `CardNameKey`/`DescriptionKey` output in .tres, CSV sentinel block update
-- **30 .tres files**: Regenerated with `CardNameKey`/`DescriptionKey` properties
-- **master.md**: §13 Localization System + §14 Input Actions
-- **CLAUDE-decisions.md**: D10 (custom nav actions), D11 (CSV over gettext)
-- **111/111 tests still passing**
+| Change | File | Status |
+|--------|------|--------|
+| B1: Ember Flame Burst + Conflagration top 3→2 | `data/wardens/ember.json` | ✅ Shipped |
+| B2: Root +1 Marcher/wave (`AddB2Marchers`) | `EncounterLoader.cs` | ✅ Shipped |
 
-## Next Phase (Phase 6)
-- UI layer: CardView, HandView, TerritoryMapView
-- All Labels must use `Tr(key)` — never hardcoded text
-- All interactive Controls: `FocusMode = All`
-- HandView: consume `ui_navigate_left/right`; TerritoryMapView: `ui_navigate_*` for 3×3 grid
-- CardDormant signal (left as TODO comment in CardEngine)
-- Warden select screen
-- Encounter scene wiring
+**B2 applied to:** standard, scouts, siege, elite. **NOT frontier** (wide board is its own difficulty).
 
-## Key Design Decisions (Phase 5)
-- Dormancy always beats Boss dissolution (Root cards NEVER permanently removed on first dissolve)
-- Double-dissolve (card already Dormant) → permanently removed
-- Network Fear triggers at start of The Tide (TurnManager.EndVigil → OnTideStart)
-- Assimilation: Presence absorbs ALL invaders in adjacent territory + Corruption -1 per neighbor
-- AwakeDormant Value=0 means "awaken all dormant" in hand
+**Sim-validated balance targets:** Clean 50–70%, Weathered 20–35%, Breach 5–15%
 
-## Card Catalog
-See `cards-catalog.html` in project root for browsable Root card deck reference.
+**Root B2 results (500 seeds each):**
+| Encounter | Clean% | Breach% | Status |
+|-----------|--------|---------|--------|
+| standard | 56% | 9.4% | ✅ |
+| scouts | 62% | 4.2% | ✅ |
+| siege | 61.6% | 0.4% | ✅ |
+| elite | 33% | 3.8% | Hard E3 — acceptable |
+
+**Warden asymmetry (emergent, not tuned):**
+- Root = anti-tank: strong vs Ironclads/siege, challenged by frontier's wide board
+- Ember = anti-swarm: strong vs Outriders/scouts, challenged by siege (Ironclads absorb Ash Trail)
+- Asymmetry emerged from passive mechanics alone — treat as a design feature.
+
+## Chain Arc (confirmed)
+Standard(B2) → Scouts(B2) → Elite(B2) is a coherent difficulty arc:
+- **Root worst-case:** breach escalates 9.4% → 5.4% → 6.2% (manageable; most players exit at weave=20)
+- **Ember chain:** flat — Ember never takes weave damage; carryover mechanism is an open design gap
+- **Dread/fear carryover:** zero gameplay effect (confirmed via chain sim)
+- **Weave carryover:** small but real (+1.2pp breach per encounter in damaged arc; affects ~25% of Root players)
+
+## Recently Completed Work
+
+### Phase 6g — Balance: B1 + B2
+- **B1 (Ember nerf):** top damage 3→2 on Flame Burst + Conflagration. Prevents Ash Trail + DI×3 one-shotting Outriders (HP 3) before they can act. 15 configs tested across 7,500 encounters.
+- **B2 (Root fix):** `AddB2Marchers()` private helper in `EncounterLoader.cs` adds 1 Marcher to A1 in every `SpawnWaveOption`. Applied to 4 factory methods. One lever fixes Root on all encounter types simultaneously.
+- **B3 (chain arc):** Full 3-encounter run arc simulated at p25/p50/p75 carryover. Ember carryover gap identified. Full findings in `CLAUDE-balance.md`.
+- **Warden asymmetry confirmed** as emergent design feature from passive mechanics alone.
+- **Evidence:** `CLAUDE-balance.md` (B1/B2/B3) and `SIM_REFERENCE.md` (lever reference, single source of truth).
+
+### Phase 6f — Encounter Variety System
+- **5 encounter configs** in `EncounterLoader.cs` with `Create(id)` dispatcher.
+- **4 board layouts** in `TerritoryGraph.cs`: standard (3-2-1), wide (4-3-2-1), narrow (2-1-1), twin_peaks (3-2-2-1 with M1↔M2 not adjacent).
+- **22 encounter levers** on `EncounterConfig`: surge_tides, extra_invaders_per_wave, invader_corruption_scaling, invader_advance_bonus, presence_placement_corruption_cost, corruption_spread, blight_pulse_interval, native_erosion_per_tide, etc.
+- **Board carryover** (`BoardCarryover.cs`): starting_weave, starting_corruption, dread_level, total_fear, removed_cards.
+- **63 sim profiles** covering baselines, B2 experiments, chain arc simulations.
+- **63 new tests** across EncounterVarietyTests, EncounterLeverTests, BoardLayoutTests, BoardCarryoverTests.
+
+### Phase 6e — Localization Infrastructure
+- `src/HollowWardens.Core/Localization/Loc.cs` — `Loc.Get(key)`, `Loc.Get(key, args...)`, fallback to key.
+- `data/localization/strings.csv` — 83+ English keys.
+- `WardenSelectController.cs` — two-screen flow (warden → encounter), all text uses `Loc.Get()`.
+
+## Open Work / Next Steps
+1. **Playtest** with B2 live — validate sim predictions against real play. Real players expected to take weave damage where the bot doesn't.
+2. **Ember carryover decision** (defer to post-playtest data):
+   - Option A: `heart_damage_multiplier: 1.5` on siege/elite — forces Ember weave damage on hard encounters
+   - Option B: `starting_invaders` residual mechanic — I1 invaders carry into next encounter
+   - Option C: Accept asymmetry — Ember's challenge is board degradation, not weave attrition
+3. **Bulk string migration** — ~165 hardcoded strings in DebugLogController, PhaseIndicatorController, DreadBarController, etc.
+4. **Frontier encounter access** — not in main run arc; needs a clear access point (alternate capstone? post-game?).
+
+## Localization Pattern (for new code)
+```csharp
+using HollowWardens.Core.Localization;
+label.Text = Loc.Get("SOME_KEY");
+label.Text = Loc.Get("PHASE_TIDE_N", currentTide, totalTides);
+// Add key to data/localization/strings.csv: MY_KEY,"My English string"
+```
+The remaining ~165 hardcoded strings in other view controllers are NOT yet migrated.

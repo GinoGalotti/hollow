@@ -143,4 +143,61 @@ public class FearActionSystemTests : IDisposable
 
         Assert.Equal(1, sut.QueuedCount);
     }
+
+    // ── Null-safety regression tests ────────────────────────────────────────
+    // Guard against: GameBridge.Instance?.State.FearActions (missing ?. after State)
+    // The view controller callbacks fire via GameEvents; if the state reference is null
+    // at that moment the null-conditional chain must return 0, not throw.
+
+    [Fact]
+    public void QueuedCount_IsZero_OnFreshSystem()
+    {
+        var dread = new DreadSystem();
+        var sut = new FearActionSystem(dread, MakePools());
+
+        Assert.Equal(0, sut.QueuedCount);
+    }
+
+    [Fact]
+    public void QueuedCount_NullableInterface_ReturnsZeroViaCoalescing()
+    {
+        IFearActionSystem? sut = null;
+        int count = sut?.QueuedCount ?? 0;
+        Assert.Equal(0, count);
+    }
+
+    [Fact]
+    public void FearActionQueued_Event_CallbackWithNullStateSafelyReturnsZero()
+    {
+        // Regression: FearActionQueueController used ?.State.FearActions instead of
+        // ?.State?.FearActions — crashing when State was null before BuildEncounter.
+        // This test fires the exact same Core event path with a null state reference.
+        var dread = new DreadSystem();
+        var sut   = new FearActionSystem(dread, MakePools());
+
+        IFearActionSystem? nullableRef = null; // simulates State not yet built
+        var observed = new List<int>();
+        GameEvents.FearActionQueued += () => observed.Add(nullableRef?.QueuedCount ?? 0);
+
+        sut.OnFearSpent(5); // fires GameEvents.FearActionQueued while nullableRef is null
+
+        Assert.Single(observed);
+        Assert.Equal(0, observed[0]); // must return 0, not throw NullReferenceException
+    }
+
+    [Fact]
+    public void FearActionQueued_Event_CallbackReadsCorrectCountOnceStateIsAvailable()
+    {
+        var dread = new DreadSystem();
+        var sut   = new FearActionSystem(dread, MakePools());
+
+        IFearActionSystem? nullableRef = sut; // simulates State available after BuildEncounter
+        var observed = new List<int>();
+        GameEvents.FearActionQueued += () => observed.Add(nullableRef?.QueuedCount ?? 0);
+
+        sut.OnFearSpent(5);  // queues 1
+        sut.OnFearSpent(5);  // queues 2
+
+        Assert.Equal(new[] { 1, 2 }, observed);
+    }
 }

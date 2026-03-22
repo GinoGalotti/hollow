@@ -40,7 +40,7 @@ public partial class FearActionQueueController : VBoxContainer
 
     private void OnCardQueued()
     {
-        int count = GameBridge.Instance?.State.FearActions?.QueuedCount ?? 0;
+        int count = GameBridge.Instance?.State?.FearActions?.QueuedCount ?? 0;
         UpdateCardRow(count);
     }
 
@@ -49,7 +49,7 @@ public partial class FearActionQueueController : VBoxContainer
         _revealed.Enqueue(description);
         if (_revealed.Count > 3) _revealed.Dequeue();
 
-        int count = GameBridge.Instance?.State.FearActions?.QueuedCount ?? 0;
+        int count = GameBridge.Instance?.State?.FearActions?.QueuedCount ?? 0;
 
         // Animate last queued card flipping (scale X tween).
         // UpdateCardRow is deferred to the tween's final callback to avoid freeing the
@@ -84,7 +84,7 @@ public partial class FearActionQueueController : VBoxContainer
         _revealed.Clear();
         _revealLabel.Text = "";
         // Rebuild from actual queue count — don't wipe to 0 if actions are still queued
-        int count = GameBridge.Instance?.State.FearActions?.QueuedCount ?? 0;
+        int count = GameBridge.Instance?.State?.FearActions?.QueuedCount ?? 0;
         UpdateCardRow(count);
     }
 
