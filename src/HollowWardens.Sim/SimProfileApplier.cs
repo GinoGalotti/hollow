@@ -1,0 +1,181 @@
+namespace HollowWardens.Sim;
+
+using System.Text.Json;
+using HollowWardens.Core.Data;
+using HollowWardens.Core.Encounter;
+using HollowWardens.Core.Models;
+using HollowWardens.Core.Wardens;
+
+public static class SimProfileApplier
+{
+    public static void ApplyWardenOverrides(
+        WardenData wardenData, WardenOverrides overrides)
+    {
+        if (overrides.HandLimit.HasValue)
+            wardenData.HandLimit = overrides.HandLimit.Value;
+
+        if (overrides.StartingPresence != null)
+        {
+            wardenData.StartingPresence.Territory = overrides.StartingPresence.Territory;
+            wardenData.StartingPresence.Count = overrides.StartingPresence.Count;
+        }
+
+        // Add cards from the full pool
+        if (overrides.AddCards != null)
+        {
+            foreach (var cardId in overrides.AddCards)
+            {
+                var card = wardenData.Cards.FirstOrDefault(c => c.Id == cardId);
+                if (card != null)
+                    card.IsStarting = true; // promote to starting deck
+            }
+        }
+
+        // Remove cards from starting deck
+        if (overrides.RemoveCards != null)
+        {
+            foreach (var cardId in overrides.RemoveCards)
+            {
+                var card = wardenData.Cards.FirstOrDefault(c => c.Id == cardId);
+                if (card != null)
+                    card.IsStarting = false; // demote from starting deck
+            }
+        }
+
+        // Upgrade card effect values
+        if (overrides.UpgradeCards != null)
+        {
+            foreach (var (cardId, upgrade) in overrides.UpgradeCards)
+            {
+                var card = wardenData.Cards.FirstOrDefault(c => c.Id == cardId);
+                if (card == null) continue;
+                if (upgrade.Top?.Value != null)
+                    card.TopEffect.Value = upgrade.Top.Value.Value;
+                if (upgrade.Top?.Range != null)
+                    card.TopEffect.Range = upgrade.Top.Range.Value;
+                if (upgrade.Bottom?.Value != null)
+                    card.BottomEffect.Value = upgrade.Bottom.Value.Value;
+                if (upgrade.Bottom?.Range != null)
+                    card.BottomEffect.Range = upgrade.Bottom.Range.Value;
+            }
+        }
+    }
+
+    public static void ApplyEncounterOverrides(
+        EncounterConfig config, EncounterOverrides overrides)
+    {
+        if (overrides.TideCount.HasValue)
+            config.TideCount = overrides.TideCount.Value;
+
+        if (overrides.NativeSpawns != null)
+            config.NativeSpawns = overrides.NativeSpawns;
+
+        if (overrides.EscalationSchedule != null)
+        {
+            config.EscalationSchedule.Clear();
+            foreach (var e in overrides.EscalationSchedule)
+            {
+                config.EscalationSchedule.Add(new EscalationEntry
+                {
+                    Tide   = e.Tide,
+                    CardId = e.Card,
+                    Pool   = Enum.Parse<ActionPool>(e.Pool, ignoreCase: true)
+                });
+            }
+        }
+    }
+
+    public static void ApplyBalanceOverrides(
+        BalanceConfig balance, Dictionary<string, object> overrides)
+    {
+        var type = typeof(BalanceConfig);
+        foreach (var (key, value) in overrides)
+        {
+            // Special case: element_overrides is a nested dictionary
+            if (key == "element_overrides" && value is JsonElement eoElement
+                && eoElement.ValueKind == JsonValueKind.Object)
+            {
+                ApplyElementOverrides(balance, eoElement);
+                continue;
+            }
+
+            var propName = SnakeToPascal(key);
+            var prop = type.GetProperty(propName);
+            if (prop == null) continue;
+
+            if (value is JsonElement je)
+            {
+                if (prop.PropertyType == typeof(int))
+                    prop.SetValue(balance, je.GetInt32());
+                else if (prop.PropertyType == typeof(float))
+                    prop.SetValue(balance, je.GetSingle());
+            }
+        }
+    }
+
+    private static void ApplyElementOverrides(BalanceConfig balance, JsonElement eoElement)
+    {
+        var eoCfgType = typeof(BalanceConfig.ElementThresholdConfig);
+        foreach (var elementProp in eoElement.EnumerateObject())
+        {
+            var elementName = elementProp.Name; // e.g., "Ash"
+            if (!balance.ElementOverrides.TryGetValue(elementName, out var eoCfg))
+            {
+                eoCfg = new BalanceConfig.ElementThresholdConfig();
+                balance.ElementOverrides[elementName] = eoCfg;
+            }
+
+            foreach (var prop in elementProp.Value.EnumerateObject())
+            {
+                var propName = SnakeToPascal(prop.Name); // e.g., "Tier3Threshold"
+                var pi = eoCfgType.GetProperty(propName);
+                if (pi == null) continue;
+                // All ElementThresholdConfig properties are int?
+                pi.SetValue(eoCfg, (int?)prop.Value.GetInt32());
+            }
+        }
+    }
+
+    public static void ApplyPassiveOverrides(
+        PassiveGating gating, WardenOverrides overrides)
+    {
+        if (overrides.ForcePassives != null)
+        {
+            foreach (var id in overrides.ForcePassives)
+                gating.ForceUnlock(id);
+        }
+
+        if (overrides.LockPassives != null)
+        {
+            foreach (var id in overrides.LockPassives)
+                gating.ForceLock(id);
+        }
+    }
+
+    public static void ApplyStartingCorruption(
+        EncounterState state, Dictionary<string, int> corruption)
+    {
+        foreach (var (territoryId, points) in corruption)
+        {
+            var territory = state.GetTerritory(territoryId);
+            if (territory != null)
+                state.Corruption?.AddCorruption(territory, points);
+        }
+    }
+
+    public static void ApplyStartingElements(
+        EncounterState state, Dictionary<string, int> elements)
+    {
+        foreach (var (elementName, value) in elements)
+        {
+            if (Enum.TryParse<Element>(elementName, ignoreCase: true, out var element))
+                state.Elements?.AddElements(new[] { element }, value);
+        }
+    }
+
+    private static string SnakeToPascal(string snake)
+    {
+        return string.Concat(snake.Split('_')
+            .Select(s => s.Length > 0 ? char.ToUpper(s[0]) + s[1..] : s));
+    }
+}

@@ -30,7 +30,7 @@ public class ThresholdResolver
         [(Element.Shadow, 3)] = "Shadow T3: +5 Fear",
         [(Element.Ash,    1)] = "Ash T1: 1 damage to all in most-invaded territory",
         [(Element.Ash,    2)] = "Ash T2: 2 damage to all in one territory + 1 Corruption",
-        [(Element.Ash,    3)] = "Ash T3: 3 damage to ALL invaders on board + 1 Corruption each territory",
+        [(Element.Ash,    3)] = "Ash T3: 3 damage to ALL invaders on board",
         [(Element.Gale,   1)] = "Gale T1: Push 1 invader toward spawn",
         [(Element.Gale,   2)] = "Gale T2: Push all invaders in one territory toward spawn",
         [(Element.Gale,   3)] = "Gale T3: Push all invaders on board toward spawn",
@@ -41,6 +41,26 @@ public class ThresholdResolver
 
     public static string GetDescription(Element element, int tier)
         => Descriptions.TryGetValue((element, tier), out var d) ? d : $"{element} T{tier}";
+
+    // ── Target requirements ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns true when this (element, tier) combination requires the player
+    /// to select a territory before the effect can be executed.
+    /// </summary>
+    public static bool NeedsTarget(Element element, int tier)
+        => element == Element.Root && tier == 1;
+
+    /// <summary>
+    /// Returns an EffectData describing the targeting requirement for effects
+    /// that need a player-selected territory, or null for auto-resolving effects.
+    /// </summary>
+    public static EffectData? GetTargetEffect(Element element, int tier)
+        => (element, tier) switch
+        {
+            (Element.Root, 1) => new EffectData { Type = EffectType.PlacePresence, Range = 1, Value = 1 },
+            _                 => null
+        };
 
     // ── Player-driven queue API ───────────────────────────────────────────────
 
@@ -57,8 +77,9 @@ public class ThresholdResolver
     /// <summary>
     /// Resolves a pending threshold effect (player-initiated button press).
     /// Removes the first matching pending entry, executes the effect, fires ThresholdResolved.
+    /// Pass <paramref name="targetTerritoryId"/> for effects that require a player-selected territory.
     /// </summary>
-    public void Resolve(Element element, int tier, EncounterState state)
+    public void Resolve(Element element, int tier, EncounterState state, string? targetTerritoryId = null)
     {
         for (int i = 0; i < _pending.Count; i++)
         {
@@ -69,7 +90,7 @@ public class ThresholdResolver
             }
         }
 
-        ExecuteEffect(element, tier, state);
+        ExecuteEffect(element, tier, state, targetTerritoryId);
         state.Elements?.ResolveBanked(element, tier);
         GameEvents.ThresholdResolved?.Invoke(element, tier, GetDescription(element, tier));
     }
@@ -100,11 +121,12 @@ public class ThresholdResolver
 
     // ── Effect dispatch ────────────────────────────────────────────────────────
 
-    private static void ExecuteEffect(Element element, int tier, EncounterState state)
+    private static void ExecuteEffect(Element element, int tier, EncounterState state,
+        string? targetTerritoryId = null)
     {
         switch (element)
         {
-            case Element.Root:   ResolveRoot(tier, state);   break;
+            case Element.Root:   ResolveRoot(tier, state, targetTerritoryId); break;
             case Element.Mist:   ResolveMist(tier, state);   break;
             case Element.Shadow: ResolveShadow(tier, state); break;
             case Element.Ash:    ResolveAsh(tier, state);    break;
@@ -118,15 +140,18 @@ public class ThresholdResolver
     // T1: Place 1 Presence at range 1 from any existing Presence token
     // T2: Reduce Corruption by 3 in one territory with Presence (auto: highest corruption)
     // T3: Place 2 Presence (adjacent to existing) + Reduce Corruption by 2 in each presence territory
-    private static void ResolveRoot(int tier, EncounterState state)
+    private static void ResolveRoot(int tier, EncounterState state, string? targetTerritoryId = null)
     {
         switch (tier)
         {
             case 1:
-                // TODO: threshold targeting needs proper implementation
-                // Player should select which adjacent territory to place Presence in.
-                // For now, auto-selects first available adjacent territory as a heuristic.
-                PlacePresenceAdjacent(state);
+                if (targetTerritoryId != null)
+                {
+                    var territory = state.GetTerritory(targetTerritoryId);
+                    if (territory != null) state.Presence?.PlacePresence(territory);
+                }
+                else
+                    PlacePresenceAdjacent(state); // fallback for AutoResolve / tests
                 break;
 
             case 2:
@@ -220,7 +245,7 @@ public class ThresholdResolver
 
     // T1: 1 damage to all invaders in territory with most invaders
     // T2: 2 damage to all in one territory (auto: most invaders) + 1 Corruption to that territory
-    // T3: 3 damage to ALL invaders on board + 1 Corruption per affected territory
+    // T3: 3 damage to ALL invaders on board (no corruption rider)
     private static void ResolveAsh(int tier, EncounterState state)
     {
         switch (tier)
@@ -231,8 +256,9 @@ public class ThresholdResolver
                     .OrderByDescending(t => t.Invaders.Count(i => i.IsAlive))
                     .FirstOrDefault();
                 if (target == null) return;
+                int dmg1 = state.Balance.GetThresholdDamage(Element.Ash, 1);
                 foreach (var invader in target.Invaders.Where(i => i.IsAlive).ToList())
-                    ApplyDamage(invader, 1);
+                    ApplyDamage(invader, dmg1);
                 break;
             }
 
@@ -242,21 +268,20 @@ public class ThresholdResolver
                     .OrderByDescending(t => t.Invaders.Count(i => i.IsAlive))
                     .FirstOrDefault();
                 if (target == null) return;
+                int dmg2 = state.Balance.GetThresholdDamage(Element.Ash, 2);
                 foreach (var invader in target.Invaders.Where(i => i.IsAlive).ToList())
-                    ApplyDamage(invader, 2);
-                state.Corruption?.AddCorruption(target, 1);
+                    ApplyDamage(invader, dmg2);
+                int corr2 = state.Balance.GetThresholdCorruption(Element.Ash, 2);
+                if (corr2 > 0) state.Corruption?.AddCorruption(target, corr2);
                 break;
             }
 
             case 3:
             {
-                var affected = state.TerritoriesWithInvaders().ToList();
-                foreach (var territory in affected)
-                {
+                int dmg3 = state.Balance.GetThresholdDamage(Element.Ash, 3);
+                foreach (var territory in state.Territories)
                     foreach (var invader in territory.Invaders.Where(i => i.IsAlive).ToList())
-                        ApplyDamage(invader, 3);
-                    state.Corruption?.AddCorruption(territory, 1);
-                }
+                        ApplyDamage(invader, dmg3);
                 break;
             }
         }

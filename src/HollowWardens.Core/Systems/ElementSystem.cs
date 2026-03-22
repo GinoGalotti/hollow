@@ -1,5 +1,6 @@
 namespace HollowWardens.Core.Systems;
 
+using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Events;
 using HollowWardens.Core.Models;
 
@@ -8,9 +9,11 @@ public class ElementSystem : IElementSystem
     private readonly Dictionary<Element, int> _pool = new();
     private readonly HashSet<(Element, int)> _firedThisTurn = new();
     private readonly List<(Element Element, int Tier)> _banked = new();
+    private readonly BalanceConfig? _config;
 
-    public ElementSystem()
+    public ElementSystem(BalanceConfig? config = null)
     {
+        _config = config;
         foreach (Element e in Enum.GetValues<Element>())
             _pool[e] = 0;
     }
@@ -29,9 +32,10 @@ public class ElementSystem : IElementSystem
 
     public void Decay()
     {
+        int decay = _config?.ElementDecayPerTurn ?? 1;
         foreach (Element e in Enum.GetValues<Element>())
         {
-            var newVal = Math.Max(0, _pool[e] - 1);
+            var newVal = Math.Max(0, _pool[e] - decay);
             if (newVal != _pool[e])
             {
                 _pool[e] = newVal;
@@ -69,9 +73,9 @@ public class ElementSystem : IElementSystem
         foreach (Element e in Enum.GetValues<Element>())
         {
             int val = _pool[e];
-            TryFireTier(e, 1, 4, val);
-            TryFireTier(e, 2, 7, val);
-            TryFireTier(e, 3, 11, val);
+            TryFireTier(e, 1, _config?.GetThreshold(e, 1) ?? 4, val);
+            TryFireTier(e, 2, _config?.GetThreshold(e, 2) ?? 7, val);
+            TryFireTier(e, 3, _config?.GetThreshold(e, 3) ?? 11, val);
         }
     }
 
