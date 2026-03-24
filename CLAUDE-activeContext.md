@@ -1,8 +1,10 @@
 # Hollow Wardens — Active Context
 
 ## Current Status
-**Phase 6+ active development** — 646 tests passing, functional prototype playable.
-Both Root and Ember wardens implemented. Single/Chain encounter selection UI. 5 encounter configs live. B1/B2/B4 balance shipped. Full string localization migration complete. SQLite crash + localization bug fixed.
+**Phase 6+ active development** — 689 tests passing, functional prototype playable.
+Both Root and Ember wardens implemented. Single/Chain encounter selection UI. 5 encounter configs live. B1/B2/B4/B5/D41/D42/D44 shipped. Full string localization migration complete. SQLite crash + localization bug fixed.
+
+**⚠️ BALANCE PENDING — B6 v2 implemented, sims run, design decision needed.** Root Assimilation redesigned to tide-start native spawn (3 formula modes: linear/scaled/half). 12 sim profiles created. Current numbers (root_wide, standard+B2): **0% clean / 66% weathered / 34% breach**. "Clean" is now structurally 0% — old Resolution clear is gone; "Weathered" is the new success state. 34% breach is above the 5–15% target. Design question: is native spawn alone enough, or is tuning needed? See §B6-v2 in CLAUDE-balance.md.
 
 ## Phase Completion
 | Phase | Description | Tests | Status |
@@ -39,25 +41,54 @@ Both Root and Ember wardens implemented. Single/Chain encounter selection UI. 5 
 **Confirmed Realm 1 run order:** standard → scouts → siege → elite
 (frontier = optional alternate capstone or post-game challenge)
 
-## Balance Status — B1 + B2 + B4 Shipped
+## Balance Status
 
 | Change | File | Status |
 |--------|------|--------|
 | B1: Ember Flame Burst + Conflagration top 3→2 | `data/wardens/ember.json` | ✅ Shipped |
-| B2: Root +1 Marcher/wave (`AddB2Marchers`) | `EncounterLoader.cs` | ✅ Shipped |
+| B2: +1 Marcher/wave on standard, scouts | `EncounterLoader.cs` `AddB2Marchers` | ✅ Shipped |
 | B4: Ember — fear from kills, Fury L2, Flame Out 3× | `DamageInvadersEffect.cs`, `EmberFuryHelper.cs`, `TurnActions.cs` | ✅ Shipped |
+| B5: +2 Marchers/wave on siege + elite | `EncounterLoader.cs` `AddB2Marchers(count:2)` | ✅ Shipped |
+| **B6: Root passive redesign (v2)** | `RootAbility.cs`, `BalanceConfig.cs` | ⚠️ **Shipped, 34% breach — design decision needed** |
 
-**B2 applied to:** standard, scouts, siege, elite. **NOT frontier** (wide board is its own difficulty).
+**Extra Marchers per encounter:** standard=+1, scouts=+1, siege=+2, elite=+2. NOT frontier.
 
 **Sim-validated balance targets:** Clean 50–70%, Weathered 20–35%, Breach 5–15%
 
-**Root B2 results (500 seeds each):**
+**B6 v2 sim results (tide-start spawn, Provocation locked, root_wide, 100 seeds — 2026-03-24):**
+| Formula | Clean% | Weathered% | Breach% | Avg natives killed |
+|---------|--------|------------|---------|-------------------|
+| linear (standard+B2) | 0% | 66% | **34%** | 1.11 |
+| scaled (standard+B2) | 0% | 66% | **34%** | 1.11 |
+| half (standard+B2) | 0% | ≈66% | **34%** | ≈1.07 |
+
+All three formulas give **identical results with wide play** (presence=1 per territory ⇒ all formulas = 1 native). Formulas differentiate only with tall stacking (presence ≥ 2). "Clean" is 0% by design — old Resolution invader-clear is gone; invaders always survive to end. **Weathered = survived. Breach = lost.**
+
+**Pre-D42 sim results (B5, old mechanics — STALE):**
 | Encounter | Clean% | Breach% | Status |
 |-----------|--------|---------|--------|
-| standard | 56% | 9.4% | ✅ |
-| scouts | 62% | 4.2% | ✅ |
-| siege | 61.6% | 0.4% | ✅ |
-| elite | 33% | 3.8% | Hard E3 — acceptable |
+| standard | 52% | 9.6% | ✅ was in range |
+| scouts | 50.6% | 3.2% | ✅ was in range |
+| siege | 43.6% | 5.2% | ✅ was in range |
+| elite | ~30% | ~5% | acceptable capstone |
+
+**D42 sim results (broken mechanics — pre-B6):**
+| Encounter | Clean% | Breach% | Delta vs target |
+|-----------|--------|---------|-----------------|
+| standard | **0%** | **28%** | −52pp clean, +18pp breach |
+| scouts | **0%** | **34.4%** | −52pp clean, +29pp breach |
+| siege | **0%** | **54%** | −43pp clean, +49pp breach |
+| elite | **0%** | **36%** | −30pp clean, +31pp breach |
+
+**B6 sim results (2-tier assimilation shipped, T2 vs T3 threshold — 500 seeds each):**
+| Encounter | T3 Clean%/Breach% | T2 Clean%/Breach% | B5 target |
+|-----------|-------------------|-------------------|-----------|
+| standard  | 0% / 36.4%        | 0% / 36.4%        | 52% / 9.6% |
+| scouts    | 0% / 50.6%        | 0% / 50.6%        | 50.6% / 3.2% |
+| siege     | 0% / 60.8%        | 0% / 60.8%        | 43.6% / 5.2% |
+| elite     | 0% / 57%          | 0% / 57%          | ~30% / ~5% |
+
+T2=T3 identical means spawn threshold is irrelevant — spawn fires 0 times. Bot never stacks presence.
 
 **Warden asymmetry (emergent, not tuned):**
 - Root = anti-tank: strong vs Ironclads/siege, challenged by frontier's wide board
@@ -72,6 +103,36 @@ Standard(B2) → Scouts(B2) → Elite(B2) is a coherent difficulty arc:
 - **Weave carryover:** small but real (+1.2pp breach per encounter in damaged arc; affects ~25% of Root players)
 
 ## Recently Completed Work
+
+### Session 2026-03-24 — B6 v2 redesign: tide-start native spawn (D45)
+- **B6 v2 implemented:** `RootAbility.OnTideStart` — picks best presence territory (most adj invaders), spawns natives per formula. `RootAbility.OnResolution` now only handles the `assimilation_u1` upgrade. `BalanceConfig.AssimilationSpawnThreshold` removed; replaced with `AssimilationSpawnMode` string (`"linear"/"scaled"/"half"`). `SimProfileApplier.ApplyBalanceOverrides` gained string-type handling.
+- **12 sim profiles created:** `sim-profiles/b6-{linear,scaled,half}-{standard,scouts,siege,elite}.json`
+- **8 unit tests updated** in `RootFullEncounterTest.cs` (all 3 formula modes + spawn-without-invaders case). 689 tests passing.
+- **Sim results (root_wide, standard+B2, 100 seeds):** 0% clean / 66% weathered / **34% breach**. All three formulas identical with wide play (presence=1 ⇒ all formulas = 1 native). Clean is 0% by design — old Resolution invader-clear is gone.
+- **False lead noted:** Provocation (pool passive) was briefly force-enabled in profiles but reverted — not the design intent. With Provocation forced: 15% breach (root_wide). Without: 34% breach.
+- **Design pending:** 34% breach is above target; see CLAUDE-balance.md §B6-v2.
+
+### Session 2026-03-24 — RootTallStrategy + multi-strategy bot system (Layer 1+2)
+- **`RootTallStrategy`** new class (`src/HollowWardens.Core/Run/`): spreads to `spreadTarget` (3) territories first, then stacks toward `stackTarget` (3) presence per territory before expanding further. `ChooseRestGrowthTarget` targets the territory closest to the stack threshold. Now the **default bot for Root** in all sim modes.
+- **`"strategy"` field in `SimProfile`** — profiles can specify `"strategy": "root_tall"`, `"root_wide"`, or `"ember_aggressive"`. CLI `--strategy` still takes precedence.
+- **`BuildStrategy` in `Program.cs`** updated: named strategies registered, Root now defaults to `RootTallStrategy` (was `BotStrategy`).
+- **`ChainSimulator`**, **`TelemetryBotWrapper`**, **`VerboseLogger`** all updated for `RootTallStrategy`.
+- **`hill-climber-bot-spec.md`** written — full spec for Layer 3 (adaptive bot, for Opus).
+- 687 tests pass (0 failures).
+
+### Session 2026-03-24 — B6 Root passive redesign (shipped + sim failed)
+- **B6 design:** Split Assimilation into two tiers — base (presence ≥ threshold → spawn 1 native at Resolution) + upgraded `assimilation_u1` (≥2 presence + ≥2 natives → convert invaders to natives). Code shipped in `RootAbility.OnResolution`, `BalanceConfig.AssimilationSpawnThreshold`, 11 tests updated in `RootFullEncounterTest.cs`.
+- **8 sim profiles created** (`sim-profiles/b6-t{2,3}-{standard,scouts,siege,elite}.json`) testing threshold=2 vs threshold=3 across all 4 encounters, 500 seeds each.
+- **Result: 0% Clean across all 8 profiles.** T2=T3 identical — threshold irrelevant because spawn fires 0 times.
+- **Root cause:** Sim bot spreads presence wide (1 token/territory) to maximize Network Fear. Assimilation requires tall presence (≥2–3 in one territory), which the bot actively avoids. Mechanic was never tested against its design prerequisite.
+- **B6 is worse than D42:** Standard breach rate 28% (D42) → 36.4% (B6). D42 occasionally fired due to accidental ≥2 presence coincidence; B6 spawn fires zero times.
+- **CLAUDE-balance.md updated** with full B6 story, root cause analysis, and 3 design options for Opus.
+- **Decision needed:** Opus design review required before next code change.
+
+### Session 2026-03-24 — D41 threshold redesign + B5 balance pass
+- **D41 shipped:** Complete threshold effect redesign across all 6 elements. Root T1↔T2 swapped, Mist T2/T3 return discard→draw, Ash T3 presence-scaled, Gale T1/T2 stack-toward-most-populated, Void T1=3 dmg, T2 hits natives, T3 kills generate Fear. `IDeckManager.ReturnDiscardToDraw` added. 679 tests passing.
+- **B5 shipped:** `AddB2Marchers` refactored to take `count` param. Siege and elite bumped to +2 Marchers/wave. Scouts stays +1 (Outrider swarm already brutal — +2 tanks to 26%). Siege: 62.4%→43.6% Clean (was too safe). Elite: ~30% unchanged (bottlenecked by starting corruption).
+- **D42 design confirmed:** Passives currently dimmed (not hidden) when locked. `PassivePanelController` needs update when run-level locked passives exist.
 
 ### Session 2026-03-23 — Bug fixes + B4 Ember feel
 - **SQLite crash fix:** `Microsoft.Data.Sqlite` moved from Core to Sim. GameBridge now uses `NullSink` instead of SQLiteSink. This also fixed the cascading localization bug (Loc.Load() never ran because SQLiteSink threw before it could).
@@ -111,9 +172,18 @@ Standard(B2) → Scouts(B2) → Elite(B2) is a coherent difficulty arc:
 
 ## Open Work / Next Steps
 
+### High Priority (Blocking)
+1. **B6: Design decision on breach rate** — B6 v2 (tide-start spawn, 3 formula modes) is implemented (689 tests). Sims show **34% breach** with root_wide on standard+B2, with natives spawning but only counter-attacking on Ravage/Corrupt action cards (Provocation is a pool passive). This is above the 5–15% target. Key question: is native spawn without Provocation sufficient, or does the encounter need re-tuning? Options:
+   - Reduce invader pressure (remove B2 on standard since old Resolution clear is gone)
+   - Tune formula to spawn more natives (but with wide play all formulas give same = 1/tide)
+   - Accept 34% breach as a new harder baseline (Weathered=66% is survivable)
+   - See §B6-v2 in CLAUDE-balance.md
+
+2. **Bot strategy system (L3 pending Opus)** — Layer 1+2 shipped: `RootTallStrategy`, `"strategy"` field in SimProfile. Layer 3 (hill-climber adaptive bot) specced in `hill-climber-bot-spec.md` — hand this to Opus for design + implementation.
+
 ### High Priority
-1. **D41: Elemental threshold → active targeted ability** — WeaveSystem sets PendingThreshold flag instead of auto-firing; TurnManager exposes `UseThreshold(territoryId)` free action; threshold effects receive TargetInfo; UI shows ready indicator + territory click to activate. T3 broadcasts to all presence (current behavior). See CLAUDE-decisions.md §D41.
-   - This is the root fix for Ember's 0% breach dominance — stat tweaks cannot fix it because the problem is structural (auto-broadcast to all territories).
+2. **D42: Hide locked passives in encounter UI** — `PassivePanelController` currently shows all passives, dimming locked ones at 50% opacity. D42 requires *hiding* run-level locked passives entirely. Currently all passives are threshold-gated (no run-level locked passives exist yet) so no visible change until run-level progression is added. Design confirmed in CLAUDE-decisions.md §D42.
+3. **Sim bot targeting quality** — `AutoResolveAll` uses greedy null-target fallbacks. Improving targeting heuristics would give more accurate sim numbers (currently a floor, not realistic midpoint).
 
 ### Medium Priority
 2. **Playtest** with B4 live — now that kills generate fear and Ember Fury requires L2, does combat feel more deliberate?

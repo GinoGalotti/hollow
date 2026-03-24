@@ -181,3 +181,185 @@ Ember still never loses because elemental thresholds auto-broadcast to ALL prese
 
 `invader_hp_bonus: 1` (HP+1 for all invaders): Ember+B2+HP1 sim = 1.6% Clean / 98.4% Weathered / 0% Breach — Ember kills 32 invaders/encounter (vs 28) with zero breach. Adding invaders just gives Ember more targets. Not a useful lever for Ember specifically.
 
+---
+
+## B5: Encounter — siege +2 Marchers/wave, elite +2 Marchers/wave — 2026-03-24
+
+**Background:** Post-D41 sim (bot greedy targeting) showed siege at 62.4% Clean / 0.6% Breach — far too safe. Testing +2 extra Marchers per wave on scouts, siege, and elite (not standard/tutorial).
+
+**Results (500 seeds each, Root warden):**
+
+| Encounter | +1 (B2) | +2 (B5 candidate) | Verdict |
+|-----------|---------|-------------------|---------|
+| scouts | 50.6% / 3.2% | 26.4% / 8.2% | ❌ Too hard — Outrider swarm already brutal |
+| siege | 62.4% / 0.6% | 43.6% / 5.2% | ✅ Meaningful pressure, fits penultimate role |
+| elite | ~30% / ~5% | ~30% / ~4% | ≈ No change — bottlenecked by starting corruption |
+
+**Shipped:** `AddB2Marchers(waves, count: 2)` for siege and elite. Scouts reverted to count: 1.
+
+**Final per-encounter invader counts:**
+- standard: +1 Marcher/wave (tutorial)
+- scouts: +1 Marcher/wave (50.6% Clean — Outriders already provide pressure)
+- siege: **+2 Marchers/wave** (43.6% Clean / 5.2% Breach — harder penultimate encounter)
+- elite: **+2 Marchers/wave** (≈30% Clean — elite difficulty driven by starting corruption + escalation)
+
+**Note:** All B5 sims use bot greedy threshold targeting (AutoResolveAll with null target). Real players choosing targets deliberately expected to achieve +5–10pp Clean. Sim numbers are a floor, not a ceiling.
+
+---
+
+## B6: Root — Passive redesign needed after D42 mechanic changes (OPEN — re-sims needed with RootTallStrategy)
+
+**Status: Bot blindness resolved (RootTallStrategy shipped) — re-run sims before design decision — 2026-03-24**
+
+---
+
+### The Problem (D42 collapse)
+
+D42 redesigned Root's Assimilation from adjacent-territory to same-territory (≥2 presence + ≥2 natives + invaders in same territory). This caused complete balance collapse:
+
+| Encounter | B5 target | D42 result | Delta |
+|-----------|-----------|------------|-------|
+| standard | 52% / 9.6% | **0% / 28%** | −52pp clean, +18pp breach |
+| scouts | 50.6% / 3.2% | **0% / 34.4%** | −50pp clean, +31pp breach |
+| siege | 43.6% / 5.2% | **0% / 54%** | −44pp clean, +49pp breach |
+| elite | ~30% / ~5% | **0% / 36%** | −30pp clean, +31pp breach |
+
+Root cause: arrival territories (A1/A2/A3) have 0 natives; inner territories (M1/M2/I1) start with 2 each but die before Resolution. The three-way coincidence (≥2 presence + ≥2 natives + invaders in same territory) almost never occurs.
+
+---
+
+### What Was Tried (B6 implementation — 2026-03-24)
+
+Implemented Option A from D43: **split Assimilation into base spawn + upgraded conversion.**
+
+**Code changes shipped (684 tests, all passing):**
+- `BalanceConfig.AssimilationSpawnThreshold = 3` — new knob; configurable via sim profiles
+- `RootAbility.OnResolution` redesigned:
+  - **Base** (always active): for each territory with `presence >= threshold`, spawn 1 native (HP=2)
+  - **Upgraded** (`assimilation_u1`): AFTER spawn pass, also run D42 conversion logic (≥2 presence + ≥2 natives + invaders → convert weakest invaders)
+- `data/wardens/root.json` assimilation description updated
+- `SIM_REFERENCE.md` Natives section updated with `assimilation_spawn_threshold` knob
+- 11 unit tests updated/added in `RootFullEncounterTest.cs`
+
+**Sim profiles created:** `b6-t{2,3}-{standard,scouts,siege,elite}.json` (8 profiles, all include B2/B5 marcher counts)
+
+---
+
+### Sim Results (500 seeds × 8 runs — 2026-03-24)
+
+Ran threshold=3 and threshold=2 on all four encounters:
+
+| Encounter | T3 Clean% / Breach% | T2 Clean% / Breach% | B5 Target |
+|-----------|--------------------|--------------------|-----------|
+| standard | **0% / 36.4%** | **0% / 36.4%** | 52% / 9.6% |
+| scouts | **0% / 50.6%** | **0% / 50.6%** | 50.6% / 3.2% |
+| siege | **0% / 60.8%** | **0% / 60.8%** | 43.6% / 5.2% |
+| elite | **0% / 57%** | **0% / 57%** | ~30% / ~5% |
+
+**Key observations:**
+- **0% clean across all 8 runs.** No improvement over D42.
+- **T2 = T3 in every case (identical to the decimal point for scouts/elite/siege).** The threshold has zero effect.
+- **Breach rates worse than D42** — standard went from 28% (D42) to 36.4% (B6). B6 is actively worse.
+- **Avg natives killed: 0.18–0.62** — essentially the pre-seeded natives dying to combat. No spawned natives are being created.
+
+---
+
+### Root Cause of B6 Failure
+
+**The bot never stacks presence.** The sim bot optimizes for Network Fear coverage (wide presence: 1 token per territory). With total presence averaging 9–10 at encounter end spread across 6 territories, no territory ever hits threshold=2, let alone threshold=3. The spawn never fires.
+
+This explains why:
+1. T2 and T3 produce identical results — both thresholds are unreachable with the bot's wide strategy
+2. Breach is worse than D42 — D42 conversion occasionally fired when the bot accidentally had ≥2 presence + ≥2 natives coincide; B6 spawn never fires at all, so zero Assimilation benefit of any kind
+
+**This is a bot measurement problem, not a threshold tuning problem.** The mechanic requires a *tall* presence playstyle (stack 2–3 tokens in one territory). The bot plays *wide* (spread 1 token everywhere for Network Fear/Slow). The sim cannot measure this mechanic until either:
+(a) the bot is updated to prefer stacking presence when playing Root, or
+(b) the mechanic is redesigned to work with wide play
+
+---
+
+### Open Design Questions (for Opus)
+
+The mechanic was designed around the hypothesis that "stack presence → grow natives → tension loop." The sim reveals this doesn't work at all with an unmodified bot. Three paths forward:
+
+**Option A — threshold=1 (any presence spawns)**
+Change `AssimilationSpawnThreshold` to 1: every territory with ANY presence spawns 1 native at Resolution. With the bot's wide play, this fires in 3–4 territories per tide from Tide 3. At B2 difficulty (13–17 invaders at mid-encounter), 3–4 extra HP=2 natives/tide may or may not be enough. Quick to test (one profile change, no code change). Risk: may be too powerful (>70% clean) if it fires everywhere.
+
+**Option B — revert to Option B from D43 (adjacent-territory)**
+Restore the pre-D42 adjacent-territory mechanic as base: "presence in territory X → converts/affects invaders in territories adjacent to X." Pre-D42 + B2 achieved 62.6% clean on standard. This was the proven working design before D42 changed it. Requires rewriting `OnResolution` again.
+
+**Option C — bot update + keep current mechanic**
+Teach the bot to stack presence at 1–2 key territories (M1/M2) rather than spreading. Properly measures the tall-play identity. Probably reveals the mechanic works if played correctly, but adds significant scope and changes bot behavior for all future warden testing.
+
+**⚠️ Option C has been implemented (D44 — 2026-03-24).** `RootTallStrategy` ships as the new default Root bot. Spreads to 3 territories then stacks toward threshold=3. B6 sims should be re-run to get valid baseline numbers before choosing between Options A and B.
+
+**The deeper question Opus should answer:** Is "native-synergy warden who stacks presence" the RIGHT design identity for Root at all? If the answer is yes, Option C was correct (re-run sims and tune). If the answer is "Root should naturally work with any presence spread," Options A or B are still available.
+
+---
+
+### Additional Context for Opus
+
+**What Root's pre-D42 Assimilation did:** Presence in territory X → during Resolution, invaders in territories *adjacent* to X were converted to natives. This meant a single presence token at M1 would convert invaders at A1, A2, and I1. The bot (which places presence at M1/M2/I1) would naturally trigger Assimilation at all arrival territories. The mechanic worked WITH the bot's existing behavior, not against it.
+
+**What B2 R-A showed:** Removing pre-D42 Assimilation entirely = 0% Clean / 99.2% Weathered / 0.8% Breach. Assimilation was the entire source of clean wins. Root without Assimilation is a zero-clean warden.
+
+**What "natives killed" measures:** At 0.62 avg for standard, this is almost entirely the 6 pre-seeded natives (2 each at M1/M2/I1) dying to invader combat. B6 spawning is contributing essentially nothing.
+
+---
+
+## B6-v2: Root — Tide-start native spawn (redesigned mechanic — 2026-03-24)
+
+**Status: Implemented, 34% breach — design decision pending**
+
+### The Redesign (D45)
+
+Replaced the old B6 Resolution-based spawn with a **tide-start spawn** approach. On every tide start, Root picks ONE presence territory and spawns natives there. Formula is configurable:
+
+| Mode | Formula | Presence=1 | Presence=2 | Presence=3 |
+|------|---------|-----------|-----------|-----------|
+| `linear` | = presence | 1 | 2 | 3 |
+| `scaled` | 1 + floor(p/2) | 1 | 2 | 2 |
+| `half` | ceil(p/2) | 1 | 1 | 2 |
+
+**Design intent:** Wide player (1 presence × 5 territories) gets 1 native/tide at the chosen territory. Tall player (3 presence × 1 territory) gets 2–3 natives/tide there. The tradeoff is real every tide. Spawned natives can counter-attack that same tide if Presence Provocation is active (pool passive).
+
+**Code changes (689 tests):**
+- `RootAbility.OnTideStart` — new method: picks territory with most adjacent invaders (tie-break: most presence), spawns per formula
+- `RootAbility.OnResolution` — now only handles `assimilation_u1` upgrade (invader conversion); base spawn moved to tide-start
+- `BalanceConfig.AssimilationSpawnMode` — string knob: `"linear"` / `"scaled"` / `"half"` (default `"scaled"`)
+- `BalanceConfig.AssimilationSpawnThreshold` — **removed**; no longer needed
+- `SimProfileApplier.ApplyBalanceOverrides` — added string-type handling (was missing before)
+- **12 new sim profiles:** `sim-profiles/b6-{linear,scaled,half}-{standard,scouts,siege,elite}.json`
+- **8 updated unit tests** in `RootFullEncounterTest.cs` covering all 3 formula modes + spawn-without-invaders case
+
+### Sim Results (root_wide, standard+B2, 100 seeds — 2026-03-24)
+
+| Formula | Clean% | Weathered% | Breach% | Avg natives killed |
+|---------|--------|------------|---------|-------------------|
+| linear | 0% | 66% | **34%** | 1.11 |
+| scaled | 0% | 66% | **34%** | 1.11 |
+| half | 0% | 66% | **34%** | ~1.07 |
+
+**All three formulas produce identical results with wide play.** Because root_wide places 1 presence per territory, all three formulas output 1 native: `1+floor(1/2) = ceil(1/2) = 1`. Formula differentiation only appears with tall stacking (presence ≥ 2).
+
+### Why 0% Clean Is Expected
+
+The old `OnResolution` cleared ALL invaders adjacent to presence territories — very powerful, gave Clean trivially. That mechanic is gone. With the new B6, invaders survive to the end of the encounter in all realistic scenarios. **"Weathered" (survived, invaders alive) is now the success state for Root.** Clean would require clearing every alive invader AND all corruption, which the native army can't achieve on Ravage/Corrupt cards alone.
+
+### Provocation Note (false lead — 2026-03-24)
+
+During analysis, `force_passives: ["presence_provocation"]` was briefly added to all 12 sim profiles (then reverted). With Provocation forced:
+- standard+B2, root_wide: 0% clean / 85% weathered / **15% breach**
+- standard+B2, root_tall: 0% clean / 76% weathered / **24% breach**
+
+Provocation (counter-attack on all Activate steps, not just Ravage) substantially helps. But Provocation is a **pool passive** — it starts locked and must be earned as a run reward. The user confirmed this is intentional; native spawn should work as a base mechanic without requiring Provocation.
+
+The Provocation profiles were reverted. The 34% breach numbers above are the correct B6-v2 baseline.
+
+### Open Question
+
+34% breach (standard+B2, root_wide) is above the 5–15% target. Possible directions:
+- **Remove B2 from standard** — old assimilation was the B2 counterweight; with it gone, standard may not need +1 invader/wave
+- **Accept 34% for now** — playtest data will show if real players do better (they likely do; bot plays suboptimally)
+- **Formula tuning** — only matters for tall play; wide play is always 1 native/tide regardless of formula
+

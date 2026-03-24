@@ -387,16 +387,133 @@ No change. Still valid.
 
 **Design implication:** Different encounter types naturally favor different wardens. Lean into this — Ember is the right pick for scouts, Root for siege. Future wardens should each have a comfort encounter and a challenge encounter.
 
-### D41: Elemental threshold → active targeted ability (planned, not yet implemented)
-**Decision:** Elemental threshold abilities should become active targeted actions rather than auto-broadcasting to all presence territories. When elements ≥ threshold, the ability enters a "ready" state; the player then chooses 1 presence territory to fire it at. At T3 the ability broadcasts to all presence territories (current auto-behavior becomes the T3 version only).
+### D41: Elemental threshold → active targeted ability (SHIPPED)
+**Decision:** Elemental threshold abilities are active targeted actions with a pending queue. When elements ≥ threshold, the ability goes to `ThresholdResolver.Pending`; player resolves via `Resolve(element, tier, targetTerritoryId)`. T3 effects are board-wide or presence-scaled rather than single-territory. All 6 elements redesigned simultaneously.
 
-**Rationale:** The current auto-broadcast makes Ember dominant without player skill — the AI spams damage cards and threshold fires everywhere automatically. Making it a targeted choice creates real decisions ("fire Ash Trail at A1 where invaders are heavy, or M1 where corruption is building?") and makes element accumulation feel like resource management rather than a passive speedometer. Sim evidence: Ember 0% Breach across all 500-seed runs with B3 fixes — the remaining dominance is structural, not solvable with raw number tweaks.
+**Effect redesign (shipped 2026-03-24, 679 tests):**
+- Root T1↔T2 swapped: T1=Reduce Corruption 3 (targeted), T2=Place 1 Presence range 1 (targeted), T3=Place 2 Presence anywhere + reduce 3 corruption each
+- Mist T1=Restore 2 Weave, T2=Return 2 cards discard→draw, T3=Restore 3 Weave + 3 cards (cumulative)
+- Shadow unchanged
+- Ash T1=1 dmg all invaders in target, T2=2 dmg + 1 corruption, T3=2 dmg × presence count in target
+- Gale T1=push 1 invader toward most-populated neighbor, T2=push all from territory, T3=board-wide toward spawn
+- Void T1=3 dmg lowest-HP invader, T2=1 dmg all invaders + 1 dmg all natives, T3=1 dmg all invaders (kills generate Fear)
 
-**Implementation scope:** WeaveSystem (set PendingThreshold flag instead of auto-fire), TurnManager (expose UseThreshold(territoryId) free action), threshold effect classes (receive TargetInfo, fire on single territory), UI (threshold ready indicator + territory click to activate). ~2-3 hours, touches multiple systems. Not a hotfix — needs dedicated session.
+**Architecture:** `ThresholdResolver.Pending` queue, `OnThresholdTriggered` adds, `Resolve`/`ClearUnresolved` drains. `EncounterRunner` stores `_thresholdResolver` per-encounter; drains via `IPlayerStrategy.ResolvePendingThresholds` after Vigil + Dusk card plays. Sim bot uses greedy `AutoResolveAll` (null target → auto-fallback per element). `IDeckManager.ReturnDiscardToDraw` added for Mist.
 
-**T3 broadcast rationale:** Thematically "element surges beyond containment and floods all your presence at once." Mechanically gives the player a payoff for building high element counts.
+**Balance impact (post-D41 sim, 500 seeds each, bot uses greedy targeting):**
+| Encounter | Clean% | Breach% | vs B2 baseline |
+|-----------|--------|---------|----------------|
+| standard | 52% | 9.6% | −4pp Clean (bot targeting suboptimal) |
+| scouts | 50.6% | 3.2% | −11pp Clean |
+| siege | 62.4% | 0.6% | ≈ same |
+| elite | 29.6% | 5.4% | −3pp Clean |
 
-**Status:** Design confirmed. Implementation deferred — needs dedicated session with UI work.
+All within or near target range (50–70% Clean, 5–15% Breach). Real players with deliberate targeting expected to meet or exceed B2 baseline.
+
+---
+
+### D42: Passive pool system — base vs unlockable passives
+**Decision:** Wardens have two tiers of passives: **base passives** (always active, always shown) and **pool passives** (locked at run start, unlocked via end-of-encounter rewards). Players choose 2 pool passives from their warden's pool before each run; only selected pool passives can unlock during encounters.
+
+**Passive pool per warden (as shipped):**
+- Root: 3 base (`network_fear`, `dormancy`, `assimilation`) + 3 pool (`rest_growth`, `presence_provocation`, `network_slow`) → pick 2
+- Ember: 3 base (`ash_trail`, `flame_out`, `scorched_earth`) + 4 pool (`ember_fury`, `heat_wave`, `controlled_burn`, `phoenix_spark`) → pick 2
+
+**Also shipped in D42 (same session, 2026-03-24, 684 tests):**
+- `PassiveData.IsPool` field, mapped from `"pool": true` in JSON
+- `PassiveGating.SetRunPassives(ids)`: narrows which pool passives can unlock; omit = all available (sim/test default)
+- `PassiveGating.IsRunAvailable(id)`: base = always true; pool = only if selected
+- `PassivePanelController`: hides non-selected pool passives entirely
+- `GameBridge.SelectedPoolPassiveIds` + `GetPoolPassives(wardenId)` helper
+- `WardenSelectController`: passive selection screen (Screen 3b) before launch; toggle 2 from pool
+- **Redesigned Root mechanics** (see D43 for why this caused a balance crisis):
+  - Network Fear: now fires when invader is in territory whose ≥3 neighbors have presence (was: edge-based ≥2 neighbors). NetworkFearCap 4→3.
+  - Network Slow: now requires ≥3 presence-neighbor territories (was: presence > invader count in adjacent territory)
+  - Assimilation: now fires in territories with ≥2 presence + ≥2 natives in SAME territory; converts `floor(min(presence,natives)/2)` invaders → natives (was: adjacent-territory mechanic)
+
+**UI rule (D42 intent, not yet fully implemented):**
+- Show: base passives (always active) + passives unlockable this encounter
+- Hide: pool passives not selected for this run
+- Passive state: active (lit) / unlockable but locked (dim, with unlock hint)
+
+**⚠️ D42 mechanic changes broke balance — see D43.**
+
+---
+
+### D43: Root passive redesign — B6 problem statement
+**Status: Open design decision — 2026-03-24**
+
+**The crisis:** D42 changed Root's Assimilation from an adjacent-territory mechanic to a same-territory mechanic requiring ≥2 natives. This caused a complete balance collapse across all encounters (0% Clean, breach 28–54%). The new mechanic almost never fires because:
+1. Arrival territories (A1/A2/A3) have **zero natives** in all encounter configs — Assimilation can never fire where invaders arrive
+2. Inner territories (M1/M2/I1) have 2 natives each, but they often die to invader combat before Assimilation runs at Resolution
+3. The "≥2 presence + ≥2 natives + invaders coexisting" condition is a three-way coincidence the sim bot creates essentially never
+
+**Pre-D42 isolation test (B2 R-A, 500 seeds):** "No Assimilation" → 0% Clean / 99.2% Weathered / 0.8% Breach. Assimilation was THE primary driver of clean wins. Without it, clean rate collapses to zero.
+
+**Root's tool problem:** Beyond Assimilation, Root has no card-level tools to interact with natives: no way to move them, protect them, or grow them deliberately. The new mechanic requires a native army to be present, but Root can't build one. This is a design mismatch.
+
+**Design constraints:**
+- Do NOT add more natives to encounter configs — board starting state should be warden-neutral
+- Provocation (natives counter-attack in presence territories) is mechanically interesting but requires natives to exist first — same chicken-and-egg problem
+- Provocation as base passive may be too powerful until native tools exist
+
+**Current passive assignment (to be reconsidered):**
+- Base passives: `network_fear`, `dormancy`, `assimilation`
+- Pool passives: `rest_growth`, `presence_provocation`, `network_slow`
+
+**Proposed redesign direction (to evaluate):**
+
+**Option A — Split Assimilation: base = grow natives, upgrade = convert invaders**
+- Base Assimilation: Resolution — each territory with ≥2 stacked presence **spawns 1 new Native**. Presence grows the forest over time. No invader conversion at base level.
+- Upgraded Assimilation (assimilation_u1): Also applies D42 conversion logic — if territory has ≥2 presence + ≥2 natives + invaders, convert `floor(min(presence,natives)/2)` invaders → natives (weakest first).
+- Rationale: Base mechanic builds the native army that the upgrade can weaponize. By tide 4–5 a player who stacks presence will have 3–4 territories generating 1 native/tide. These natives fight invaders, and with the upgrade, get additional conversion power. Board state stays encounter-neutral.
+- Design coherence: "stacking presence grows the forest" (base) → "the forest reclaims the invaders" (upgrade). Natural progression, teaches the tall-presence playstyle.
+
+**Option B — Restore adjacent-territory Assimilation as base, keep same-territory as upgrade**
+- Restore old B2 behavior: base Assimilation converts invaders in territories adjacent to ≥2-presence territories
+- Upgrade: D42 same-territory mechanic (requires natives, stronger conversion)
+- Simpler to implement, proven to restore balance, but loses D42's design intent as the base behavior
+
+**Option C — Redesign Root's card tools to work with natives**
+- Keep D42 Assimilation mechanic but add Root cards that: (a) spawn a native in a presence territory, (b) move natives toward invaders, (c) protect natives from erosion
+- Also teach the sim bot to understand native-aware positioning
+- Most work; most design depth; requires card authoring + bot strategy changes
+
+**Questions for design:**
+1. Should Provocation (natives counter-attack in presence territories) move to base, given it's the passive that most directly makes natives useful? Or does it need native tools to exist first?
+2. Does base Assimilation as "grow natives" restore clean rates without other changes? (Needs sim verification)
+3. If Root is the "native-synergy warden," should some base cards already involve natives — or is that post-B6?
+
+---
+
+### D45: B6 v2 — Assimilation redesigned to tide-start native spawn (2026-03-24)
+**Decision:** Replaced the Resolution-based Assimilation spawn with a tide-start spawn. Each tide, Root picks ONE presence territory (most adjacent invaders, tie-break: most presence) and spawns natives there. Spawn count determined by configurable `AssimilationSpawnMode` knob: `"linear"` (= presence), `"scaled"` (= 1+floor(p/2), default), `"half"` (= ceil(p/2)).
+
+**Rationale:** Moving spawn to tide-start makes it immediately impactful — spawned natives can counter-attack that same tide if Provocation is active. Old Resolution spawn only helped at the very end. "One territory per tide" creates a meaningful placement decision each tide: tall players (presence=3) get 2–3 natives concentrated; wide players (presence=1) get 1 native spread across their network.
+
+**Key design property:** The formula only differentiates with tall presence stacking. With wide play (presence=1 everywhere), all three modes produce the same result (1 native). This is intentional — the formula knob is meaningful to players who stack presence, not a flat global buff.
+
+**Trade-off:** The old `OnResolution` clearing cleared adjacent invaders, which was Root's primary source of "Clean" wins. Removing it means "Clean" (zero alive invaders) is now effectively unreachable without extraordinary native-army play. **"Weathered" is the new success state for Root.** The key health metric is now breach rate, not clean rate.
+
+**Code:** `RootAbility.OnTideStart` (new), `BalanceConfig.AssimilationSpawnMode` (replaces `AssimilationSpawnThreshold`), 12 new sim profiles, 8 updated unit tests.
+
+---
+
+### D44: Multi-strategy bot system — named strategy profiles + warden defaults
+**Decision:** Add `RootTallStrategy` as Root's default sim bot. Expose a `"strategy"` field in `SimProfile` so individual profiles can override. Register named strategies: `root_tall`, `root_wide`, `ember_aggressive`. Layer 3 (adaptive hill-climber) specced in `hill-climber-bot-spec.md` for future implementation.
+
+**Rationale:** B6 sims produced 0% Clean because the wide bot never stacks presence — the very behaviour Assimilation requires. The root cause wasn't the mechanic or the threshold; it was the measurement tool. `RootTallStrategy` fixes the measurement without changing any game logic.
+
+**Architecture:** `IPlayerStrategy` is already the extension point. `BuildStrategy()` in `Program.cs` is the central factory. New strategies are just new implementing classes — no interfaces or base classes changed. The `"strategy"` field in `SimProfile` lets sim profiles opt into any strategy without CLI flags.
+
+**Three-tier measurement model (post Layer 3):**
+- `root_wide` = greedy floor (original bot)
+- `root_tall` = heuristic mid-point (what a "good" player does for Root)
+- `optimised` = hill-climber upper bound (what near-optimal play achieves)
+
+**Trade-off:** `RootTallStrategy` is still hand-tuned heuristics — it's a better measurement baseline but not proof-of-optimal. The hill-climber (Layer 3) is needed before we can say "this is the balance ceiling." Defer hill-climber until a third warden is being designed.
+
+**Impact:** All future Root sims now default to `root_tall`. Old wide results can still be reproduced via `"strategy": "root_wide"` in the profile.
 
 ---
 
