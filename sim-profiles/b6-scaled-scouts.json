@@ -1,0 +1,12 @@
+{
+  "name": "b6-scaled — spawn count = 1+floor(presence/2) (scouts, B2)",
+  "seeds": "1-500",
+  "warden": "root",
+  "encounter": "pale_march_scouts",
+  "encounter_overrides": {
+    "extra_invaders_per_wave": 1
+  },
+  "balance_overrides": {
+    "assimilation_spawn_mode": "scaled"
+  }
+}

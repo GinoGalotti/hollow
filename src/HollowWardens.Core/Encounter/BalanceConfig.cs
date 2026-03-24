@@ -77,7 +77,8 @@ public class BalanceConfig
     // ── Natives ──────────────────────────────────────────
     public int DefaultNativeHp { get; set; } = 2;
     public int DefaultNativeDamage { get; set; } = 3;
-    public int AssimilationSpawnThreshold { get; set; } = 3; // presence per territory to spawn 1 native at Resolution
+    /// <summary>Formula for native spawn count at tide start. Options: "linear" (=presence), "scaled" (=1+floor(presence/2)), "half" (=ceil(presence/2)).</summary>
+    public string AssimilationSpawnMode { get; set; } = "scaled";
 
     // ── Cards ────────────────────────────────────────────
     public int VigilPlayLimit { get; set; } = 2;

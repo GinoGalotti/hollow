@@ -111,128 +111,132 @@ public class RootFullEncounterTest : IDisposable
         Assert.Equal(1, warden.CalculatePassiveFear(state));
     }
 
-    // ── Assimilation — base spawn (B6) ───────────────────────────────────────
+    // ── Assimilation — base spawn (B6 tide-start, three formula modes) ──────────
 
     [Fact]
-    public void Assimilation_Base_SpawnsNative_WhenPresenceAtThreshold()
+    public void Assimilation_TideStart_Scaled_PresenceOne_SpawnsOne()
     {
-        // Default threshold=3: ≥3 presence → 1 native spawned at Resolution
+        // scaled (default): 1 + floor(1/2) = 1
         var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
         var warden = new RootAbility();
         var state = new EncounterState { Territories = territories, Corruption = new CorruptionSystem() };
 
-        var m1 = state.GetTerritory("M1")!;
-        m1.PresenceCount = 3;
-        int initialNatives = m1.Natives.Count;
+        state.GetTerritory("M1")!.PresenceCount = 1;
+        warden.OnTideStart(state);
 
-        warden.OnResolution(state);
-
-        Assert.Equal(initialNatives + 1, m1.Natives.Count);
+        Assert.Equal(1, state.GetTerritory("M1")!.Natives.Count);
     }
 
     [Fact]
-    public void Assimilation_Base_NoSpawn_BelowThreshold()
+    public void Assimilation_TideStart_Scaled_PresenceTwo_SpawnsTwo()
     {
-        // presence=2 < threshold=3 → no spawn, no conversion
+        // scaled: 1 + floor(2/2) = 2
         var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
         var warden = new RootAbility();
         var state = new EncounterState { Territories = territories, Corruption = new CorruptionSystem() };
 
-        var m1 = state.GetTerritory("M1")!;
-        m1.PresenceCount = 2;
-        m1.Natives.Add(new Native { Hp = 2, MaxHp = 2, Damage = 1, TerritoryId = "M1" });
-        m1.Natives.Add(new Native { Hp = 2, MaxHp = 2, Damage = 1, TerritoryId = "M1" });
-        m1.Invaders.Add(new Invader { Id = "i1", Hp = 3, MaxHp = 3, UnitType = UnitType.Marcher, TerritoryId = "M1" });
+        state.GetTerritory("M1")!.PresenceCount = 2;
+        warden.OnTideStart(state);
 
-        warden.OnResolution(state);
-
-        Assert.Single(m1.Invaders);        // invader untouched (no conversion)
-        Assert.Equal(2, m1.Natives.Count); // no spawn
+        Assert.Equal(2, state.GetTerritory("M1")!.Natives.Count);
     }
 
     [Fact]
-    public void Assimilation_Base_SpawnDoesNotRequireInvaders()
+    public void Assimilation_TideStart_Scaled_PresenceThree_SpawnsTwo()
     {
-        // Base spawn fires at Resolution regardless of whether invaders are present
+        // scaled: 1 + floor(3/2) = 2
         var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
         var warden = new RootAbility();
         var state = new EncounterState { Territories = territories, Corruption = new CorruptionSystem() };
 
-        var m1 = state.GetTerritory("M1")!;
-        m1.PresenceCount = 3;
-        // no invaders — spawn should still fire
+        state.GetTerritory("M1")!.PresenceCount = 3;
+        warden.OnTideStart(state);
 
-        warden.OnResolution(state);
-
-        Assert.Equal(1, m1.Natives.Count); // spawned despite no invaders
-        Assert.Empty(m1.Invaders);
+        Assert.Equal(2, state.GetTerritory("M1")!.Natives.Count);
     }
 
     [Fact]
-    public void Assimilation_Base_SpawnThreshold_ConfigurableViaBalanceConfig()
+    public void Assimilation_TideStart_Linear_PresenceThree_SpawnsThree()
     {
-        // threshold=2: ≥2 presence is enough to spawn 1 native
+        // linear: count = presence = 3
         var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
-        var config   = new BalanceConfig { AssimilationSpawnThreshold = 2 };
+        var config   = new BalanceConfig { AssimilationSpawnMode = "linear" };
         var presence = new PresenceSystem(() => territories);
         var warden   = new RootAbility(presence, config);
         var state    = new EncounterState { Territories = territories, Corruption = new CorruptionSystem() };
 
-        var m1 = state.GetTerritory("M1")!;
-        m1.PresenceCount = 2; // below default threshold=3, but meets threshold=2
+        state.GetTerritory("M1")!.PresenceCount = 3;
+        warden.OnTideStart(state);
 
-        warden.OnResolution(state);
-
-        Assert.Equal(1, m1.Natives.Count);
+        Assert.Equal(3, state.GetTerritory("M1")!.Natives.Count);
     }
 
     [Fact]
-    public void Assimilation_Base_SpawnsOnlyInQualifyingTerritories()
+    public void Assimilation_TideStart_Half_PresenceOne_SpawnsOne()
     {
-        // Only territories with presence >= threshold spawn; others untouched
+        // half: ceil(1/2) = 1
+        var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
+        var config   = new BalanceConfig { AssimilationSpawnMode = "half" };
+        var presence = new PresenceSystem(() => territories);
+        var warden   = new RootAbility(presence, config);
+        var state    = new EncounterState { Territories = territories, Corruption = new CorruptionSystem() };
+
+        state.GetTerritory("M1")!.PresenceCount = 1;
+        warden.OnTideStart(state);
+
+        Assert.Equal(1, state.GetTerritory("M1")!.Natives.Count);
+    }
+
+    [Fact]
+    public void Assimilation_TideStart_Half_PresenceThree_SpawnsTwo()
+    {
+        // half: ceil(3/2) = 2
+        var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
+        var config   = new BalanceConfig { AssimilationSpawnMode = "half" };
+        var presence = new PresenceSystem(() => territories);
+        var warden   = new RootAbility(presence, config);
+        var state    = new EncounterState { Territories = territories, Corruption = new CorruptionSystem() };
+
+        state.GetTerritory("M1")!.PresenceCount = 3;
+        warden.OnTideStart(state);
+
+        Assert.Equal(2, state.GetTerritory("M1")!.Natives.Count);
+    }
+
+    [Fact]
+    public void Assimilation_TideStart_SkipsWhenNoPresence()
+    {
+        // No territory has presence — nothing spawns
         var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
         var warden = new RootAbility();
-        var state  = new EncounterState { Territories = territories, Corruption = new CorruptionSystem() };
+        var state = new EncounterState { Territories = territories, Corruption = new CorruptionSystem() };
 
-        var m1 = state.GetTerritory("M1")!;
-        var m2 = state.GetTerritory("M2")!;
-        m1.PresenceCount = 3; // qualifies (default threshold=3)
-        m2.PresenceCount = 2; // below threshold — no spawn
+        warden.OnTideStart(state);
 
-        warden.OnResolution(state);
-
-        Assert.Equal(1, m1.Natives.Count); // spawned
-        Assert.Equal(0, m2.Natives.Count); // not spawned
+        Assert.True(territories.All(t => t.Natives.Count == 0));
     }
 
     [Fact]
-    public void Assimilation_Base_NoConversion_WithoutUpgrade()
+    public void Assimilation_TideStart_SpawnDoesNotRequireInvaders()
     {
-        // Base-only (no upgrade): invaders are never converted even with ≥2 presence + ≥2 natives.
-        // Spawn fires because presence=3 ≥ threshold=3.
+        // Spawn fires regardless of whether invaders are present
         var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
-        var warden = new RootAbility(); // no gating = no upgrade
-        var state  = new EncounterState { Territories = territories, Corruption = new CorruptionSystem() };
+        var warden = new RootAbility();
+        var state = new EncounterState { Territories = territories, Corruption = new CorruptionSystem() };
 
-        var m1 = state.GetTerritory("M1")!;
-        m1.PresenceCount = 3;
-        m1.Natives.Add(new Native { Hp = 2, MaxHp = 2, Damage = 1, TerritoryId = "M1" });
-        m1.Natives.Add(new Native { Hp = 2, MaxHp = 2, Damage = 1, TerritoryId = "M1" });
-        m1.Invaders.Add(new Invader { Id = "i1", Hp = 4, MaxHp = 4, UnitType = UnitType.Marcher, TerritoryId = "M1" });
+        state.GetTerritory("M1")!.PresenceCount = 2;
+        warden.OnTideStart(state);
 
-        warden.OnResolution(state);
-
-        Assert.Single(m1.Invaders);        // invader NOT converted (no upgrade)
-        Assert.Equal(3, m1.Natives.Count); // 2 original + 1 spawned
+        Assert.Equal(2, state.GetTerritory("M1")!.Natives.Count); // scaled: 1 + floor(2/2) = 2
+        Assert.Empty(state.GetTerritory("M1")!.Invaders);
     }
 
-    // ── Assimilation — upgraded conversion (assimilation_u1) ─────────────────
+    // ── Assimilation — upgraded conversion at Resolution (assimilation_u1) ───────
 
     [Fact]
     public void Assimilation_Upgraded_2Presence_2Natives_1Invader_ConvertsOne()
     {
-        // presence=2 < spawn threshold=3, so no spawn.
-        // Upgrade conversion: floor(min(2,2)/2) = 1 invader converted.
+        // Upgrade conversion at Resolution: floor(min(2,2)/2) = 1 invader converted.
         var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
         var warden = new RootAbility();
         var gating = new PassiveGating("root");
@@ -249,14 +253,14 @@ public class RootFullEncounterTest : IDisposable
         warden.OnResolution(state);
 
         Assert.Empty(m1.Invaders);         // 1 invader converted
-        Assert.Equal(3, m1.Natives.Count); // 2 original + 1 converted (no spawn: presence=2 < threshold=3)
+        Assert.Equal(3, m1.Natives.Count); // 2 original + 1 converted
     }
 
     [Fact]
-    public void Assimilation_Upgraded_4Presence_4Natives_SpawnsThenConverts2()
+    public void Assimilation_Upgraded_4Presence_4Natives_Converts2()
     {
-        // presence=4 ≥ spawn threshold=3 → base spawn fires first (+1 native → 5 alive).
-        // Upgrade conversion: floor(min(4, 5)/2) = 2, weakest converted; HP5 Ironclad remains.
+        // 4 presence + 4 natives at Resolution: floor(min(4,4)/2) = 2 conversions.
+        // Weakest 2 converted; HP5 Ironclad remains. (Spawn happens at tide start, not here.)
         var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
         var warden = new RootAbility();
         var gating = new PassiveGating("root");
@@ -276,13 +280,13 @@ public class RootFullEncounterTest : IDisposable
 
         Assert.Single(m1.Invaders);
         Assert.Equal(5, m1.Invaders[0].Hp);
-        Assert.Equal(7, m1.Natives.Count); // 4 original + 1 spawned + 2 converted
+        Assert.Equal(6, m1.Natives.Count); // 4 original + 2 converted
     }
 
     [Fact]
     public void Assimilation_Upgraded_ConvertedInvader_BecomesNativeWithHalfHp()
     {
-        // Converted native HP = max(1, invader.MaxHp / 2). Presence=2 < threshold → no spawn first.
+        // Converted native HP = max(1, invader.MaxHp / 2).
         var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
         var warden = new RootAbility();
         var gating = new PassiveGating("root");
@@ -308,7 +312,7 @@ public class RootFullEncounterTest : IDisposable
     [Fact]
     public void Assimilation_Upgraded_FiresInvaderDefeatedEvent_PerConversion()
     {
-        // presence=4 ≥ threshold=3: spawn first (+1 → 5 alive), then floor(min(4,5)/2)=2 conversions
+        // 4 presence + 4 natives: floor(min(4,4)/2) = 2 conversions → 2 InvaderDefeated events.
         var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
         var warden = new RootAbility();
         var gating = new PassiveGating("root");

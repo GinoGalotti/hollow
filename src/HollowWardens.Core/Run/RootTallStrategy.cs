@@ -21,7 +21,7 @@ public class RootTallStrategy : IPlayerStrategy
     /// <summary>Expand to this many territories before stacking.</summary>
     private readonly int _spreadTarget;
 
-    /// <summary>Stack presence toward this count per territory (matches AssimilationSpawnThreshold).</summary>
+    /// <summary>Stack presence toward this count per territory (matches AssimilationSpawnMode context).</summary>
     private readonly int _stackTarget;
 
     /// <summary>Set before each card choice. Format: "PRIORITY: {rule} — {context}".</summary>

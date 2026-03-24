@@ -198,6 +198,8 @@ public static class SimProfileApplier
                     prop.SetValue(balance, je.GetInt32());
                 else if (prop.PropertyType == typeof(float))
                     prop.SetValue(balance, je.GetSingle());
+                else if (prop.PropertyType == typeof(string))
+                    prop.SetValue(balance, je.GetString());
             }
         }
     }

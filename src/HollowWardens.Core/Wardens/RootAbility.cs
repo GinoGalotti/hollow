@@ -13,8 +13,10 @@ using HollowWardens.Core.Systems;
 /// - Rest-dissolve: card goes Dormant instead of being removed from the encounter.
 /// - Network Fear: 1 Fear per invader in a territory adjacent to ≥3 Presence territories, capped at NetworkFearCap.
 /// - Network Slow: invaders in territories adjacent to ≥3 Presence territories have −1 Advance movement.
-/// - On resolution: Assimilation (B6) — base: each territory with stacked Presence ≥ threshold spawns 1 Native;
-///   upgraded (assimilation_u1): also converts invaders → Natives in ≥2-presence + ≥2-native territories.
+/// - On tide start: Assimilation (B6) — pick ONE presence territory, spawn natives based on presence count
+///   and AssimilationSpawnMode (linear / scaled / half).
+/// - On resolution: Assimilation upgrade (assimilation_u1) — territories with ≥2 Presence + ≥2 Natives + invaders
+///   convert floor(min(presence, natives) / 2) invaders → Natives (weakest first, HP = max(1, invader.MaxHp / 2)).
 /// </summary>
 public class RootAbility : IWardenAbility
 {
@@ -45,27 +47,26 @@ public class RootAbility : IWardenAbility
     public BottomResult OnRestDissolve(Card card) => BottomResult.Dormant;
 
     /// <summary>
-    /// Assimilation (B6 redesign — two tiers):
-    ///
-    /// Base (always active when assimilation is active):
-    ///   At Resolution, each territory with Presence ≥ AssimilationSpawnThreshold spawns 1 Native.
-    ///   "Stack presence → the forest grows." No invader conversion at base level.
-    ///
-    /// Upgraded (assimilation_u1):
-    ///   After the spawn pass, territories with ≥2 Presence + ≥2 Natives + invaders
-    ///   convert floor(min(presence, natives) / 2) invaders → Natives (weakest first,
-    ///   HP = max(1, invader.MaxHp / 2)). This is the D42 conversion logic, now gated
-    ///   behind the upgrade so the base mechanic can seed the native army first.
+    /// Assimilation — base (B6 tide-start spawn):
+    ///   Pick the presence territory with the most adjacent invaders (tie-break: most presence).
+    ///   Spawn natives there based on AssimilationSpawnMode:
+    ///     linear: count = presence
+    ///     scaled:  count = 1 + floor(presence / 2)   [default]
+    ///     half:    count = ceil(presence / 2)
+    ///   Natives spawned at tide start can counter-attack that same tide if Provocation is active.
     /// </summary>
-    public void OnResolution(EncounterState state)
+    public void OnTideStart(EncounterState state)
     {
         if (Gating != null && !Gating.IsActive("assimilation")) return;
 
-        int spawnThreshold = _config?.AssimilationSpawnThreshold ?? 3;
-        int nativeHp       = _config?.DefaultNativeHp ?? 2;
+        var territory = ChooseSpawnTerritory(state);
+        if (territory == null) return;
 
-        // ── Base: spawn 1 native per territory with stacked presence ≥ threshold ──
-        foreach (var territory in state.Territories.Where(t => t.PresenceCount >= spawnThreshold).ToList())
+        string mode      = _config?.AssimilationSpawnMode ?? "scaled";
+        int    spawnCount = CalcSpawnCount(territory.PresenceCount, mode);
+        int    nativeHp   = _config?.DefaultNativeHp ?? 2;
+
+        for (int i = 0; i < spawnCount; i++)
         {
             territory.Natives.Add(new Native
             {
@@ -75,8 +76,16 @@ public class RootAbility : IWardenAbility
                 TerritoryId = territory.Id,
             });
         }
+    }
 
-        // ── Upgrade: also convert invaders → natives in ≥2-presence + ≥2-native territories ──
+    /// <summary>
+    /// Assimilation upgrade (assimilation_u1 — Resolution):
+    ///   After the final tide, territories with ≥2 Presence + ≥2 Natives + invaders
+    ///   convert floor(min(presence, natives) / 2) invaders → Natives (weakest first).
+    ///   The base spawn (OnTideStart) builds the native army this upgrade needs.
+    /// </summary>
+    public void OnResolution(EncounterState state)
+    {
         if (!(Gating?.IsUpgraded("assimilation_u1") ?? false)) return;
 
         foreach (var territory in state.Territories.Where(t => t.PresenceCount >= 2).ToList())
@@ -182,4 +191,35 @@ public class RootAbility : IWardenAbility
         int count = (Gating?.IsUpgraded("rest_growth_u1") ?? false) ? 2 : 1;
         state.Presence?.PlacePresence(territory, count);
     }
+
+    /// <summary>
+    /// Bot heuristic: choose the presence territory with the most invaders in adjacent territories.
+    /// Tie-break: most presence (maximises spawn count and conversion potential).
+    /// </summary>
+    private static Territory? ChooseSpawnTerritory(EncounterState state)
+    {
+        var territoryMap = state.Territories.ToDictionary(t => t.Id);
+        return state.Territories
+            .Where(t => t.HasPresence)
+            .OrderByDescending(t =>
+                TerritoryGraph.Standard.GetNeighbors(t.Id)
+                    .Sum(n => territoryMap.TryGetValue(n, out var neighbor)
+                        ? neighbor.Invaders.Count(i => i.IsAlive)
+                        : 0))
+            .ThenByDescending(t => t.PresenceCount)
+            .FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Returns native spawn count for the given presence and mode.
+    /// linear: count = presence
+    /// scaled:  count = 1 + floor(presence / 2)   [default]
+    /// half:    count = ceil(presence / 2)
+    /// </summary>
+    private static int CalcSpawnCount(int presenceCount, string mode) => mode switch
+    {
+        "linear" => presenceCount,
+        "half"   => (int)Math.Ceiling(presenceCount / 2.0),
+        _        => 1 + presenceCount / 2, // "scaled" default
+    };
 }
