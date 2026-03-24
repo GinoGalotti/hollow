@@ -26,34 +26,40 @@ public class ThresholdResolverTests : IDisposable
     }
 
     [Fact]
-    public void RootTier1_PlacesPresence_AtRangeOneFromExistingPresence()
+    public void RootTier1_ReducesCorruptionByThree_InHighestCorruptPresenceTerritory()
     {
         var state = BuildState();
+        // I1 has presence (set in BuildState); give it some corruption
+        state.GetTerritory("I1")!.CorruptionPoints = 8;
         var resolver = new ThresholdResolver();
-
-        // I1 has presence; M1 and M2 are adjacent and should receive the new presence
-        int presenceBefore = state.Territories.Sum(t => t.PresenceCount);
 
         resolver.AutoResolve(Element.Root, 1, state);
 
-        int presenceAfter = state.Territories.Sum(t => t.PresenceCount);
-        Assert.Equal(presenceBefore + 1, presenceAfter);
-
-        // The new presence must be adjacent to I1 (M1 or M2)
-        bool placedNearI1 = state.GetTerritory("M1")!.PresenceCount > 0
-                         || state.GetTerritory("M2")!.PresenceCount > 0;
-        Assert.True(placedNearI1);
+        Assert.Equal(5, state.GetTerritory("I1")!.CorruptionPoints);
     }
 
     [Fact]
-    public void MistTier1_RestoresOneWeave()
+    public void RootTier1_DoesNothing_WhenNoPresenceTerritoriesHaveCorruption()
+    {
+        var state = BuildState();
+        // I1 has presence but 0 corruption — nothing to reduce
+        var resolver = new ThresholdResolver();
+
+        resolver.AutoResolve(Element.Root, 1, state);
+
+        // No corruption anywhere, no change
+        Assert.Equal(0, state.Territories.Sum(t => t.CorruptionPoints));
+    }
+
+    [Fact]
+    public void MistTier1_RestoresTwoWeave()
     {
         var state = BuildState(weave: 15);
         var resolver = new ThresholdResolver();
 
         resolver.AutoResolve(Element.Mist, 1, state);
 
-        Assert.Equal(16, state.Weave!.CurrentWeave);
+        Assert.Equal(17, state.Weave!.CurrentWeave);
     }
 
     [Fact]
@@ -69,14 +75,14 @@ public class ThresholdResolverTests : IDisposable
     }
 
     [Fact]
-    public void VoidTier1_DamagesLowestHpInvader()
+    public void VoidTier1_DealThreeDamageToLowestHpInvader()
     {
         var state = BuildState();
         var (_, _, _, _, faction) =
             IntegrationHelpers.Build(IntegrationHelpers.MakeCards(5), new RootAbility(),
                 IntegrationHelpers.MakeConfig(tideCount: 1));
 
-        // Place a Marcher (HP 3) and an Outrider (HP 2) — Void T1 should hit the Outrider
+        // Marcher (HP 4) and Outrider (HP 3) — Void T1 targets lowest HP = Outrider, deals 3 damage
         var marcher  = faction.CreateUnit(UnitType.Marcher,  "M1");
         var outrider = faction.CreateUnit(UnitType.Outrider, "M2");
         state.GetTerritory("M1")!.Invaders.Add(marcher);
@@ -85,9 +91,9 @@ public class ThresholdResolverTests : IDisposable
         var resolver = new ThresholdResolver();
         resolver.AutoResolve(Element.Void, 1, state);
 
-        // Outrider (lowest HP) should take 1 damage
-        Assert.Equal(outrider.MaxHp - 1, outrider.Hp);
-        // Marcher should be untouched
+        // Outrider (lowest HP=3) takes 3 damage → dead
+        Assert.False(outrider.IsAlive);
+        // Marcher (HP=4) untouched
         Assert.Equal(marcher.MaxHp, marcher.Hp);
     }
 }

@@ -25,7 +25,7 @@ public class BottomBudgetTest : IDisposable
             tier == EncounterTier.Boss ? BottomResult.PermanentlyRemoved : BottomResult.Dissolved;
         public BottomResult OnRestDissolve(Card card) => BottomResult.Dissolved;
         public void OnResolution(HollowWardens.Core.Encounter.EncounterState state) { }
-        public int CalculatePassiveFear() => 0;
+        public int CalculatePassiveFear(HollowWardens.Core.Encounter.EncounterState state) => 0;
     }
 
     [Fact]

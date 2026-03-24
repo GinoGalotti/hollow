@@ -57,18 +57,17 @@ public class D29_RootCombatTests : IDisposable
     // ═══ PART A: NETWORK SLOW ═════════════════════════════════════════════════
 
     [Fact]
-    public void NetworkSlow_TwoPresenceNeighbors_ReturnsPenalty1()
+    public void NetworkSlow_TwoPresenceNeighbors_ReturnsZero_BelowThreshold()
     {
-        // M1 neighbors: A1, A2, M2, I1 — 2 presence neighbors > 1 invader → slow
+        // D42: network_slow now requires ≥3 presence neighbors — 2 is below threshold
         var territories = AllTerritories().ToList();
         territories.First(t => t.Id == "A1").PresenceCount = 1;
         territories.First(t => t.Id == "A2").PresenceCount = 1;
-        // D30: must have invader in target territory for slow to apply
         territories.First(t => t.Id == "M1").Invaders.Add(
             new Invader { Id = "i1", UnitType = UnitType.Marcher, Hp = 3, MaxHp = 3, TerritoryId = "M1" });
 
         var root = new RootAbility();
-        Assert.Equal(1, root.GetMovementPenalty("M1", territories));
+        Assert.Equal(0, root.GetMovementPenalty("M1", territories));
     }
 
     [Fact]
@@ -98,16 +97,16 @@ public class D29_RootCombatTests : IDisposable
     }
 
     [Fact]
-    public void NetworkSlow_OneInvader_TwoPresenceNeighbors_Slowed()
+    public void NetworkSlow_OneInvader_TwoPresenceNeighbors_NotSlowed_BelowThreshold()
     {
-        // 2 presence > 1 invader → penalty 1
+        // D42: 2 presence neighbors < threshold of 3 → no penalty regardless of invader count
         var territories = AllTerritories().ToList();
         territories.First(t => t.Id == "A1").PresenceCount = 1;
         territories.First(t => t.Id == "A2").PresenceCount = 1;
         territories.First(t => t.Id == "M1").Invaders.Add(
             new Invader { Id = "i1", UnitType = UnitType.Marcher, Hp = 3, MaxHp = 3, TerritoryId = "M1" });
 
-        Assert.Equal(1, new RootAbility().GetMovementPenalty("M1", territories));
+        Assert.Equal(0, new RootAbility().GetMovementPenalty("M1", territories));
     }
 
     [Fact]
@@ -165,9 +164,9 @@ public class D29_RootCombatTests : IDisposable
     }
 
     [Fact]
-    public void NetworkSlow_WaveBreaksThrough()
+    public void NetworkSlow_ThreePresenceNeighbors_ReturnsPenalty_RegardlessOfInvaderCount()
     {
-        // 4 invaders vs 3 presence neighbors → 3 ≤ 4 → NOT outnumbered → penalty 0
+        // D42: ≥3 presence neighbors → penalty 1, regardless of how many invaders are present
         var territories = AllTerritories().ToList();
         territories.First(t => t.Id == "A1").PresenceCount = 1;
         territories.First(t => t.Id == "A2").PresenceCount = 1;
@@ -176,7 +175,7 @@ public class D29_RootCombatTests : IDisposable
         for (int i = 0; i < 4; i++)
             m1.Invaders.Add(new Invader { Id = $"i{i}", UnitType = UnitType.Marcher, Hp = 3, MaxHp = 3, TerritoryId = "M1" });
 
-        Assert.Equal(0, new RootAbility().GetMovementPenalty("M1", territories));
+        Assert.Equal(1, new RootAbility().GetMovementPenalty("M1", territories));
     }
 
     [Fact]
@@ -198,10 +197,11 @@ public class D29_RootCombatTests : IDisposable
     [Fact]
     public void NetworkSlow_InvaderStays_WhenPenaltyEqualsMoves()
     {
-        // A2 neighbors: A1, A3, M1, M2 — put presence on A1 + A3
+        // A2 neighbors: A1, A3, M1, M2 — need ≥3 with presence for D42 threshold
         var state = MakeFullState(new RootAbility());
         state.GetTerritory("A1")!.PresenceCount = 1;
         state.GetTerritory("A3")!.PresenceCount = 1;
+        state.GetTerritory("M1")!.PresenceCount = 1; // D42: 3rd neighbor for threshold
 
         var invader = MakeInvader("i1", UnitType.Marcher, "A2");
         state.GetTerritory("A2")!.Invaders.Add(invader);
@@ -356,11 +356,12 @@ public class D29_RootCombatTests : IDisposable
     [Fact]
     public void SlowInvaders_StacksWithNetworkSlow_Base2HalvedTo1ThenMinus1Equals0()
     {
-        // A2 has 2 presence neighbors (A1, A3) → Network Slow penalty 1
+        // A2 has 3 presence neighbors (A1, A3, M1) → Network Slow penalty 1 (D42: need ≥3)
         // Marcher base 2, slowed → halved to 1, then -1 = 0 → stays
         var state = MakeFullState(new RootAbility());
         state.GetTerritory("A1")!.PresenceCount = 1;
         state.GetTerritory("A3")!.PresenceCount = 1;
+        state.GetTerritory("M1")!.PresenceCount = 1; // D42: 3rd neighbor for threshold
 
         var invader = MakeInvader("i1", UnitType.Marcher, "A2");
         invader.IsSlowed = true;

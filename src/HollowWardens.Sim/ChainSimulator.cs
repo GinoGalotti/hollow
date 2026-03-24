@@ -67,7 +67,7 @@ public static class ChainSimulator
             EncounterRunner.ApplyCarryover(state, carryover);
 
             // Run encounter
-            IPlayerStrategy strategy = (IPlayerStrategy)(wardenId == "ember" ? new EmberBotStrategy() : new BotStrategy());
+            IPlayerStrategy strategy = (IPlayerStrategy)(wardenId == "ember" ? new EmberBotStrategy() : new RootTallStrategy());
             IPlayerStrategy wrappedStrategy = telemetry != null
                 ? new TelemetryBotWrapper(strategy, telemetry)
                 : strategy;

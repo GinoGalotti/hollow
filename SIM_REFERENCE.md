@@ -270,11 +270,12 @@ Omitted fields fall back to global. Example:
 | `dread_threshold2` | 30 | Total fear for Dread Level 3 |
 | `dread_threshold3` | 45 | Total fear for Dread Level 4 |
 
-### Natives
+### Natives / Assimilation
 | Key | Default | Description |
 |-----|---------|-------------|
 | `default_native_hp` | 2 | Native HP |
 | `default_native_damage` | 3 | Native counter-attack damage |
+| `assimilation_spawn_threshold` | 3 | Presence needed per territory for base Assimilation to spawn 1 native at Resolution |
 
 ### Cards / Turns
 | Key | Default | Description |

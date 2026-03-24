@@ -178,7 +178,7 @@ public static class EncounterLoader
                 new() { Weight=35, Units=new(){ ["A1"]=new(){UnitType.Ironclad, UnitType.Ironclad}, ["A3"]=new(){UnitType.Ironclad} } },
                 new() { Weight=25, Units=new(){ ["A1"]=new(){UnitType.Ironclad}, ["A3"]=new(){UnitType.Ironclad, UnitType.Ironclad} } }
             }},
-        })
+        }, count: 2)
     };
 
     public static EncounterConfig CreatePaleMarchElite() => new()
@@ -341,14 +341,15 @@ public static class EncounterLoader
         ["ember"] = new() { Tier1MinResult = "clean", Tier2MinResult = "weathered", Tier2MinWeavePercent = 50 }
     };
 
-    private static List<SpawnWave> AddB2Marchers(List<SpawnWave> waves)
+    private static List<SpawnWave> AddB2Marchers(List<SpawnWave> waves, int count = 1)
     {
         foreach (var wave in waves)
             foreach (var option in wave.Options)
             {
                 if (!option.Units.ContainsKey("A1"))
                     option.Units["A1"] = new();
-                option.Units["A1"].Add(UnitType.Marcher);
+                for (int i = 0; i < count; i++)
+                    option.Units["A1"].Add(UnitType.Marcher);
             }
         return waves;
     }

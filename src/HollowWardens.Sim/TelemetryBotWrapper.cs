@@ -71,8 +71,9 @@ public class TelemetryBotWrapper : IPlayerStrategy
 
     private static string GetReason(IPlayerStrategy strategy) => strategy switch
     {
-        BotStrategy bs => bs.LastDecisionReason,
-        EmberBotStrategy es => es.LastDecisionReason,
+        BotStrategy bs         => bs.LastDecisionReason,
+        EmberBotStrategy es    => es.LastDecisionReason,
+        RootTallStrategy rs    => rs.LastDecisionReason,
         _ => ""
     };
 

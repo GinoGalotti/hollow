@@ -98,6 +98,24 @@ public partial class GameBridge : Node
     /// <summary>Play mode: "single", "full_run", or "practice".</summary>
     public static string SelectedMode { get; set; } = "single";
 
+    /// <summary>
+    /// Pool passive IDs selected by the player for this run (D42).
+    /// Empty = all pool passives available (default for backward compat / sim).
+    /// </summary>
+    public static string[] SelectedPoolPassiveIds { get; set; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Returns the pool passives (IsPool=true) for the given warden, loaded from data/wardens/{id}.json.
+    /// Used by WardenSelectController to build the passive selection screen.
+    /// </summary>
+    public static List<HollowWardens.Core.Data.PassiveData> GetPoolPassives(string wardenId)
+    {
+        var resDir   = ProjectSettings.GlobalizePath("res://");
+        var jsonPath = System.IO.Path.GetFullPath(
+            System.IO.Path.Combine(resDir, "..", "data", "wardens", $"{wardenId}.json"));
+        return WardenLoader.Load(jsonPath).Passives.Where(p => p.IsPool).ToList();
+    }
+
     /// <summary>Realm ID for Full Run mode.</summary>
     public static string SelectedRealmId { get; set; } = "realm_1";
 
@@ -774,6 +792,8 @@ public partial class GameBridge : Node
         };
 
         var gating = new PassiveGating(wardenData.WardenId);
+        if (SelectedPoolPassiveIds.Length > 0)
+            gating.SetRunPassives(SelectedPoolPassiveIds);
         if (warden is RootAbility rootAbility)
             rootAbility.Gating = gating;
         gating.PassiveUnlocked += (id, _) => EmitSignal(SignalName.PassiveUnlocked, id);

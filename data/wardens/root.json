@@ -4,30 +4,34 @@
   "name": "The Root",
   "archetype": "Tank / Control",
   "flavor": "Something ancient stirs beneath the soil. Where its roots spread, the land remembers how to fight back.",
-
   "element_affinity": {
     "primary": "Root",
     "secondary": "Mist",
     "tertiary": "Shadow"
   },
-
   "hand_limit": 5,
-  "starting_presence": { "territory": "I1", "count": 1 },
-
+  "starting_presence": {
+    "territory": "I1",
+    "count": 1
+  },
   "passives": [
     {
       "id": "network_fear",
       "name": "The Web Remembers",
       "icon": "token",
       "flavor": "Where roots intertwine, the land whispers of what was lost. Invaders feel it in their bones.",
-      "description": "Each turn, generate Fear equal to the number of adjacent Presence pairs (each pair counted twice).",
+      "description": "Each turn, generate 1 Fear per invader in a territory adjacent to 3+ Presence territories (max 3 Fear).",
       "trigger": "turn_start",
       "mechanic": "network_fear",
       "upgrade": {
         "id": "network_fear_u1",
         "description_key": "UPGRADE_PASSIVE_NETWORK_FEAR",
         "effects": [
-          { "type": "set_balance", "key": "network_fear_cap", "value": 6 }
+          {
+            "type": "set_balance",
+            "key": "network_fear_cap",
+            "value": 6
+          }
         ]
       }
     },
@@ -36,17 +40,25 @@
       "name": "Tangled Earth",
       "icon": "hexagon",
       "flavor": "The ground itself resists. Every step is a struggle through grasping soil.",
-      "description": "Invaders adjacent to 2+ Presence territories have −1 Advance movement.",
+      "description": "Invaders in a territory adjacent to 3+ Presence territories have −1 Advance movement.",
       "trigger": "on_advance",
       "mechanic": "network_slow",
-      "params": { "min_adjacent_presence": 2, "movement_penalty": 1 },
+      "params": {
+        "min_adjacent_presence": 3,
+        "movement_penalty": 1
+      },
       "upgrade": {
         "id": "network_slow_u1",
         "description_key": "UPGRADE_PASSIVE_NETWORK_SLOW",
         "effects": [
-          { "type": "set_ability_param", "key": "movement_penalty", "value": 2 }
+          {
+            "type": "set_ability_param",
+            "key": "movement_penalty",
+            "value": 2
+          }
         ]
-      }
+      },
+      "pool": true
     },
     {
       "id": "presence_provocation",
@@ -60,26 +72,39 @@
         "id": "presence_provocation_u1",
         "description_key": "UPGRADE_PASSIVE_PRESENCE_PROVOCATION",
         "effects": [
-          { "type": "set_ability_param", "key": "provocation_range", "value": 1 }
+          {
+            "type": "set_ability_param",
+            "key": "provocation_range",
+            "value": 1
+          }
         ]
-      }
+      },
+      "pool": true
     },
     {
       "id": "rest_growth",
       "name": "Deep Breath",
       "icon": "campfire",
       "flavor": "Even in stillness, the roots creep forward. Rest is not weakness — it is growth.",
-      "description": "On Rest, place 1 free Presence on any territory with existing Presence.",
+      "description": "On Rest, place 1 free Presence on any territory with existing Presence. Upgrade: place 2 instead.",
       "trigger": "on_rest",
       "mechanic": "place_presence",
-      "params": { "count": 1, "requires_existing": true },
+      "params": {
+        "count": 1,
+        "requires_existing": true
+      },
       "upgrade": {
         "id": "rest_growth_u1",
         "description_key": "UPGRADE_PASSIVE_REST_GROWTH",
         "effects": [
-          { "type": "set_ability_param", "key": "rest_growth_count", "value": 2 }
+          {
+            "type": "set_ability_param",
+            "key": "rest_growth_count",
+            "value": 2
+          }
         ]
-      }
+      },
+      "pool": true
     },
     {
       "id": "dormancy",
@@ -93,7 +118,11 @@
         "id": "dormancy_u1",
         "description_key": "UPGRADE_PASSIVE_DORMANCY",
         "effects": [
-          { "type": "set_ability_param", "key": "dormancy_restore_count", "value": 1 }
+          {
+            "type": "set_ability_param",
+            "key": "dormancy_restore_count",
+            "value": 1
+          }
         ]
       }
     },
@@ -102,21 +131,23 @@
       "name": "The Land Reclaims",
       "icon": "hexagon_in",
       "flavor": "When the tide ebbs, the roots pull everything back into the earth.",
-      "description": "At Resolution, all invaders adjacent to Presence territories are removed. Each reduces Corruption by 1.",
+      "description": "At Resolution, each territory with 3+ stacked Presence spawns 1 Native. Upgrade: territories with 2+ Presence, 2+ Natives, and invaders also convert floor(min(presence,natives)/2) invaders into Natives (weakest first).",
       "trigger": "on_resolution",
       "mechanic": "assimilation",
       "upgrade": {
         "id": "assimilation_u1",
         "description_key": "UPGRADE_PASSIVE_ASSIMILATION",
         "effects": [
-          { "type": "set_ability_param", "key": "assimilation_range", "value": 1 }
+          {
+            "type": "set_ability_param",
+            "key": "assimilation_range",
+            "value": 1
+          }
         ]
       }
     }
   ],
-
   "resolution_style": "assimilation",
-
   "cards": [
     {
       "num": "001",
@@ -124,13 +155,44 @@
       "name": "Tendrils of Reclamation",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Root", "Mist"],
-      "top":    { "type": "ReduceCorruption", "value": 2, "range": 1, "desc": "Reduce Corruption by 2 points in range 1" },
-      "bottom": { "type": "ReduceCorruption", "value": 5, "range": 2, "desc": "Reduce Corruption by 5 points in range 2, and restore 1 Weave",
-                  "secondary": { "type": "RestoreWeave", "value": 1 } },
+      "elements": [
+        "Root",
+        "Mist"
+      ],
+      "top": {
+        "type": "ReduceCorruption",
+        "value": 2,
+        "range": 1,
+        "desc": "Reduce Corruption by 2 points in range 1"
+      },
+      "bottom": {
+        "type": "ReduceCorruption",
+        "value": 5,
+        "range": 2,
+        "desc": "Reduce Corruption by 5 points in range 2, and restore 1 Weave",
+        "secondary": {
+          "type": "RestoreWeave",
+          "value": 1
+        }
+      },
       "upgrades": [
-        { "id": "root_001_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_001_U1" },
-        { "id": "root_001_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_001_U2" }
+        {
+          "id": "root_001_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_001_U1"
+        },
+        {
+          "id": "root_001_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_001_U2"
+        }
       ]
     },
     {
@@ -139,13 +201,44 @@
       "name": "Deep Roots",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Root"],
-      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
-      "bottom": { "type": "PlacePresence", "value": 1, "range": 3, "desc": "Place 1 Presence in range 3, then reduce Corruption by 2 points in that territory",
-                  "secondary": { "type": "ReduceCorruption", "value": 2, "range": 0 } },
+      "elements": [
+        "Root"
+      ],
+      "top": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 1,
+        "desc": "Place 1 Presence in range 1"
+      },
+      "bottom": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 3,
+        "desc": "Place 1 Presence in range 3, then reduce Corruption by 2 points in that territory",
+        "secondary": {
+          "type": "ReduceCorruption",
+          "value": 2,
+          "range": 0
+        }
+      },
       "upgrades": [
-        { "id": "root_002_u1", "slot": "top", "field": "range", "from": 1, "to": 2, "cost": 1, "description_key": "UPGRADE_ROOT_002_U1" },
-        { "id": "root_002_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_002_U2" }
+        {
+          "id": "root_002_u1",
+          "slot": "top",
+          "field": "range",
+          "from": 1,
+          "to": 2,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_002_U1"
+        },
+        {
+          "id": "root_002_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Root",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_002_U2"
+        }
       ]
     },
     {
@@ -154,13 +247,45 @@
       "name": "Earthen Mending",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Root", "Root"],
-      "top":    { "type": "ReduceCorruption", "value": 2, "range": 0, "desc": "Reduce Corruption by 2 points anywhere on the board" },
-      "bottom": { "type": "ReduceCorruption", "value": 4, "range": 0, "desc": "Reduce Corruption by 4 points anywhere, and reduce Corruption by 2 points in an adjacent territory",
-                  "secondary": { "type": "ReduceCorruption", "value": 2, "range": 1 } },
+      "elements": [
+        "Root",
+        "Root"
+      ],
+      "top": {
+        "type": "ReduceCorruption",
+        "value": 2,
+        "range": 0,
+        "desc": "Reduce Corruption by 2 points anywhere on the board"
+      },
+      "bottom": {
+        "type": "ReduceCorruption",
+        "value": 4,
+        "range": 0,
+        "desc": "Reduce Corruption by 4 points anywhere, and reduce Corruption by 2 points in an adjacent territory",
+        "secondary": {
+          "type": "ReduceCorruption",
+          "value": 2,
+          "range": 1
+        }
+      },
       "upgrades": [
-        { "id": "root_003_u1", "slot": "bottom", "field": "value", "from": 4, "to": 5, "cost": 1, "description_key": "UPGRADE_ROOT_003_U1" },
-        { "id": "root_003_u2", "slot": "elements", "action": "add", "element": "Mist", "cost": 1, "description_key": "UPGRADE_ROOT_003_U2" }
+        {
+          "id": "root_003_u1",
+          "slot": "bottom",
+          "field": "value",
+          "from": 4,
+          "to": 5,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_003_U1"
+        },
+        {
+          "id": "root_003_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Mist",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_003_U2"
+        }
       ]
     },
     {
@@ -169,12 +294,40 @@
       "name": "Shiver of the Ancient",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Shadow", "Mist"],
-      "top":    { "type": "GenerateFear", "value": 3, "range": 0, "desc": "Generate 3 Fear" },
-      "bottom": { "type": "GenerateFear", "value": 7, "range": 0, "desc": "Generate 7 Fear" },
+      "elements": [
+        "Shadow",
+        "Mist"
+      ],
+      "top": {
+        "type": "GenerateFear",
+        "value": 3,
+        "range": 0,
+        "desc": "Generate 3 Fear"
+      },
+      "bottom": {
+        "type": "GenerateFear",
+        "value": 7,
+        "range": 0,
+        "desc": "Generate 7 Fear"
+      },
       "upgrades": [
-        { "id": "root_004_u1", "slot": "top", "field": "value", "from": 3, "to": 4, "cost": 1, "description_key": "UPGRADE_ROOT_004_U1" },
-        { "id": "root_004_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_004_U2" }
+        {
+          "id": "root_004_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 3,
+          "to": 4,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_004_U1"
+        },
+        {
+          "id": "root_004_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_004_U2"
+        }
       ]
     },
     {
@@ -183,13 +336,44 @@
       "name": "The Forest Remembers",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Root", "Shadow"],
-      "top":    { "type": "GenerateFear", "value": 2, "range": 0, "desc": "Generate 2 Fear" },
-      "bottom": { "type": "DamageInvaders", "value": 4, "range": 1, "desc": "Deal 4 damage to all invaders in one territory in range 1, then generate 2 Fear",
-                  "secondary": { "type": "GenerateFear", "value": 2 } },
+      "elements": [
+        "Root",
+        "Shadow"
+      ],
+      "top": {
+        "type": "GenerateFear",
+        "value": 2,
+        "range": 0,
+        "desc": "Generate 2 Fear"
+      },
+      "bottom": {
+        "type": "DamageInvaders",
+        "value": 4,
+        "range": 1,
+        "desc": "Deal 4 damage to all invaders in one territory in range 1, then generate 2 Fear",
+        "secondary": {
+          "type": "GenerateFear",
+          "value": 2
+        }
+      },
       "upgrades": [
-        { "id": "root_005_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_005_U1" },
-        { "id": "root_005_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_005_U2" }
+        {
+          "id": "root_005_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_005_U1"
+        },
+        {
+          "id": "root_005_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Root",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_005_U2"
+        }
       ]
     },
     {
@@ -198,12 +382,40 @@
       "name": "Spreading Growth",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Root", "Root"],
-      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
-      "bottom": { "type": "PlacePresence", "value": 2, "range": 2, "desc": "Place 2 Presence, each in different territories in range 2" },
+      "elements": [
+        "Root",
+        "Root"
+      ],
+      "top": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 1,
+        "desc": "Place 1 Presence in range 1"
+      },
+      "bottom": {
+        "type": "PlacePresence",
+        "value": 2,
+        "range": 2,
+        "desc": "Place 2 Presence, each in different territories in range 2"
+      },
       "upgrades": [
-        { "id": "root_006_u1", "slot": "bottom", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_006_U1" },
-        { "id": "root_006_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_006_U2" }
+        {
+          "id": "root_006_u1",
+          "slot": "bottom",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_006_U1"
+        },
+        {
+          "id": "root_006_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Root",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_006_U2"
+        }
       ]
     },
     {
@@ -212,13 +424,45 @@
       "name": "Healing Earth",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Mist", "Root"],
-      "top":    { "type": "RestoreWeave", "value": 1, "range": 0, "desc": "Restore 1 Weave" },
-      "bottom": { "type": "RestoreWeave", "value": 3, "range": 0, "desc": "Restore 3 Weave and reduce Corruption by 2 points anywhere",
-                  "secondary": { "type": "ReduceCorruption", "value": 2, "range": 0 } },
+      "elements": [
+        "Mist",
+        "Root"
+      ],
+      "top": {
+        "type": "RestoreWeave",
+        "value": 1,
+        "range": 0,
+        "desc": "Restore 1 Weave"
+      },
+      "bottom": {
+        "type": "RestoreWeave",
+        "value": 3,
+        "range": 0,
+        "desc": "Restore 3 Weave and reduce Corruption by 2 points anywhere",
+        "secondary": {
+          "type": "ReduceCorruption",
+          "value": 2,
+          "range": 0
+        }
+      },
       "upgrades": [
-        { "id": "root_007_u1", "slot": "top", "field": "value", "from": 1, "to": 2, "cost": 1, "description_key": "UPGRADE_ROOT_007_U1" },
-        { "id": "root_007_u2", "slot": "elements", "action": "add", "element": "Mist", "cost": 1, "description_key": "UPGRADE_ROOT_007_U2" }
+        {
+          "id": "root_007_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 1,
+          "to": 2,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_007_U1"
+        },
+        {
+          "id": "root_007_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Mist",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_007_U2"
+        }
       ]
     },
     {
@@ -227,12 +471,35 @@
       "name": "Stir the Sleeping",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Root", "Shadow"],
-      "top":    { "type": "AwakeDormant", "value": 1, "range": 0, "desc": "Awaken 1 dormant card in hand" },
-      "bottom": { "type": "AwakeDormant", "value": 0, "range": 0, "desc": "Awaken all dormant cards in hand, then generate 2 Fear per card awakened",
-                  "secondary": { "type": "GenerateFear", "value": 0 } },
+      "elements": [
+        "Root",
+        "Shadow"
+      ],
+      "top": {
+        "type": "AwakeDormant",
+        "value": 1,
+        "range": 0,
+        "desc": "Awaken 1 dormant card in hand"
+      },
+      "bottom": {
+        "type": "AwakeDormant",
+        "value": 0,
+        "range": 0,
+        "desc": "Awaken all dormant cards in hand, then generate 2 Fear per card awakened",
+        "secondary": {
+          "type": "GenerateFear",
+          "value": 0
+        }
+      },
       "upgrades": [
-        { "id": "root_008_u1", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_008_U1" }
+        {
+          "id": "root_008_u1",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_008_U1"
+        }
       ]
     },
     {
@@ -241,13 +508,45 @@
       "name": "Living Wall",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Root", "Void"],
-      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
-      "bottom": { "type": "DamageInvaders", "value": 5, "range": 1, "desc": "Deal 5 damage to all invaders in one territory in range 1, and shield all Natives in that territory (Shield 2)",
-                  "secondary": { "type": "ShieldNatives", "value": 2, "range": 0 } },
+      "elements": [
+        "Root",
+        "Void"
+      ],
+      "top": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 1,
+        "desc": "Place 1 Presence in range 1"
+      },
+      "bottom": {
+        "type": "DamageInvaders",
+        "value": 5,
+        "range": 1,
+        "desc": "Deal 5 damage to all invaders in one territory in range 1, and shield all Natives in that territory (Shield 2)",
+        "secondary": {
+          "type": "ShieldNatives",
+          "value": 2,
+          "range": 0
+        }
+      },
       "upgrades": [
-        { "id": "root_009_u1", "slot": "bottom", "field": "value", "from": 5, "to": 6, "cost": 1, "description_key": "UPGRADE_ROOT_009_U1" },
-        { "id": "root_009_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_009_U2" }
+        {
+          "id": "root_009_u1",
+          "slot": "bottom",
+          "field": "value",
+          "from": 5,
+          "to": 6,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_009_U1"
+        },
+        {
+          "id": "root_009_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Root",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_009_U2"
+        }
       ]
     },
     {
@@ -256,30 +555,95 @@
       "name": "Grasping Roots",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Root", "Root"],
-      "top":    { "type": "DamageInvaders", "value": 2, "range": 1, "desc": "Roots erupt, dealing 2 damage to all invaders in one territory in range 1" },
-      "bottom": { "type": "DamageInvaders", "value": 3, "range": 2, "desc": "Roots entangle everything in range 2. Deal 3 damage to all invaders in one territory in range 2. All invaders in that territory have their Advance halved next Tide.",
-                  "secondary": { "type": "SlowInvaders", "value": 1, "range": 2 } },
+      "elements": [
+        "Root",
+        "Root"
+      ],
+      "top": {
+        "type": "DamageInvaders",
+        "value": 2,
+        "range": 1,
+        "desc": "Roots erupt, dealing 2 damage to all invaders in one territory in range 1"
+      },
+      "bottom": {
+        "type": "DamageInvaders",
+        "value": 3,
+        "range": 2,
+        "desc": "Roots entangle everything in range 2. Deal 3 damage to all invaders in one territory in range 2. All invaders in that territory have their Advance halved next Tide.",
+        "secondary": {
+          "type": "SlowInvaders",
+          "value": 1,
+          "range": 2
+        }
+      },
       "upgrades": [
-        { "id": "root_025_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_025_U1" },
-        { "id": "root_025_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_025_U2" }
+        {
+          "id": "root_025_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_025_U1"
+        },
+        {
+          "id": "root_025_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Root",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_025_U2"
+        }
       ]
     },
-
     {
       "num": "010",
       "id": "root_010",
       "name": "Ancient Pulse",
       "rarity": "dormant",
       "starting": false,
-      "elements": ["Mist", "Shadow"],
-      "top":    { "type": "RestoreWeave", "value": 1, "range": 0, "desc": "Restore 1 Weave and generate 1 Fear",
-                  "secondary": { "type": "GenerateFear", "value": 1 } },
-      "bottom": { "type": "RestoreWeave", "value": 2, "range": 0, "desc": "Restore 2 Weave, generate 3 Fear, and place 1 Presence in range 1",
-                  "secondary": { "type": "GenerateFear", "value": 3 } },
+      "elements": [
+        "Mist",
+        "Shadow"
+      ],
+      "top": {
+        "type": "RestoreWeave",
+        "value": 1,
+        "range": 0,
+        "desc": "Restore 1 Weave and generate 1 Fear",
+        "secondary": {
+          "type": "GenerateFear",
+          "value": 1
+        }
+      },
+      "bottom": {
+        "type": "RestoreWeave",
+        "value": 2,
+        "range": 0,
+        "desc": "Restore 2 Weave, generate 3 Fear, and place 1 Presence in range 1",
+        "secondary": {
+          "type": "GenerateFear",
+          "value": 3
+        }
+      },
       "upgrades": [
-        { "id": "root_010_u1", "slot": "bottom", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_010_U1" },
-        { "id": "root_010_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_010_U2" }
+        {
+          "id": "root_010_u1",
+          "slot": "bottom",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_010_U1"
+        },
+        {
+          "id": "root_010_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_010_U2"
+        }
       ]
     },
     {
@@ -288,13 +652,45 @@
       "name": "Reclaim the Soil",
       "rarity": "dormant",
       "starting": false,
-      "elements": ["Root", "Mist"],
-      "top":    { "type": "PlacePresence", "value": 1, "range": 0, "desc": "Place 1 Presence at any existing Presence token (reinforce a territory)" },
-      "bottom": { "type": "ReduceCorruption", "value": 6, "range": 1, "desc": "Reduce Corruption by 6 points in range 1, then place 1 Presence in range 1",
-                  "secondary": { "type": "PlacePresence", "value": 1, "range": 1 } },
+      "elements": [
+        "Root",
+        "Mist"
+      ],
+      "top": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 0,
+        "desc": "Place 1 Presence at any existing Presence token (reinforce a territory)"
+      },
+      "bottom": {
+        "type": "ReduceCorruption",
+        "value": 6,
+        "range": 1,
+        "desc": "Reduce Corruption by 6 points in range 1, then place 1 Presence in range 1",
+        "secondary": {
+          "type": "PlacePresence",
+          "value": 1,
+          "range": 1
+        }
+      },
       "upgrades": [
-        { "id": "root_011_u1", "slot": "bottom", "field": "value", "from": 6, "to": 8, "cost": 1, "description_key": "UPGRADE_ROOT_011_U1" },
-        { "id": "root_011_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_011_U2" }
+        {
+          "id": "root_011_u1",
+          "slot": "bottom",
+          "field": "value",
+          "from": 6,
+          "to": 8,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_011_U1"
+        },
+        {
+          "id": "root_011_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Root",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_011_U2"
+        }
       ]
     },
     {
@@ -303,12 +699,36 @@
       "name": "Rootbound",
       "rarity": "dormant",
       "starting": false,
-      "elements": ["Root", "Root", "Mist"],
-      "top":    { "type": "PlacePresence", "value": 2, "range": 0, "desc": "Place 2 Presence at existing Presence (reinforce one territory with 2 tokens)" },
-      "bottom": { "type": "GenerateFear", "value": 0, "range": 0, "desc": "Generate Fear equal to 2 x the number of Presence tokens in the highest-presence territory, then restore 1 Weave",
-                  "secondary": { "type": "RestoreWeave", "value": 1 } },
+      "elements": [
+        "Root",
+        "Root",
+        "Mist"
+      ],
+      "top": {
+        "type": "PlacePresence",
+        "value": 2,
+        "range": 0,
+        "desc": "Place 2 Presence at existing Presence (reinforce one territory with 2 tokens)"
+      },
+      "bottom": {
+        "type": "GenerateFear",
+        "value": 0,
+        "range": 0,
+        "desc": "Generate Fear equal to 2 x the number of Presence tokens in the highest-presence territory, then restore 1 Weave",
+        "secondary": {
+          "type": "RestoreWeave",
+          "value": 1
+        }
+      },
       "upgrades": [
-        { "id": "root_012_u1", "slot": "elements", "action": "add", "element": "Mist", "cost": 1, "description_key": "UPGRADE_ROOT_012_U1" }
+        {
+          "id": "root_012_u1",
+          "slot": "elements",
+          "action": "add",
+          "element": "Mist",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_012_U1"
+        }
       ]
     },
     {
@@ -317,12 +737,40 @@
       "name": "Vast Network",
       "rarity": "dormant",
       "starting": false,
-      "elements": ["Root", "Root"],
-      "top":    { "type": "PlacePresence", "value": 1, "range": 2, "desc": "Place 1 Presence in range 2" },
-      "bottom": { "type": "PlacePresence", "value": 1, "range": 3, "desc": "Place 1 Presence in range 3. This turn, Network Fear counts adjacency twice for all Presence territories." },
+      "elements": [
+        "Root",
+        "Root"
+      ],
+      "top": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 2,
+        "desc": "Place 1 Presence in range 2"
+      },
+      "bottom": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 3,
+        "desc": "Place 1 Presence in range 3. This turn, Network Fear counts adjacency twice for all Presence territories."
+      },
       "upgrades": [
-        { "id": "root_013_u1", "slot": "top", "field": "range", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_013_U1" },
-        { "id": "root_013_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_013_U2" }
+        {
+          "id": "root_013_u1",
+          "slot": "top",
+          "field": "range",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_013_U1"
+        },
+        {
+          "id": "root_013_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Root",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_013_U2"
+        }
       ]
     },
     {
@@ -331,13 +779,45 @@
       "name": "Whisper of Roots",
       "rarity": "dormant",
       "starting": false,
-      "elements": ["Root", "Mist"],
-      "top":    { "type": "GenerateFear", "value": 2, "range": 0, "desc": "Generate 2 Fear" },
-      "bottom": { "type": "GenerateFear", "value": 3, "range": 0, "desc": "Generate 3 Fear and reduce Corruption by 1 point in all Presence territories",
-                  "secondary": { "type": "ReduceCorruption", "value": 1, "range": 0 } },
+      "elements": [
+        "Root",
+        "Mist"
+      ],
+      "top": {
+        "type": "GenerateFear",
+        "value": 2,
+        "range": 0,
+        "desc": "Generate 2 Fear"
+      },
+      "bottom": {
+        "type": "GenerateFear",
+        "value": 3,
+        "range": 0,
+        "desc": "Generate 3 Fear and reduce Corruption by 1 point in all Presence territories",
+        "secondary": {
+          "type": "ReduceCorruption",
+          "value": 1,
+          "range": 0
+        }
+      },
       "upgrades": [
-        { "id": "root_014_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_014_U1" },
-        { "id": "root_014_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_014_U2" }
+        {
+          "id": "root_014_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_014_U1"
+        },
+        {
+          "id": "root_014_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_014_U2"
+        }
       ]
     },
     {
@@ -346,12 +826,36 @@
       "name": "Creeping Vines",
       "rarity": "awakened",
       "starting": false,
-      "elements": ["Root", "Gale"],
-      "top":    { "type": "MovePresence", "value": 1, "range": 2, "desc": "Move 1 Presence up to 2 territories" },
-      "bottom": { "type": "SlowInvaders", "value": 1, "range": 2, "desc": "Move 1 Presence up to 2 territories. All invaders in range 2 have their Advance movement halved this Tide.",
-                  "secondary": { "type": "MovePresence", "value": 1, "range": 2 } },
+      "elements": [
+        "Root",
+        "Gale"
+      ],
+      "top": {
+        "type": "MovePresence",
+        "value": 1,
+        "range": 2,
+        "desc": "Move 1 Presence up to 2 territories"
+      },
+      "bottom": {
+        "type": "SlowInvaders",
+        "value": 1,
+        "range": 2,
+        "desc": "Move 1 Presence up to 2 territories. All invaders in range 2 have their Advance movement halved this Tide.",
+        "secondary": {
+          "type": "MovePresence",
+          "value": 1,
+          "range": 2
+        }
+      },
       "upgrades": [
-        { "id": "root_015_u1", "slot": "elements", "action": "add", "element": "Gale", "cost": 1, "description_key": "UPGRADE_ROOT_015_U1" }
+        {
+          "id": "root_015_u1",
+          "slot": "elements",
+          "action": "add",
+          "element": "Gale",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_015_U1"
+        }
       ]
     },
     {
@@ -360,12 +864,40 @@
       "name": "Dread Awakening",
       "rarity": "awakened",
       "starting": false,
-      "elements": ["Shadow", "Shadow"],
-      "top":    { "type": "GenerateFear", "value": 4, "range": 0, "desc": "Generate 4 Fear" },
-      "bottom": { "type": "GenerateFear", "value": 9, "range": 0, "desc": "Generate 9 Fear. The next Fear Action drawn this encounter is from the next Dread Level pool." },
+      "elements": [
+        "Shadow",
+        "Shadow"
+      ],
+      "top": {
+        "type": "GenerateFear",
+        "value": 4,
+        "range": 0,
+        "desc": "Generate 4 Fear"
+      },
+      "bottom": {
+        "type": "GenerateFear",
+        "value": 9,
+        "range": 0,
+        "desc": "Generate 9 Fear. The next Fear Action drawn this encounter is from the next Dread Level pool."
+      },
       "upgrades": [
-        { "id": "root_016_u1", "slot": "top", "field": "value", "from": 4, "to": 5, "cost": 1, "description_key": "UPGRADE_ROOT_016_U1" },
-        { "id": "root_016_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_016_U2" }
+        {
+          "id": "root_016_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 4,
+          "to": 5,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_016_U1"
+        },
+        {
+          "id": "root_016_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_016_U2"
+        }
       ]
     },
     {
@@ -374,13 +906,45 @@
       "name": "Verdant Restoration",
       "rarity": "awakened",
       "starting": false,
-      "elements": ["Root", "Mist", "Mist"],
-      "top":    { "type": "ReduceCorruption", "value": 2, "range": 2, "desc": "Reduce Corruption by 2 points in range 2" },
-      "bottom": { "type": "Purify", "value": 1, "range": 1, "desc": "Remove one full Corruption level from one territory in range 1. Restore 2 Weave.",
-                  "secondary": { "type": "RestoreWeave", "value": 2 } },
+      "elements": [
+        "Root",
+        "Mist",
+        "Mist"
+      ],
+      "top": {
+        "type": "ReduceCorruption",
+        "value": 2,
+        "range": 2,
+        "desc": "Reduce Corruption by 2 points in range 2"
+      },
+      "bottom": {
+        "type": "Purify",
+        "value": 1,
+        "range": 1,
+        "desc": "Remove one full Corruption level from one territory in range 1. Restore 2 Weave.",
+        "secondary": {
+          "type": "RestoreWeave",
+          "value": 2
+        }
+      },
       "upgrades": [
-        { "id": "root_017_u1", "slot": "top", "field": "range", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_017_U1" },
-        { "id": "root_017_u2", "slot": "elements", "action": "add", "element": "Mist", "cost": 1, "description_key": "UPGRADE_ROOT_017_U2" }
+        {
+          "id": "root_017_u1",
+          "slot": "top",
+          "field": "range",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_017_U1"
+        },
+        {
+          "id": "root_017_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Mist",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_017_U2"
+        }
       ]
     },
     {
@@ -389,13 +953,45 @@
       "name": "Ancient Communion",
       "rarity": "awakened",
       "starting": false,
-      "elements": ["Root", "Mist"],
-      "top":    { "type": "ShieldNatives", "value": 2, "range": 1, "desc": "Give all Natives in range 1 Shield 2 until end of next Tide" },
-      "bottom": { "type": "BoostNatives", "value": 2, "range": 2, "desc": "Shield 2 all Natives in range 2. All Natives in range 2 deal +2 damage on their counter-attack this Tide.",
-                  "secondary": { "type": "ShieldNatives", "value": 2, "range": 2 } },
+      "elements": [
+        "Root",
+        "Mist"
+      ],
+      "top": {
+        "type": "ShieldNatives",
+        "value": 2,
+        "range": 1,
+        "desc": "Give all Natives in range 1 Shield 2 until end of next Tide"
+      },
+      "bottom": {
+        "type": "BoostNatives",
+        "value": 2,
+        "range": 2,
+        "desc": "Shield 2 all Natives in range 2. All Natives in range 2 deal +2 damage on their counter-attack this Tide.",
+        "secondary": {
+          "type": "ShieldNatives",
+          "value": 2,
+          "range": 2
+        }
+      },
       "upgrades": [
-        { "id": "root_018_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_018_U1" },
-        { "id": "root_018_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_018_U2" }
+        {
+          "id": "root_018_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_018_U1"
+        },
+        {
+          "id": "root_018_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Root",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_018_U2"
+        }
       ]
     },
     {
@@ -404,13 +1000,44 @@
       "name": "Root Terror",
       "rarity": "awakened",
       "starting": false,
-      "elements": ["Root", "Shadow"],
-      "top":    { "type": "GenerateFear", "value": 3, "range": 0, "desc": "Generate 3 Fear" },
-      "bottom": { "type": "PushInvaders", "value": 2, "range": 2, "desc": "Generate 3 Fear. Push up to 2 invaders in range 2 back toward their spawn point.",
-                  "secondary": { "type": "GenerateFear", "value": 3 } },
+      "elements": [
+        "Root",
+        "Shadow"
+      ],
+      "top": {
+        "type": "GenerateFear",
+        "value": 3,
+        "range": 0,
+        "desc": "Generate 3 Fear"
+      },
+      "bottom": {
+        "type": "PushInvaders",
+        "value": 2,
+        "range": 2,
+        "desc": "Generate 3 Fear. Push up to 2 invaders in range 2 back toward their spawn point.",
+        "secondary": {
+          "type": "GenerateFear",
+          "value": 3
+        }
+      },
       "upgrades": [
-        { "id": "root_019_u1", "slot": "top", "field": "value", "from": 3, "to": 4, "cost": 1, "description_key": "UPGRADE_ROOT_019_U1" },
-        { "id": "root_019_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_019_U2" }
+        {
+          "id": "root_019_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 3,
+          "to": 4,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_019_U1"
+        },
+        {
+          "id": "root_019_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_019_U2"
+        }
       ]
     },
     {
@@ -419,12 +1046,41 @@
       "name": "Boundless Growth",
       "rarity": "awakened",
       "starting": false,
-      "elements": ["Root", "Root", "Root"],
-      "top":    { "type": "PlacePresence", "value": 1, "range": 2, "desc": "Place 1 Presence in range 2" },
-      "bottom": { "type": "PlacePresence", "value": 3, "range": 2, "desc": "Place 3 Presence anywhere in range 2 (can be split across territories)" },
+      "elements": [
+        "Root",
+        "Root",
+        "Root"
+      ],
+      "top": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 2,
+        "desc": "Place 1 Presence in range 2"
+      },
+      "bottom": {
+        "type": "PlacePresence",
+        "value": 3,
+        "range": 2,
+        "desc": "Place 3 Presence anywhere in range 2 (can be split across territories)"
+      },
       "upgrades": [
-        { "id": "root_020_u1", "slot": "bottom", "field": "value", "from": 3, "to": 4, "cost": 1, "description_key": "UPGRADE_ROOT_020_U1" },
-        { "id": "root_020_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_020_U2" }
+        {
+          "id": "root_020_u1",
+          "slot": "bottom",
+          "field": "value",
+          "from": 3,
+          "to": 4,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_020_U1"
+        },
+        {
+          "id": "root_020_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Root",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_020_U2"
+        }
       ]
     },
     {
@@ -433,11 +1089,32 @@
       "name": "Rise, Ancient One",
       "rarity": "awakened",
       "starting": false,
-      "elements": ["Root", "Shadow", "Mist"],
-      "top":    { "type": "AwakeDormant", "value": 1, "range": 0, "desc": "Awaken 1 dormant card" },
-      "bottom": { "type": "Custom", "value": 2, "range": 0, "desc": "Awaken 2 dormant cards. For each card awakened, choose: play its top immediately for free, or return it to hand." },
+      "elements": [
+        "Root",
+        "Shadow",
+        "Mist"
+      ],
+      "top": {
+        "type": "AwakeDormant",
+        "value": 1,
+        "range": 0,
+        "desc": "Awaken 1 dormant card"
+      },
+      "bottom": {
+        "type": "Custom",
+        "value": 2,
+        "range": 0,
+        "desc": "Awaken 2 dormant cards. For each card awakened, choose: play its top immediately for free, or return it to hand."
+      },
       "upgrades": [
-        { "id": "root_021_u1", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_021_U1" }
+        {
+          "id": "root_021_u1",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_021_U1"
+        }
       ]
     },
     {
@@ -446,11 +1123,32 @@
       "name": "Lattice of Life",
       "rarity": "ancient",
       "starting": false,
-      "elements": ["Root", "Root", "Mist"],
-      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1. For each adjacent territory that also has Presence, generate 2 Fear." },
-      "bottom": { "type": "PlacePresence", "value": 2, "range": 2, "desc": "Place 2 Presence in range 2. Double Network Fear passive for the rest of this encounter." },
+      "elements": [
+        "Root",
+        "Root",
+        "Mist"
+      ],
+      "top": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 1,
+        "desc": "Place 1 Presence in range 1. For each adjacent territory that also has Presence, generate 2 Fear."
+      },
+      "bottom": {
+        "type": "PlacePresence",
+        "value": 2,
+        "range": 2,
+        "desc": "Place 2 Presence in range 2. Double Network Fear passive for the rest of this encounter."
+      },
       "upgrades": [
-        { "id": "root_022_u1", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_022_U1" }
+        {
+          "id": "root_022_u1",
+          "slot": "elements",
+          "action": "add",
+          "element": "Root",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_022_U1"
+        }
       ]
     },
     {
@@ -459,12 +1157,41 @@
       "name": "The Deep Remembers",
       "rarity": "ancient",
       "starting": false,
-      "elements": ["Root", "Mist", "Shadow"],
-      "top":    { "type": "ReduceCorruption", "value": 3, "range": 1, "desc": "Reduce Corruption by 3 in range 1. If this drops Tainted to Clean, generate 3 Fear." },
-      "bottom": { "type": "Purify", "value": 0, "range": 2, "desc": "Fully cleanse one territory in range 2 (0 Corruption). Generate Fear equal to Corruption level cleared x 4." },
+      "elements": [
+        "Root",
+        "Mist",
+        "Shadow"
+      ],
+      "top": {
+        "type": "ReduceCorruption",
+        "value": 3,
+        "range": 1,
+        "desc": "Reduce Corruption by 3 in range 1. If this drops Tainted to Clean, generate 3 Fear."
+      },
+      "bottom": {
+        "type": "Purify",
+        "value": 0,
+        "range": 2,
+        "desc": "Fully cleanse one territory in range 2 (0 Corruption). Generate Fear equal to Corruption level cleared x 4."
+      },
       "upgrades": [
-        { "id": "root_023_u1", "slot": "top", "field": "value", "from": 3, "to": 4, "cost": 1, "description_key": "UPGRADE_ROOT_023_U1" },
-        { "id": "root_023_u2", "slot": "elements", "action": "add", "element": "Mist", "cost": 1, "description_key": "UPGRADE_ROOT_023_U2" }
+        {
+          "id": "root_023_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 3,
+          "to": 4,
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_023_U1"
+        },
+        {
+          "id": "root_023_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Mist",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_023_U2"
+        }
       ]
     },
     {
@@ -473,11 +1200,32 @@
       "name": "Living Forest",
       "rarity": "ancient",
       "starting": false,
-      "elements": ["Root", "Root", "Mist"],
-      "top":    { "type": "ShieldNatives", "value": 3, "range": 2, "desc": "Shield 3 all Natives in range 2. Surviving Natives with Shield 3 gain +1 permanent HP this encounter." },
-      "bottom": { "type": "Custom", "value": 0, "range": 0, "desc": "All Natives fully heal. Each Native deals double counter-attack damage for rest of encounter. Generate 1 Fear per living Native." },
+      "elements": [
+        "Root",
+        "Root",
+        "Mist"
+      ],
+      "top": {
+        "type": "ShieldNatives",
+        "value": 3,
+        "range": 2,
+        "desc": "Shield 3 all Natives in range 2. Surviving Natives with Shield 3 gain +1 permanent HP this encounter."
+      },
+      "bottom": {
+        "type": "Custom",
+        "value": 0,
+        "range": 0,
+        "desc": "All Natives fully heal. Each Native deals double counter-attack damage for rest of encounter. Generate 1 Fear per living Native."
+      },
       "upgrades": [
-        { "id": "root_024_u1", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_024_U1" }
+        {
+          "id": "root_024_u1",
+          "slot": "elements",
+          "action": "add",
+          "element": "Root",
+          "cost": 1,
+          "description_key": "UPGRADE_ROOT_024_U1"
+        }
       ]
     }
   ]

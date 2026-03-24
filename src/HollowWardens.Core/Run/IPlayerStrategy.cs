@@ -23,4 +23,12 @@ public interface IPlayerStrategy
 
     /// <summary>Choose a target territory for a targeted effect. Return null for untargeted effects.</summary>
     string? ChooseTarget(EffectData effect, EncounterState state) => null;
+
+    /// <summary>
+    /// D41: Resolve all pending threshold effects after a play phase completes.
+    /// Default: auto-resolve all with no territory selection (bot/sim behavior).
+    /// Interactive implementations override this to leave pending entries for player input.
+    /// </summary>
+    void ResolvePendingThresholds(ThresholdResolver resolver, EncounterState state)
+        => resolver.AutoResolveAll(state);
 }

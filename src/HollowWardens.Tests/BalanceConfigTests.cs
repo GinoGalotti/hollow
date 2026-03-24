@@ -23,7 +23,7 @@ public class BalanceConfigTests
         Assert.Equal(3,           cfg.MaxPresencePerTerritory);
         Assert.Equal(1,           cfg.AmplificationPerPresence);
         Assert.Equal(int.MaxValue, cfg.AmplificationCap);
-        Assert.Equal(4,           cfg.NetworkFearCap);
+        Assert.Equal(3,           cfg.NetworkFearCap);
         Assert.Equal(1,           cfg.SacrificePresenceCost);
         Assert.Equal(3,           cfg.SacrificeCorruptionCleanse);
         Assert.Equal(0,           cfg.InvaderHpBonus);
@@ -59,7 +59,7 @@ public class BalanceConfigTests
         clone.NetworkFearCap          = 99;
 
         Assert.Equal(3, original.MaxPresencePerTerritory);
-        Assert.Equal(4, original.NetworkFearCap);
+        Assert.Equal(3, original.NetworkFearCap);
     }
 
     // ── 3. AmplificationHelper respects AmplificationPerPresence ─────────────

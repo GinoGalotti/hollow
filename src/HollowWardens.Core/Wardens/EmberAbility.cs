@@ -103,7 +103,7 @@ public class EmberAbility : IWardenAbility
     }
 
     // Ember has no passive fear
-    public int CalculatePassiveFear() => 0;
+    public int CalculatePassiveFear(EncounterState state) => 0;
 
     // D31: Ember tolerates Defiled (L2). Only Desecrated (L3, 15+ pts) blocks placement.
     public int PresenceBlockLevel() => 3;

@@ -52,31 +52,31 @@ public class ThresholdPendingTests : IDisposable
     [Fact]
     public void PlayerResolves_Tier1_ExecutesEffect()
     {
+        // Root T1: Reduce Corruption by 3 in highest-corruption territory with presence
         var state    = BuildState();
         var resolver = new ThresholdResolver();
-        int presenceBefore = state.Territories.Sum(t => t.PresenceCount);
+        state.GetTerritory("I1")!.CorruptionPoints = 5; // I1 has presence (from BuildState)
 
         resolver.OnThresholdTriggered(Element.Root, 1, state);
         resolver.Resolve(Element.Root, 1, state);
 
         Assert.Empty(resolver.Pending);
-        Assert.Equal(presenceBefore + 1, state.Territories.Sum(t => t.PresenceCount));
+        Assert.Equal(2, state.GetTerritory("I1")!.CorruptionPoints); // 5 - 3
     }
 
     [Fact]
-    public void PlayerResolves_Tier2_ReducesCorruptionInHighestPresenceTerritory()
+    public void PlayerResolves_Tier2_PlacesPresenceAdjacentToExistingPresence()
     {
-        // Root T2: Reduce Corruption by 3 in the territory with presence and highest corruption
+        // Root T2: Place 1 Presence at range 1
         var state    = BuildState();
         var resolver = new ThresholdResolver();
-
-        state.GetTerritory("I1")!.CorruptionPoints = 7; // I1 has presence=1 (from BuildState)
+        int presenceBefore = state.Territories.Sum(t => t.PresenceCount);
 
         resolver.OnThresholdTriggered(Element.Root, 2, state);
         resolver.Resolve(Element.Root, 2, state);
 
         Assert.Empty(resolver.Pending);
-        Assert.Equal(4, state.GetTerritory("I1")!.CorruptionPoints); // 7 - 3
+        Assert.Equal(presenceBefore + 1, state.Territories.Sum(t => t.PresenceCount));
     }
 
     [Fact]
@@ -116,8 +116,10 @@ public class ThresholdPendingTests : IDisposable
     [Theory]
     [InlineData(Element.Ash,  1)]
     [InlineData(Element.Ash,  2)]
+    [InlineData(Element.Ash,  3)]  // Ash T3 now presence-scaled — requires target
     [InlineData(Element.Gale, 1)]
     [InlineData(Element.Gale, 2)]
+    [InlineData(Element.Root, 1)]
     [InlineData(Element.Root, 2)]
     public void NeedsTarget_ReturnsTrue(Element element, int tier)
     {
@@ -129,7 +131,6 @@ public class ThresholdPendingTests : IDisposable
     [InlineData(Element.Mist,   2)]
     [InlineData(Element.Shadow, 1)]
     [InlineData(Element.Void,   1)]
-    [InlineData(Element.Ash,    3)]
     [InlineData(Element.Gale,   3)]
     public void NeedsTarget_ReturnsFalse(Element element, int tier)
     {
@@ -190,18 +191,32 @@ public class ThresholdPendingTests : IDisposable
     }
 
     [Fact]
-    public void RootT2_WithTarget_ReducesCorruptionInChosenTerritory()
+    public void RootT2_WithTarget_PlacesPresenceInChosenTerritory()
+    {
+        var state    = BuildState();
+        var resolver = new ThresholdResolver();
+
+        resolver.OnThresholdTriggered(Element.Root, 2, state);
+        resolver.Resolve(Element.Root, 2, state, targetTerritoryId: "A1");
+
+        Assert.True(state.GetTerritory("A1")!.HasPresence);
+    }
+
+    [Fact]
+    public void RootT1_WithTarget_ReducesCorruptionInChosenTerritory()
     {
         var state    = BuildState();
         var resolver = new ThresholdResolver();
 
         var a1 = state.GetTerritory("A1")!;
         var i1 = state.GetTerritory("I1")!;
-        a1.CorruptionPoints = 10; // would be auto-selected (highest)
-        i1.CorruptionPoints = 5;  // player chooses this instead
+        // Give both territories presence and corruption so the auto pick would choose A1 (higher)
+        a1.PresenceCount    = 1;
+        a1.CorruptionPoints = 10;
+        i1.CorruptionPoints = 5; // player chooses I1 instead
 
-        resolver.OnThresholdTriggered(Element.Root, 2, state);
-        resolver.Resolve(Element.Root, 2, state, targetTerritoryId: "I1");
+        resolver.OnThresholdTriggered(Element.Root, 1, state);
+        resolver.Resolve(Element.Root, 1, state, targetTerritoryId: "I1");
 
         Assert.Equal(2, i1.CorruptionPoints);  // 5 - 3
         Assert.Equal(10, a1.CorruptionPoints); // untouched

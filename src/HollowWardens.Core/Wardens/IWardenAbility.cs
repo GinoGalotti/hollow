@@ -9,7 +9,7 @@ public interface IWardenAbility
     BottomResult OnBottomPlayed(Card card, EncounterTier tier);
     BottomResult OnRestDissolve(Card card);
     void OnResolution(EncounterState state);  // warden-specific resolution behavior
-    int CalculatePassiveFear();  // e.g., Root's network fear
+    int CalculatePassiveFear(EncounterState state);  // e.g., Root's network fear
 
     // D29: Network Slow — movement penalty for invaders near dense presence
     int GetMovementPenalty(string territoryId, IEnumerable<Territory> allTerritories) => 0;

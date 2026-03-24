@@ -239,6 +239,12 @@ public static class SimProfileApplier
             foreach (var id in overrides.LockPassives)
                 gating.ForceLock(id);
         }
+
+        if (overrides.UpgradePassives != null)
+        {
+            foreach (var upgradeId in overrides.UpgradePassives)
+                gating.UpgradePassive(upgradeId);
+        }
     }
 
     public static void ApplyStartingCorruption(

@@ -200,9 +200,10 @@ public class VerboseLogger
     {
         return _strategy switch
         {
-            BotStrategy bot       => bot.LastDecisionReason,
+            BotStrategy bot        => bot.LastDecisionReason,
             EmberBotStrategy ember => ember.LastDecisionReason,
-            _                     => "(no reason)"
+            RootTallStrategy root  => root.LastDecisionReason,
+            _                      => "(no reason)"
         };
     }
 

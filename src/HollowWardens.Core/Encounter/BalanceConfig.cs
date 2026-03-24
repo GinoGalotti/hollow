@@ -14,7 +14,7 @@ public class BalanceConfig
     public int AmplificationCap { get; set; } = int.MaxValue; // no cap by default
 
     // ── Network Fear ─────────────────────────────────────
-    public int NetworkFearCap { get; set; } = 4;
+    public int NetworkFearCap { get; set; } = 3;
 
     // ── Sacrifice ────────────────────────────────────────
     public int SacrificePresenceCost { get; set; } = 1;
@@ -77,6 +77,7 @@ public class BalanceConfig
     // ── Natives ──────────────────────────────────────────
     public int DefaultNativeHp { get; set; } = 2;
     public int DefaultNativeDamage { get; set; } = 3;
+    public int AssimilationSpawnThreshold { get; set; } = 3; // presence per territory to spawn 1 native at Resolution
 
     // ── Cards ────────────────────────────────────────────
     public int VigilPlayLimit { get; set; } = 2;

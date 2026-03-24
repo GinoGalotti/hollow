@@ -28,6 +28,9 @@ public class EncounterRunner
     private Action<Card>? _onCardDissolved;
     private Action<Card>? _onCardRestDissolved;
 
+    // D41: pending-queue threshold resolver (created per-encounter in WireEvents)
+    private ThresholdResolver? _thresholdResolver;
+
     public EncounterRunner(
         ActionDeck actionDeck,
         CadenceManager cadence,
@@ -109,6 +112,7 @@ public class EncounterRunner
 
             // Vigil card plays
             PlayTops(turnManager, state, strategy);
+            strategy.ResolvePendingThresholds(_thresholdResolver!, state); // D41: drain pending after Vigil
             turnManager.EndVigil();
 
             // ── Tide ────────────────────────────────────────────────────────
@@ -121,6 +125,8 @@ public class EncounterRunner
             // ── Dusk ────────────────────────────────────────────────────────
             turnManager.StartDusk();
             PlayBottoms(turnManager, state, strategy);
+            strategy.ResolvePendingThresholds(_thresholdResolver!, state); // D41: drain pending after Dusk
+            _thresholdResolver!.ClearUnresolved(); // expire anything still pending
             turnManager.EndTurn();
         }
 
@@ -309,12 +315,11 @@ public class EncounterRunner
         };
         GameEvents.NativeDefeated += _onNativeDefeated;
 
-        // ThresholdTriggered → auto-resolve effects + unlock gated passives
-        var resolver = new ThresholdResolver();
+        // ThresholdTriggered → D41: queue for player resolution + unlock gated passives immediately
+        _thresholdResolver = new ThresholdResolver();
         _onThresholdTriggered = (element, tier) =>
         {
-            resolver.AutoResolve(element, tier, state);
-            state.PassiveGating?.OnThresholdTriggered(element, tier);
+            _thresholdResolver.OnThresholdTriggered(element, tier, state);
         };
         GameEvents.ThresholdTriggered += _onThresholdTriggered;
 

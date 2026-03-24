@@ -24,7 +24,7 @@ public class DeckManagerTests
             => tier == EncounterTier.Boss ? BottomResult.PermanentlyRemoved : BottomResult.Dissolved;
         public BottomResult OnRestDissolve(Card card) => BottomResult.Dissolved;
         public void OnResolution(EncounterState state) { }
-        public int CalculatePassiveFear() => 0;
+        public int CalculatePassiveFear(EncounterState state) => 0;
     }
 
     private static DeckManager MakeDeck(int cardCount = 10, int handLimit = 5)

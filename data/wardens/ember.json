@@ -4,16 +4,16 @@
   "name": "The Ember",
   "archetype": "Burst Damage / Glass Cannon",
   "flavor": "A dying fire spirit. Where it burns, corruption spreads — but so does destruction. Ember trades board health for raw power.",
-
   "element_affinity": {
     "primary": "Ash",
     "secondary": "Shadow",
     "tertiary": "Gale"
   },
-
   "hand_limit": 5,
-  "starting_presence": { "territory": "I1", "count": 1 },
-
+  "starting_presence": {
+    "territory": "I1",
+    "count": 1
+  },
   "passives": [
     {
       "id": "ash_trail",
@@ -27,7 +27,11 @@
         "id": "ash_trail_u1",
         "description_key": "UPGRADE_PASSIVE_ASH_TRAIL",
         "effects": [
-          { "type": "set_ability_param", "key": "ash_trail_damage", "value": 2 }
+          {
+            "type": "set_ability_param",
+            "key": "ash_trail_damage",
+            "value": 2
+          }
         ]
       }
     },
@@ -36,14 +40,18 @@
       "name": "Nothing Burns Forever",
       "icon": "card_remove",
       "flavor": "Every flame consumes itself in the end. There is no coming back from the Ember's fire.",
-      "description": "Playing a bottom removes the card permanently (no Dormancy). Ember's bottoms are always one-shot.",
+      "description": "Playing a bottom removes the card permanently (no Dormancy), and its elements count ×3 instead of ×2 toward thresholds.",
       "trigger": "on_bottom_played",
       "mechanic": "flame_out",
       "upgrade": {
         "id": "flame_out_u1",
         "description_key": "UPGRADE_PASSIVE_FLAME_OUT",
         "effects": [
-          { "type": "set_ability_param", "key": "flame_out_weave_refund", "value": 1 }
+          {
+            "type": "set_ability_param",
+            "key": "flame_out_weave_refund",
+            "value": 1
+          }
         ]
       }
     },
@@ -59,7 +67,11 @@
         "id": "scorched_earth_u1",
         "description_key": "UPGRADE_PASSIVE_SCORCHED_EARTH",
         "effects": [
-          { "type": "modify_threshold", "key": "scorched_earth_halve_divisor", "value": 3 }
+          {
+            "type": "modify_threshold",
+            "key": "scorched_earth_halve_divisor",
+            "value": 3
+          }
         ]
       }
     },
@@ -68,16 +80,21 @@
       "name": "Rising Fury",
       "icon": "dice_sword",
       "flavor": "The more the land burns, the stronger the Ember becomes. Corruption is not a weakness — it is power.",
-      "description": "All Ember card damage effects get +1 per territory at corruption Level 1+ (Tainted or worse).",
+      "description": "All Ember card damage effects get +1 per territory at corruption Level 1+. Upgrade: also +2 per territory at Level 2+.",
       "trigger": "passive",
       "mechanic": "ember_fury",
       "upgrade": {
         "id": "ember_fury_u1",
         "description_key": "UPGRADE_PASSIVE_EMBER_FURY",
         "effects": [
-          { "type": "set_ability_param", "key": "ember_fury_bonus", "value": 2 }
+          {
+            "type": "set_ability_param",
+            "key": "ember_fury_bonus",
+            "value": 2
+          }
         ]
-      }
+      },
+      "pool": true
     },
     {
       "id": "heat_wave",
@@ -91,47 +108,63 @@
         "id": "heat_wave_u1",
         "description_key": "UPGRADE_PASSIVE_HEAT_WAVE",
         "effects": [
-          { "type": "set_ability_param", "key": "heat_wave_damage", "value": 3 }
+          {
+            "type": "set_ability_param",
+            "key": "heat_wave_damage",
+            "value": 3
+          }
         ]
-      }
+      },
+      "pool": true
     },
     {
       "id": "controlled_burn",
       "name": "Controlled Burn",
       "icon": "fire",
       "flavor": "The spirit reads the flames like a language. Where fires are tended, fear takes root.",
-      "description": "At Tide start, if 3+ territories are at Corruption Level 1, generate 2 Fear.",
+      "description": "At Tide start, if 3+ territories are at Corruption Level 1+, generate 2 Fear. Upgrade: also generate 5 more Fear if 3+ territories are at Level 2+.",
       "trigger": "on_tide_start",
       "mechanic": "controlled_burn",
-      "params": { "min_territories": 3, "fear_generated": 2 },
+      "params": {
+        "min_territories": 3,
+        "fear_generated": 2
+      },
       "upgrade": {
         "id": "controlled_burn_u1",
         "description_key": "UPGRADE_PASSIVE_CONTROLLED_BURN",
         "effects": [
-          { "type": "modify_threshold", "key": "controlled_burn_min", "value": 2 }
+          {
+            "type": "modify_threshold",
+            "key": "controlled_burn_min",
+            "value": 2
+          }
         ]
-      }
+      },
+      "pool": true
     },
     {
       "id": "phoenix_spark",
       "name": "Phoenix Spark",
       "icon": "fire",
       "flavor": "Even in death, the Ember's fire frightens. A card destroyed is a flame passed on.",
-      "description": "When a card is permanently removed (bottom or rest-dissolve), generate 3 Fear.",
+      "description": "When any card is permanently removed (bottom or rest-dissolve), generate 3 Fear. Upgrade: generates 5 Fear instead.",
       "trigger": "on_card_permanent_removal",
       "mechanic": "phoenix_spark",
       "upgrade": {
         "id": "phoenix_spark_u1",
         "description_key": "UPGRADE_PASSIVE_PHOENIX_SPARK",
         "effects": [
-          { "type": "set_ability_param", "key": "phoenix_spark_fear", "value": 5 }
+          {
+            "type": "set_ability_param",
+            "key": "phoenix_spark_fear",
+            "value": 5
+          }
         ]
-      }
+      },
+      "pool": true
     }
   ],
-
   "resolution_style": "scorched_earth",
-
   "cards": [
     {
       "num": "001",
@@ -139,12 +172,40 @@
       "name": "Flame Burst",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Ash", "Ash"],
-      "top":    { "type": "DamageInvaders", "value": 2, "range": 1, "desc": "Deal 2 damage to all invaders in one territory in range 1" },
-      "bottom": { "type": "DamageInvaders", "value": 6, "range": 1, "desc": "Deal 6 damage to all invaders in one territory in range 1" },
+      "elements": [
+        "Ash",
+        "Ash"
+      ],
+      "top": {
+        "type": "DamageInvaders",
+        "value": 2,
+        "range": 1,
+        "desc": "Deal 2 damage to all invaders in one territory in range 1"
+      },
+      "bottom": {
+        "type": "DamageInvaders",
+        "value": 6,
+        "range": 1,
+        "desc": "Deal 6 damage to all invaders in one territory in range 1"
+      },
       "upgrades": [
-        { "id": "ember_001_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_EMBER_001_U1" },
-        { "id": "ember_001_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_EMBER_001_U2" }
+        {
+          "id": "ember_001_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_001_U1"
+        },
+        {
+          "id": "ember_001_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_001_U2"
+        }
       ]
     },
     {
@@ -153,13 +214,45 @@
       "name": "Kindle",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Ash", "Gale"],
-      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
-      "bottom": { "type": "PlacePresence", "value": 1, "range": 3, "desc": "Place 1 Presence anywhere in range 3, then deal 2 damage to all invaders in that territory",
-                  "secondary": { "type": "DamageInvaders", "value": 2, "range": 0 } },
+      "elements": [
+        "Ash",
+        "Gale"
+      ],
+      "top": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 1,
+        "desc": "Place 1 Presence in range 1"
+      },
+      "bottom": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 3,
+        "desc": "Place 1 Presence anywhere in range 3, then deal 2 damage to all invaders in that territory",
+        "secondary": {
+          "type": "DamageInvaders",
+          "value": 2,
+          "range": 0
+        }
+      },
       "upgrades": [
-        { "id": "ember_002_u1", "slot": "top", "field": "range", "from": 1, "to": 2, "cost": 1, "description_key": "UPGRADE_EMBER_002_U1" },
-        { "id": "ember_002_u2", "slot": "elements", "action": "add", "element": "Gale", "cost": 1, "description_key": "UPGRADE_EMBER_002_U2" }
+        {
+          "id": "ember_002_u1",
+          "slot": "top",
+          "field": "range",
+          "from": 1,
+          "to": 2,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_002_U1"
+        },
+        {
+          "id": "ember_002_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Gale",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_002_U2"
+        }
       ]
     },
     {
@@ -168,13 +261,44 @@
       "name": "Burning Ground",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Ash", "Shadow"],
-      "top":    { "type": "DamageInvaders", "value": 2, "range": 0, "desc": "Deal 2 damage to all invaders in any territory" },
-      "bottom": { "type": "DamageInvaders", "value": 4, "range": 0, "desc": "Deal 4 damage to all invaders in any territory, then generate 3 Fear",
-                  "secondary": { "type": "GenerateFear", "value": 3 } },
+      "elements": [
+        "Ash",
+        "Shadow"
+      ],
+      "top": {
+        "type": "DamageInvaders",
+        "value": 2,
+        "range": 0,
+        "desc": "Deal 2 damage to all invaders in any territory"
+      },
+      "bottom": {
+        "type": "DamageInvaders",
+        "value": 4,
+        "range": 0,
+        "desc": "Deal 4 damage to all invaders in any territory, then generate 3 Fear",
+        "secondary": {
+          "type": "GenerateFear",
+          "value": 3
+        }
+      },
       "upgrades": [
-        { "id": "ember_003_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_EMBER_003_U1" },
-        { "id": "ember_003_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_EMBER_003_U2" }
+        {
+          "id": "ember_003_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_003_U1"
+        },
+        {
+          "id": "ember_003_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_003_U2"
+        }
       ]
     },
     {
@@ -183,12 +307,40 @@
       "name": "Smoke Screen",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Shadow", "Gale"],
-      "top":    { "type": "GenerateFear", "value": 3, "range": 0, "desc": "Generate 3 Fear" },
-      "bottom": { "type": "GenerateFear", "value": 6, "range": 0, "desc": "Generate 6 Fear" },
+      "elements": [
+        "Shadow",
+        "Gale"
+      ],
+      "top": {
+        "type": "GenerateFear",
+        "value": 3,
+        "range": 0,
+        "desc": "Generate 3 Fear"
+      },
+      "bottom": {
+        "type": "GenerateFear",
+        "value": 6,
+        "range": 0,
+        "desc": "Generate 6 Fear"
+      },
       "upgrades": [
-        { "id": "ember_004_u1", "slot": "top", "field": "value", "from": 3, "to": 4, "cost": 1, "description_key": "UPGRADE_EMBER_004_U1" },
-        { "id": "ember_004_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_EMBER_004_U2" }
+        {
+          "id": "ember_004_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 3,
+          "to": 4,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_004_U1"
+        },
+        {
+          "id": "ember_004_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_004_U2"
+        }
       ]
     },
     {
@@ -197,13 +349,45 @@
       "name": "Stoke the Fire",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Ash", "Ash"],
-      "top":    { "type": "ReduceCorruption", "value": 2, "range": 1, "desc": "Reduce Corruption by 2 points in range 1" },
-      "bottom": { "type": "ReduceCorruption", "value": 4, "range": 1, "desc": "Reduce Corruption by 4 points in range 1, then deal 2 damage to all invaders there",
-                  "secondary": { "type": "DamageInvaders", "value": 2, "range": 1 } },
+      "elements": [
+        "Ash",
+        "Ash"
+      ],
+      "top": {
+        "type": "ReduceCorruption",
+        "value": 2,
+        "range": 1,
+        "desc": "Reduce Corruption by 2 points in range 1"
+      },
+      "bottom": {
+        "type": "ReduceCorruption",
+        "value": 4,
+        "range": 1,
+        "desc": "Reduce Corruption by 4 points in range 1, then deal 2 damage to all invaders there",
+        "secondary": {
+          "type": "DamageInvaders",
+          "value": 2,
+          "range": 1
+        }
+      },
       "upgrades": [
-        { "id": "ember_005_u1", "slot": "bottom", "field": "value", "from": 4, "to": 5, "cost": 1, "description_key": "UPGRADE_EMBER_005_U1" },
-        { "id": "ember_005_u2", "slot": "elements", "action": "add", "element": "Ash", "cost": 1, "description_key": "UPGRADE_EMBER_005_U2" }
+        {
+          "id": "ember_005_u1",
+          "slot": "bottom",
+          "field": "value",
+          "from": 4,
+          "to": 5,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_005_U1"
+        },
+        {
+          "id": "ember_005_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Ash",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_005_U2"
+        }
       ]
     },
     {
@@ -212,12 +396,40 @@
       "name": "Ember Spread",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Ash", "Shadow"],
-      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
-      "bottom": { "type": "PlacePresence", "value": 2, "range": 2, "desc": "Place 2 Presence in range 2 (can split across territories)" },
+      "elements": [
+        "Ash",
+        "Shadow"
+      ],
+      "top": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 1,
+        "desc": "Place 1 Presence in range 1"
+      },
+      "bottom": {
+        "type": "PlacePresence",
+        "value": 2,
+        "range": 2,
+        "desc": "Place 2 Presence in range 2 (can split across territories)"
+      },
       "upgrades": [
-        { "id": "ember_006_u1", "slot": "bottom", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_EMBER_006_U1" },
-        { "id": "ember_006_u2", "slot": "elements", "action": "add", "element": "Ash", "cost": 1, "description_key": "UPGRADE_EMBER_006_U2" }
+        {
+          "id": "ember_006_u1",
+          "slot": "bottom",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_006_U1"
+        },
+        {
+          "id": "ember_006_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Ash",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_006_U2"
+        }
       ]
     },
     {
@@ -226,13 +438,44 @@
       "name": "Heat Shimmer",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Ash", "Gale"],
-      "top":    { "type": "RestoreWeave", "value": 1, "range": 0, "desc": "Restore 1 Weave" },
-      "bottom": { "type": "RestoreWeave", "value": 2, "range": 0, "desc": "Restore 2 Weave, then generate 2 Fear",
-                  "secondary": { "type": "GenerateFear", "value": 2 } },
+      "elements": [
+        "Ash",
+        "Gale"
+      ],
+      "top": {
+        "type": "RestoreWeave",
+        "value": 1,
+        "range": 0,
+        "desc": "Restore 1 Weave"
+      },
+      "bottom": {
+        "type": "RestoreWeave",
+        "value": 2,
+        "range": 0,
+        "desc": "Restore 2 Weave, then generate 2 Fear",
+        "secondary": {
+          "type": "GenerateFear",
+          "value": 2
+        }
+      },
       "upgrades": [
-        { "id": "ember_007_u1", "slot": "bottom", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_EMBER_007_U1" },
-        { "id": "ember_007_u2", "slot": "elements", "action": "add", "element": "Gale", "cost": 1, "description_key": "UPGRADE_EMBER_007_U2" }
+        {
+          "id": "ember_007_u1",
+          "slot": "bottom",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_007_U1"
+        },
+        {
+          "id": "ember_007_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Gale",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_007_U2"
+        }
       ]
     },
     {
@@ -241,28 +484,88 @@
       "name": "Conflagration",
       "rarity": "dormant",
       "starting": true,
-      "elements": ["Ash", "Ash", "Shadow"],
-      "top":    { "type": "DamageInvaders", "value": 2, "range": 1, "desc": "Deal 2 damage to all invaders in one territory in range 1" },
-      "bottom": { "type": "DamageInvaders", "value": 5, "range": 2, "desc": "Deal 5 damage to all invaders in one territory in range 2. Slow all invaders in that territory.",
-                  "secondary": { "type": "SlowInvaders", "value": 1, "range": 2 } },
+      "elements": [
+        "Ash",
+        "Ash",
+        "Shadow"
+      ],
+      "top": {
+        "type": "DamageInvaders",
+        "value": 2,
+        "range": 1,
+        "desc": "Deal 2 damage to all invaders in one territory in range 1"
+      },
+      "bottom": {
+        "type": "DamageInvaders",
+        "value": 5,
+        "range": 2,
+        "desc": "Deal 5 damage to all invaders in one territory in range 2. Slow all invaders in that territory.",
+        "secondary": {
+          "type": "SlowInvaders",
+          "value": 1,
+          "range": 2
+        }
+      },
       "upgrades": [
-        { "id": "ember_008_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_EMBER_008_U1" },
-        { "id": "ember_008_u2", "slot": "elements", "action": "add", "element": "Ash", "cost": 1, "description_key": "UPGRADE_EMBER_008_U2" }
+        {
+          "id": "ember_008_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_008_U1"
+        },
+        {
+          "id": "ember_008_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Ash",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_008_U2"
+        }
       ]
     },
-
     {
       "num": "009",
       "id": "ember_009",
       "name": "Ash Veil",
       "rarity": "dormant",
       "starting": false,
-      "elements": ["Ash", "Shadow"],
-      "top":    { "type": "GenerateFear", "value": 2, "range": 0, "desc": "Generate 2 Fear" },
-      "bottom": { "type": "GenerateFear", "value": 5, "range": 0, "desc": "Generate 5 Fear" },
+      "elements": [
+        "Ash",
+        "Shadow"
+      ],
+      "top": {
+        "type": "GenerateFear",
+        "value": 2,
+        "range": 0,
+        "desc": "Generate 2 Fear"
+      },
+      "bottom": {
+        "type": "GenerateFear",
+        "value": 5,
+        "range": 0,
+        "desc": "Generate 5 Fear"
+      },
       "upgrades": [
-        { "id": "ember_009_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_EMBER_009_U1" },
-        { "id": "ember_009_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_EMBER_009_U2" }
+        {
+          "id": "ember_009_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_009_U1"
+        },
+        {
+          "id": "ember_009_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_009_U2"
+        }
       ]
     },
     {
@@ -271,13 +574,45 @@
       "name": "Cinder Presence",
       "rarity": "dormant",
       "starting": false,
-      "elements": ["Ash", "Gale"],
-      "top":    { "type": "PlacePresence", "value": 1, "range": 2, "desc": "Place 1 Presence in range 2" },
-      "bottom": { "type": "PlacePresence", "value": 1, "range": 2, "desc": "Place 1 Presence in range 2, then deal 3 damage to all invaders in that territory",
-                  "secondary": { "type": "DamageInvaders", "value": 3, "range": 1 } },
+      "elements": [
+        "Ash",
+        "Gale"
+      ],
+      "top": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 2,
+        "desc": "Place 1 Presence in range 2"
+      },
+      "bottom": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 2,
+        "desc": "Place 1 Presence in range 2, then deal 3 damage to all invaders in that territory",
+        "secondary": {
+          "type": "DamageInvaders",
+          "value": 3,
+          "range": 1
+        }
+      },
       "upgrades": [
-        { "id": "ember_010_u1", "slot": "bottom", "field": "range", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_EMBER_010_U1" },
-        { "id": "ember_010_u2", "slot": "elements", "action": "add", "element": "Ash", "cost": 1, "description_key": "UPGRADE_EMBER_010_U2" }
+        {
+          "id": "ember_010_u1",
+          "slot": "bottom",
+          "field": "range",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_010_U1"
+        },
+        {
+          "id": "ember_010_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Ash",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_010_U2"
+        }
       ]
     },
     {
@@ -286,12 +621,40 @@
       "name": "Fan the Flames",
       "rarity": "dormant",
       "starting": false,
-      "elements": ["Ash", "Ash"],
-      "top":    { "type": "DamageInvaders", "value": 3, "range": 1, "desc": "Deal 3 damage to all invaders in one territory in range 1" },
-      "bottom": { "type": "DamageInvaders", "value": 6, "range": 1, "desc": "Deal 6 damage to all invaders in one territory in range 1" },
+      "elements": [
+        "Ash",
+        "Ash"
+      ],
+      "top": {
+        "type": "DamageInvaders",
+        "value": 3,
+        "range": 1,
+        "desc": "Deal 3 damage to all invaders in one territory in range 1"
+      },
+      "bottom": {
+        "type": "DamageInvaders",
+        "value": 6,
+        "range": 1,
+        "desc": "Deal 6 damage to all invaders in one territory in range 1"
+      },
       "upgrades": [
-        { "id": "ember_011_u1", "slot": "top", "field": "value", "from": 3, "to": 4, "cost": 1, "description_key": "UPGRADE_EMBER_011_U1" },
-        { "id": "ember_011_u2", "slot": "elements", "action": "add", "element": "Ash", "cost": 1, "description_key": "UPGRADE_EMBER_011_U2" }
+        {
+          "id": "ember_011_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 3,
+          "to": 4,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_011_U1"
+        },
+        {
+          "id": "ember_011_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Ash",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_011_U2"
+        }
       ]
     },
     {
@@ -300,12 +663,40 @@
       "name": "Purifying Fire",
       "rarity": "dormant",
       "starting": false,
-      "elements": ["Ash", "Gale"],
-      "top":    { "type": "ReduceCorruption", "value": 3, "range": 1, "desc": "Reduce Corruption by 3 points in range 1" },
-      "bottom": { "type": "Purify", "value": 1, "range": 1, "desc": "Remove one full Corruption level from one territory in range 1" },
+      "elements": [
+        "Ash",
+        "Gale"
+      ],
+      "top": {
+        "type": "ReduceCorruption",
+        "value": 3,
+        "range": 1,
+        "desc": "Reduce Corruption by 3 points in range 1"
+      },
+      "bottom": {
+        "type": "Purify",
+        "value": 1,
+        "range": 1,
+        "desc": "Remove one full Corruption level from one territory in range 1"
+      },
       "upgrades": [
-        { "id": "ember_012_u1", "slot": "top", "field": "value", "from": 3, "to": 4, "cost": 1, "description_key": "UPGRADE_EMBER_012_U1" },
-        { "id": "ember_012_u2", "slot": "elements", "action": "add", "element": "Gale", "cost": 1, "description_key": "UPGRADE_EMBER_012_U2" }
+        {
+          "id": "ember_012_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 3,
+          "to": 4,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_012_U1"
+        },
+        {
+          "id": "ember_012_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Gale",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_012_U2"
+        }
       ]
     },
     {
@@ -314,13 +705,45 @@
       "name": "Smoldering Ruins",
       "rarity": "dormant",
       "starting": false,
-      "elements": ["Ash", "Shadow"],
-      "top":    { "type": "RestoreWeave", "value": 2, "range": 0, "desc": "Restore 2 Weave" },
-      "bottom": { "type": "RestoreWeave", "value": 3, "range": 0, "desc": "Restore 3 Weave, then reduce Corruption by 3 points anywhere",
-                  "secondary": { "type": "ReduceCorruption", "value": 3, "range": 0 } },
+      "elements": [
+        "Ash",
+        "Shadow"
+      ],
+      "top": {
+        "type": "RestoreWeave",
+        "value": 2,
+        "range": 0,
+        "desc": "Restore 2 Weave"
+      },
+      "bottom": {
+        "type": "RestoreWeave",
+        "value": 3,
+        "range": 0,
+        "desc": "Restore 3 Weave, then reduce Corruption by 3 points anywhere",
+        "secondary": {
+          "type": "ReduceCorruption",
+          "value": 3,
+          "range": 0
+        }
+      },
       "upgrades": [
-        { "id": "ember_013_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_EMBER_013_U1" },
-        { "id": "ember_013_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_EMBER_013_U2" }
+        {
+          "id": "ember_013_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_013_U1"
+        },
+        {
+          "id": "ember_013_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_013_U2"
+        }
       ]
     },
     {
@@ -329,13 +752,46 @@
       "name": "Fire Storm",
       "rarity": "awakened",
       "starting": false,
-      "elements": ["Ash", "Ash", "Gale"],
-      "top":    { "type": "DamageInvaders", "value": 4, "range": 2, "desc": "Deal 4 damage to all invaders in one territory in range 2" },
-      "bottom": { "type": "DamageInvaders", "value": 7, "range": 2, "desc": "Deal 7 damage to all invaders in one territory in range 2, then deal 3 damage to all invaders in an adjacent territory",
-                  "secondary": { "type": "DamageInvaders", "value": 3, "range": 1 } },
+      "elements": [
+        "Ash",
+        "Ash",
+        "Gale"
+      ],
+      "top": {
+        "type": "DamageInvaders",
+        "value": 4,
+        "range": 2,
+        "desc": "Deal 4 damage to all invaders in one territory in range 2"
+      },
+      "bottom": {
+        "type": "DamageInvaders",
+        "value": 7,
+        "range": 2,
+        "desc": "Deal 7 damage to all invaders in one territory in range 2, then deal 3 damage to all invaders in an adjacent territory",
+        "secondary": {
+          "type": "DamageInvaders",
+          "value": 3,
+          "range": 1
+        }
+      },
       "upgrades": [
-        { "id": "ember_014_u1", "slot": "top", "field": "value", "from": 4, "to": 5, "cost": 1, "description_key": "UPGRADE_EMBER_014_U1" },
-        { "id": "ember_014_u2", "slot": "elements", "action": "add", "element": "Ash", "cost": 1, "description_key": "UPGRADE_EMBER_014_U2" }
+        {
+          "id": "ember_014_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 4,
+          "to": 5,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_014_U1"
+        },
+        {
+          "id": "ember_014_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Ash",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_014_U2"
+        }
       ]
     },
     {
@@ -344,13 +800,45 @@
       "name": "Blazing Advance",
       "rarity": "awakened",
       "starting": false,
-      "elements": ["Ash", "Shadow"],
-      "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
-      "bottom": { "type": "PlacePresence", "value": 1, "range": 2, "desc": "Place 1 Presence in range 2, then deal 5 damage to all invaders in that territory",
-                  "secondary": { "type": "DamageInvaders", "value": 5, "range": 1 } },
+      "elements": [
+        "Ash",
+        "Shadow"
+      ],
+      "top": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 1,
+        "desc": "Place 1 Presence in range 1"
+      },
+      "bottom": {
+        "type": "PlacePresence",
+        "value": 1,
+        "range": 2,
+        "desc": "Place 1 Presence in range 2, then deal 5 damage to all invaders in that territory",
+        "secondary": {
+          "type": "DamageInvaders",
+          "value": 5,
+          "range": 1
+        }
+      },
       "upgrades": [
-        { "id": "ember_015_u1", "slot": "bottom", "field": "range", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_EMBER_015_U1" },
-        { "id": "ember_015_u2", "slot": "elements", "action": "add", "element": "Ash", "cost": 1, "description_key": "UPGRADE_EMBER_015_U2" }
+        {
+          "id": "ember_015_u1",
+          "slot": "bottom",
+          "field": "range",
+          "from": 2,
+          "to": 3,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_015_U1"
+        },
+        {
+          "id": "ember_015_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Ash",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_015_U2"
+        }
       ]
     },
     {
@@ -359,13 +847,45 @@
       "name": "Flashpoint",
       "rarity": "awakened",
       "starting": false,
-      "elements": ["Ash", "Ash", "Shadow"],
-      "top":    { "type": "GenerateFear", "value": 4, "range": 0, "desc": "Generate 4 Fear" },
-      "bottom": { "type": "DamageInvaders", "value": 7, "range": 1, "desc": "Deal 7 damage to all invaders in range 1, then generate 3 Fear",
-                  "secondary": { "type": "GenerateFear", "value": 3 } },
+      "elements": [
+        "Ash",
+        "Ash",
+        "Shadow"
+      ],
+      "top": {
+        "type": "GenerateFear",
+        "value": 4,
+        "range": 0,
+        "desc": "Generate 4 Fear"
+      },
+      "bottom": {
+        "type": "DamageInvaders",
+        "value": 7,
+        "range": 1,
+        "desc": "Deal 7 damage to all invaders in range 1, then generate 3 Fear",
+        "secondary": {
+          "type": "GenerateFear",
+          "value": 3
+        }
+      },
       "upgrades": [
-        { "id": "ember_016_u1", "slot": "top", "field": "value", "from": 4, "to": 5, "cost": 1, "description_key": "UPGRADE_EMBER_016_U1" },
-        { "id": "ember_016_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_EMBER_016_U2" }
+        {
+          "id": "ember_016_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 4,
+          "to": 5,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_016_U1"
+        },
+        {
+          "id": "ember_016_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_016_U2"
+        }
       ]
     },
     {
@@ -374,12 +894,41 @@
       "name": "Wildfire",
       "rarity": "ancient",
       "starting": false,
-      "elements": ["Ash", "Ash", "Ash"],
-      "top":    { "type": "DamageInvaders", "value": 4, "range": 1, "desc": "Deal 4 damage to all invaders in range 1. Generate 1 Fear per invader killed." },
-      "bottom": { "type": "Custom", "value": 0, "range": 0, "desc": "Deal 4 damage to all invaders in EVERY territory with Ember presence. Triple Ash: generate 6 Fear." },
+      "elements": [
+        "Ash",
+        "Ash",
+        "Ash"
+      ],
+      "top": {
+        "type": "DamageInvaders",
+        "value": 4,
+        "range": 1,
+        "desc": "Deal 4 damage to all invaders in range 1. Generate 1 Fear per invader killed."
+      },
+      "bottom": {
+        "type": "Custom",
+        "value": 0,
+        "range": 0,
+        "desc": "Deal 4 damage to all invaders in EVERY territory with Ember presence. Triple Ash: generate 6 Fear."
+      },
       "upgrades": [
-        { "id": "ember_017_u1", "slot": "top", "field": "value", "from": 4, "to": 5, "cost": 1, "description_key": "UPGRADE_EMBER_017_U1" },
-        { "id": "ember_017_u2", "slot": "elements", "action": "add", "element": "Ash", "cost": 1, "description_key": "UPGRADE_EMBER_017_U2" }
+        {
+          "id": "ember_017_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 4,
+          "to": 5,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_017_U1"
+        },
+        {
+          "id": "ember_017_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Ash",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_017_U2"
+        }
       ]
     },
     {
@@ -388,13 +937,45 @@
       "name": "Last Conflagration",
       "rarity": "ancient",
       "starting": false,
-      "elements": ["Ash", "Gale", "Shadow"],
-      "top":    { "type": "GenerateFear", "value": 6, "range": 0, "desc": "Generate 6 Fear" },
-      "bottom": { "type": "DamageInvaders", "value": 10, "range": 0, "desc": "Deal 10 damage to all invaders in any territory, then generate 5 Fear",
-                  "secondary": { "type": "GenerateFear", "value": 5 } },
+      "elements": [
+        "Ash",
+        "Gale",
+        "Shadow"
+      ],
+      "top": {
+        "type": "GenerateFear",
+        "value": 6,
+        "range": 0,
+        "desc": "Generate 6 Fear"
+      },
+      "bottom": {
+        "type": "DamageInvaders",
+        "value": 10,
+        "range": 0,
+        "desc": "Deal 10 damage to all invaders in any territory, then generate 5 Fear",
+        "secondary": {
+          "type": "GenerateFear",
+          "value": 5
+        }
+      },
       "upgrades": [
-        { "id": "ember_018_u1", "slot": "top", "field": "value", "from": 6, "to": 7, "cost": 1, "description_key": "UPGRADE_EMBER_018_U1" },
-        { "id": "ember_018_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_EMBER_018_U2" }
+        {
+          "id": "ember_018_u1",
+          "slot": "top",
+          "field": "value",
+          "from": 6,
+          "to": 7,
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_018_U1"
+        },
+        {
+          "id": "ember_018_u2",
+          "slot": "elements",
+          "action": "add",
+          "element": "Shadow",
+          "cost": 1,
+          "description_key": "UPGRADE_EMBER_018_U2"
+        }
       ]
     }
   ]

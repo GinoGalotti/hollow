@@ -31,8 +31,8 @@ public class ThresholdTargetingTests
     }
 
     [Fact]
-    public void NeedsTarget_AshT3_ReturnsFalse()
-        => Assert.False(ThresholdResolver.NeedsTarget(Element.Ash, 3));
+    public void NeedsTarget_AshT3_ReturnsTrue()
+        => Assert.True(ThresholdResolver.NeedsTarget(Element.Ash, 3));
 
     [Fact]
     public void NeedsTarget_GaleT1T2_ReturnTrue()
@@ -54,22 +54,23 @@ public class ThresholdTargetingTests
     }
 
     [Fact]
-    public void GetTargetEffect_RootT1_ReturnsPlacePresenceRange1()
+    public void GetTargetEffect_RootT1_ReturnsReduceCorruption()
     {
         var effect = ThresholdResolver.GetTargetEffect(Element.Root, 1);
 
         Assert.NotNull(effect);
-        Assert.Equal(EffectType.PlacePresence, effect!.Type);
-        Assert.Equal(1, effect.Range);
+        Assert.Equal(EffectType.ReduceCorruption, effect!.Type);
+        Assert.Equal(3, effect.Value);
     }
 
     [Fact]
-    public void GetTargetEffect_RootT2_ReturnsReduceCorruption()
+    public void GetTargetEffect_RootT2_ReturnsPlacePresenceRange1()
     {
         var effect = ThresholdResolver.GetTargetEffect(Element.Root, 2);
 
         Assert.NotNull(effect);
-        Assert.Equal(EffectType.ReduceCorruption, effect!.Type);
+        Assert.Equal(EffectType.PlacePresence, effect!.Type);
+        Assert.Equal(1, effect.Range);
     }
 
     [Fact]
@@ -98,9 +99,16 @@ public class ThresholdTargetingTests
     }
 
     [Fact]
-    public void GetTargetEffect_T3Effects_ReturnNull()
+    public void GetTargetEffect_AshT3_ReturnsDamageInvaders()
     {
-        Assert.Null(ThresholdResolver.GetTargetEffect(Element.Ash,  3));
+        var effect = ThresholdResolver.GetTargetEffect(Element.Ash, 3);
+        Assert.NotNull(effect);
+        Assert.Equal(EffectType.DamageInvaders, effect!.Type);
+    }
+
+    [Fact]
+    public void GetTargetEffect_GaleT3AndRootT3_ReturnNull()
+    {
         Assert.Null(ThresholdResolver.GetTargetEffect(Element.Gale, 3));
         Assert.Null(ThresholdResolver.GetTargetEffect(Element.Root, 3));
     }

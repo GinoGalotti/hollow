@@ -25,7 +25,7 @@ public class SeededDeterminismTests
         public BottomResult OnBottomPlayed(Card card, EncounterTier tier) => BottomResult.Dissolved;
         public BottomResult OnRestDissolve(Card card) => BottomResult.Dissolved;
         public void OnResolution(EncounterState state) { }
-        public int CalculatePassiveFear() => 0;
+        public int CalculatePassiveFear(EncounterState state) => 0;
     }
 
     // ── Tests ─────────────────────────────────────────────────────────────────

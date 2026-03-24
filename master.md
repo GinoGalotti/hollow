@@ -548,14 +548,16 @@ Thresholds are **universal** — every element does the same thing regardless of
 
 **Rest turns:** At the start of a Rest turn's Vigil, thresholds check against the element carryover pool (reduced by 1 from last turn's end). No cards are played, so no new elements enter — but if the carryover is still above a threshold, that threshold fires. This rewards building a strong element engine before Resting: a player at Root×5 who Rests still has Root×4 after decay, triggering Root Tier 1 (free Presence placement) even on their "empty" turn.
 
+*(D41: Thresholds enter a pending queue — player clicks to resolve. **[T]** = player selects a target territory; others auto-resolve to best greedy pick.)*
+
 | Element | Tier 1 (4) | Tier 2 (7) | Tier 3 (11) |
 |---|---|---|---|
-| **Root** 🌿 | Place 1 Presence at range 1 | Reduce Corruption by 3 in one territory with Presence | Place 2 Presence anywhere + reduce Corruption by 2 in each |
-| **Mist** 🌫 | Restore 1 Weave | Return 1 card from discard to hand | Restore 3 Weave + return all discarded cards to hand (full Rest effect without losing your turn) |
-| **Shadow** 🌑 | Generate 2 Fear | Next Fear Action draws from one Dread Level higher | Generate 5 Fear + preview and choose between 2 Fear Actions for the next queue |
-| **Ash** 🔥 | Deal 1 damage to all invaders in one territory | Deal 2 damage to all invaders in one territory; that territory gains 1 Corruption point | Deal 3 damage to ALL invaders on the board; each affected territory gains 1 Corruption |
-| **Gale** 💨 | Push 1 invader one territory toward spawn | Push all invaders in one territory toward spawn | Push all invaders on the board one territory toward spawn + they skip their next Advance |
-| **Void** ⚫ | Deal 1 damage to lowest-HP invader on board | All invaders take 1 damage | All invaders take 2 damage; invaders killed by this don't generate Corruption on death |
+| **Root** 🌿 | **[T]** Reduce Corruption ×3 in one Presence territory | **[T]** Place 1 Presence at range 1 from existing Presence | Place 2 Presence anywhere + Reduce Corruption ×3 in each placed territory |
+| **Mist** 🌫 | Restore 2 Weave | Return 2 random cards from discard to draw pile | Restore 3 Weave + return 3 cards from discard to draw pile |
+| **Shadow** 🌑 | Generate 2 Fear | Next Fear Action draws from one Dread Level higher | Generate 5 Fear |
+| **Ash** 🔥 | **[T]** Deal 1 damage to all invaders in one territory | **[T]** Deal 2 damage to all invaders in one territory + 1 Corruption | **[T]** Deal 2 damage per Presence token in target territory |
+| **Gale** 💨 | **[T]** Push 1 invader in one territory to any adjacent territory | **[T]** Push all invaders in one territory to any adjacent territory | Push all invaders on board one territory toward spawn + skip next Advance |
+| **Void** ⚫ | Deal 3 damage to lowest-HP invader; kills generate Fear | All invaders + Natives take 1 damage; kills generate Fear | All invaders take 1 damage; kills generate Fear |
 
 **Design notes:**
 - Tier 1 (4): The "passive" — a warden with primary affinity hits this by turn 3 through consistent top play. For off-affinity wardens, requires dedicated draft picks or a bottom play.
@@ -768,7 +770,20 @@ When Root plays the bottom of a card, the card enters a **Dormant** state rather
 | **Grasping Roots** | Repeatable damage top: 2 + amplification (replaced Reclaim the Soil) |
 | **Rest Growth** | Place 1 free presence on rest (on any territory with existing presence) |
 
-**Resolution style:** Assimilation — at end of encounter, for each Presence territory, all invaders in all adjacent territories are removed. Each removed invader reduces Corruption in that territory by 1 point.
+**Passives (D42):** 3 base passives always active; player picks 2 from a pool of 3 per run. Pool passives unlock mid-encounter when the matching element threshold fires for the first time.
+
+| Id | Name | Type | Trigger | Effect | Upgrade |
+|----|------|------|---------|--------|---------|
+| network_fear | The Web Remembers | **Base** | Turn start | Generate 1 Fear per invader in a territory whose 3+ neighbors have Presence (max 3 Fear) | U1: cap increases to 6 Fear/turn |
+| dormancy | Nothing Truly Dies | **Base** | On bottom | Bottom goes Dormant (inert in deck) instead of permanently removed | U1: auto-restore 1 dormant card per encounter |
+| assimilation | The Land Reclaims | **Base** | Resolution | For each territory with 2+ stacked Presence AND 2+ Natives: convert floor(min(presence,natives)/2) invaders → Natives (weakest first; new native HP = max(1, invader.MaxHp/2)) | U1: extends range to 1 |
+| rest_growth | Deep Breath | **Pool** | On Rest | Place 1 free Presence on any territory with existing Presence | U1: place 2 instead of 1 · *Unlocks: Root T1* |
+| presence_provocation | Protector's Call | **Pool** | On activate | Natives in Presence territories counter-attack on every invader action (not just Ravage) | U1: provocation extends to range 1 from Presence · *Unlocks: Root T2* |
+| network_slow | Tangled Earth | **Pool** | On advance | Invaders in a territory whose 3+ neighbors have Presence have −1 Advance movement | U1: penalty increases to −2 · *Unlocks: Shadow T1* |
+
+**Resolution style:** Assimilation — at Resolution, Root converts invaders into Natives in territories where Presence and Natives are both stacked (see table above).
+
+> ⚠️ **B6 redesign open (2026-03-24):** The D42 same-territory Assimilation mechanic has caused balance collapse (0% Clean across all encounters). Root has no tools to build a native army, so the ≥2 natives condition almost never triggers. Proposed fix: split the mechanic — base Assimilation grows natives (1 new Native per tide in territories with 2+ Presence), upgraded Assimilation converts invaders. See CLAUDE-decisions.md §D43 and CLAUDE-balance.md §B6.
 
 ### 8.2 The Ember (V1 — Second Warden)
 **Archetype:** Burst Damage / Glass Cannon
@@ -793,17 +808,17 @@ When Root plays the bottom of a card, the card enters a **Dormant** state rather
 
 **Draft pool:** 10 cards across Dormant, Awakened, and Ancient rarities including Ash Veil, Cinder Presence, Fan the Flames, Purifying Fire, Smoldering Ruins, Fire Storm, Blazing Advance, Flashpoint, Wildfire, and Last Conflagration.
 
-**Passives:**
+**Passives (D42):** 3 base passives always active; player picks 2 from a pool of 4 per run. Pool passives unlock mid-encounter when the matching element threshold fires for the first time.
 
-| Id | Name | Trigger | Effect | Status |
-|----|------|---------|--------|--------|
-| ash_trail | Scorching Path | Tide start | Each presence territory +1 Corruption; all invaders there take 1 damage | **Base** |
-| flame_out | Nothing Burns Forever | On bottom | Bottom removal is always permanent — no Dormancy | **Base** |
-| scorched_earth | Scorched Earth | On Resolution | Damage = total Corruption across presence territories (distributed lowest HP first); smart cleanse: L1→full, L2→halved, L3→unchanged | **Base** |
-| ember_fury | Rising Fury | Passive | All card damage effects get +1 per Tainted (L1+) territory on the board | Unlocks at Ash T1 |
-| heat_wave | Heat Wave | On Rest | Deal 2 damage to all invaders in ALL presence territories | Unlocks at Ash T2 |
-| controlled_burn | Controlled Burn | Tide start | If 3+ territories at Corruption L1: generate 2 Fear | Unlocks at Shadow T1 |
-| phoenix_spark | Phoenix Spark | Card removed | When any card is permanently removed, generate 3 Fear | Unlocks at Gale T1 |
+| Id | Name | Type | Trigger | Effect | Upgrade |
+|----|------|------|---------|--------|---------|
+| ash_trail | Scorching Path | **Base** | Tide start | Each Presence territory +1 Corruption; all invaders there take 1 damage | U1: damage increases to 2 |
+| flame_out | Nothing Burns Forever | **Base** | On bottom | Bottom removal always permanent — no Dormancy | U1: refund 1 Weave per bottom permanently removed |
+| scorched_earth | Scorched Earth | **Base** | Resolution | Damage = total Corruption across Presence territories; then halve that Corruption (÷2, round down) | U1: divisor becomes ÷3 (retain more Corruption between encounters) |
+| ember_fury | Rising Fury | **Pool** | Passive | All Ember card damage +1 per L1+ (Tainted) territory on the board | U1: bonus increases to +2 per territory · *Unlocks: Ash T1* |
+| heat_wave | Heat Wave | **Pool** | On Rest | Deal 2 damage to all invaders in all Presence territories | U1: damage increases to 3 · *Unlocks: Ash T2* |
+| controlled_burn | Controlled Burn | **Pool** | Tide start | If 3+ territories at Corruption L1+: generate 2 Fear | U1: threshold drops to 2+ territories · *Unlocks: Shadow T1* |
+| phoenix_spark | Phoenix Spark | **Pool** | Card removed | When any card is permanently removed, generate 3 Fear | U1: Fear increases to 5 · *Unlocks: Gale T1* |
 
 **Key mechanics:**
 

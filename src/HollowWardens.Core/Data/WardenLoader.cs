@@ -58,6 +58,7 @@ public static class WardenLoader
         Trigger     = p.Trigger,
         Mechanic    = p.Mechanic,
         Params      = p.Params,
+        IsPool      = p.Pool,
         Upgrade     = p.Upgrade == null ? null : new PassiveUpgradeData
         {
             Id             = p.Upgrade.Id,
@@ -166,6 +167,7 @@ public static class WardenLoader
         public string Mechanic    { get; set; } = string.Empty;
         public Dictionary<string, object>? Params { get; set; }
         public PassiveUpgradeJson? Upgrade { get; set; }
+        public bool Pool { get; set; }
     }
 
     private class PassiveUpgradeJson

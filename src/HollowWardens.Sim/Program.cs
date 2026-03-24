@@ -220,7 +220,7 @@ foreach (int seed in seeds)
     GameEvents.HeartDamageDealt += _ => telemetry.OnHeartDamage();
     GameEvents.TideCompleted += t => telemetry.SetTide(t);
 
-    IPlayerStrategy strategy = BuildStrategy(cliStrategy, cliStrategyProfile, wardenArg);
+    IPlayerStrategy strategy = BuildStrategy(cliStrategy ?? profile?.Strategy, cliStrategyProfile, wardenArg);
     IPlayerStrategy wrappedStrategy = new TelemetryBotWrapper(strategy, telemetry);
 
     // --verbose: log first 5 encounters; remaining breaches logged after result
@@ -430,7 +430,18 @@ static IPlayerStrategy BuildStrategy(string? strategyName, string? profilePath, 
             ?? new PlayerProfile();
         return new TelemetryDrivenStrategy(playerProfile, new Random());
     }
-    return wardenId == "ember" ? (IPlayerStrategy)new EmberBotStrategy() : new BotStrategy();
+    return strategyName switch
+    {
+        "root_tall"                    => new RootTallStrategy(),
+        "root_wide"                    => new BotStrategy(),
+        "ember" or "ember_aggressive"  => new EmberBotStrategy(),
+        null or "" => wardenId == "ember"
+            ? (IPlayerStrategy)new EmberBotStrategy()
+            : new RootTallStrategy(),   // root defaults to tall
+        _ => wardenId == "ember"
+            ? (IPlayerStrategy)new EmberBotStrategy()
+            : new RootTallStrategy()
+    };
 }
 
 static string FormatSeedsDisplay(IReadOnlyList<int> seeds)

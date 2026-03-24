@@ -26,6 +26,7 @@ public partial class WardenSelectController : CanvasLayer
     private Control? _wardenScreen;
     private Control? _modeScreen;
     private Control? _encounterScreen;
+    private Control? _passiveScreen;
     private Control? _chainContinueScreen;
     private string   _selectedWarden = "root";
 
@@ -53,10 +54,12 @@ public partial class WardenSelectController : CanvasLayer
         _wardenScreen        = BuildWardenScreen(overlay);
         _modeScreen          = BuildModeScreen(overlay);
         _encounterScreen     = BuildEncounterScreen(overlay);
+        _passiveScreen       = BuildPassiveScreen(overlay);
         _chainContinueScreen = BuildChainContinueScreen(overlay);
 
         _modeScreen.Visible          = false;
         _encounterScreen.Visible     = false;
+        _passiveScreen.Visible       = false;
         _chainContinueScreen.Visible = false;
 
         // Subscribe to chain advance signal — fired when an encounter ends mid-chain
@@ -328,6 +331,127 @@ public partial class WardenSelectController : CanvasLayer
         return panel;
     }
 
+    // ── Screen 3b: Passive selection ──────────────────────────────────────────
+
+    // Dynamic content — populated in ShowPassiveScreen; only skeleton built here
+    private VBoxContainer? _passiveOptionContainer;
+    private Button?        _passiveConfirmBtn;
+    private Action?        _onPassiveConfirmed;
+    private readonly HashSet<string> _selectedPoolIds = new();
+
+    private Control BuildPassiveScreen(Control parent)
+    {
+        var container = new Control();
+        container.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
+        parent.AddChild(container);
+
+        var panel = new PanelContainer();
+        panel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.Center);
+        container.AddChild(panel);
+
+        var vbox = new VBoxContainer();
+        vbox.CustomMinimumSize = new Vector2(440, 320);
+        panel.AddChild(vbox);
+
+        var title = new Label { Text = "Choose 2 Abilities", HorizontalAlignment = HorizontalAlignment.Center };
+        if (_cinzel != null) title.AddThemeFontOverride("font", _cinzel);
+        title.AddThemeFontSizeOverride("font_size", 16);
+        title.Modulate = new Color(0.9f, 0.85f, 0.7f);
+        vbox.AddChild(title);
+
+        var subtitle = new Label
+        {
+            Text = "Select 2 passive abilities to bring into this run.",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart
+        };
+        if (_imFell != null) subtitle.AddThemeFontOverride("font", _imFell);
+        subtitle.AddThemeFontSizeOverride("font_size", 11);
+        subtitle.Modulate = Colors.LightGray;
+        vbox.AddChild(subtitle);
+        vbox.AddChild(new HSeparator());
+
+        // Dynamic option buttons populated by ShowPassiveScreen
+        _passiveOptionContainer = new VBoxContainer();
+        vbox.AddChild(_passiveOptionContainer);
+
+        vbox.AddChild(new HSeparator());
+
+        _passiveConfirmBtn = new Button { Text = "Confirm (0/2)", Disabled = true };
+        if (_cinzel != null) _passiveConfirmBtn.AddThemeFontOverride("font", _cinzel);
+        _passiveConfirmBtn.AddThemeFontSizeOverride("font_size", 13);
+        _passiveConfirmBtn.Modulate = new Color(0.4f, 1f, 0.6f);
+        _passiveConfirmBtn.Pressed += OnPassiveConfirmPressed;
+        vbox.AddChild(_passiveConfirmBtn);
+
+        return container;
+    }
+
+    private void ShowPassiveScreen(string wardenId, Action onConfirm)
+    {
+        _onPassiveConfirmed = onConfirm;
+        _selectedPoolIds.Clear();
+
+        // Clear previous options
+        if (_passiveOptionContainer != null)
+            foreach (var child in _passiveOptionContainer.GetChildren())
+                child.QueueFree();
+
+        // Populate with this warden's pool passives
+        var poolPassives = GameBridge.GetPoolPassives(wardenId);
+        foreach (var passive in poolPassives)
+        {
+            var btn = new Button
+            {
+                Text         = $"{passive.Name}\n{passive.Description}",
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                ToggleMode   = true,
+                TooltipText  = passive.Flavor
+            };
+            if (_imFell != null) btn.AddThemeFontOverride("font", _imFell);
+            btn.AddThemeFontSizeOverride("font_size", 11);
+            var passiveId = passive.Id;
+            btn.Toggled += pressed =>
+            {
+                if (pressed)
+                {
+                    if (_selectedPoolIds.Count >= 2)
+                    {
+                        btn.ButtonPressed = false; // reject over-selection
+                        return;
+                    }
+                    _selectedPoolIds.Add(passiveId);
+                }
+                else
+                {
+                    _selectedPoolIds.Remove(passiveId);
+                }
+                UpdatePassiveConfirmBtn();
+            };
+            _passiveOptionContainer?.AddChild(btn);
+        }
+
+        UpdatePassiveConfirmBtn();
+
+        if (_encounterScreen != null) _encounterScreen.Visible = false;
+        if (_passiveScreen   != null) _passiveScreen.Visible   = true;
+    }
+
+    private void UpdatePassiveConfirmBtn()
+    {
+        if (_passiveConfirmBtn == null) return;
+        int count = _selectedPoolIds.Count;
+        _passiveConfirmBtn.Text     = $"Confirm ({count}/2)";
+        _passiveConfirmBtn.Disabled = count != 2;
+    }
+
+    private void OnPassiveConfirmPressed()
+    {
+        GameBridge.SelectedPoolPassiveIds = _selectedPoolIds.ToArray();
+        if (_passiveScreen != null) _passiveScreen.Visible = false;
+        _onPassiveConfirmed?.Invoke();
+    }
+
     // ── Chain continue screen ─────────────────────────────────────────────────
 
     private Control BuildChainContinueScreen(Control parent)
@@ -414,6 +538,7 @@ public partial class WardenSelectController : CanvasLayer
         if (_wardenScreen        != null) _wardenScreen.Visible        = true;
         if (_modeScreen          != null) _modeScreen.Visible          = false;
         if (_encounterScreen     != null) _encounterScreen.Visible     = false;
+        if (_passiveScreen       != null) _passiveScreen.Visible       = false;
         if (_chainContinueScreen != null) _chainContinueScreen.Visible = false;
         Visible = true;
     }
@@ -437,10 +562,10 @@ public partial class WardenSelectController : CanvasLayer
 
     private void StartSingleEncounter(string wardenId, string encounterId)
     {
-        GameBridge.ChainEncounterIds = Array.Empty<string>();
-        GameBridge.ChainIndex        = 0;
+        GameBridge.ChainEncounterIds   = Array.Empty<string>();
+        GameBridge.ChainIndex          = 0;
         GameBridge.SelectedEncounterId = encounterId;
-        LaunchEncounter(wardenId);
+        ShowPassiveScreen(wardenId, () => LaunchEncounter(wardenId));
     }
 
     private void StartChainEncounter(string wardenId)
@@ -448,7 +573,7 @@ public partial class WardenSelectController : CanvasLayer
         GameBridge.ChainEncounterIds   = (string[])_chainSlots.Clone();
         GameBridge.ChainIndex          = 0;
         GameBridge.SelectedEncounterId = _chainSlots[0];
-        LaunchEncounter(wardenId);
+        ShowPassiveScreen(wardenId, () => LaunchEncounter(wardenId));
     }
 
     private void StartFullRun(string wardenId, string realmId)
@@ -459,7 +584,7 @@ public partial class WardenSelectController : CanvasLayer
         GameBridge.ChainEncounterIds   = Array.Empty<string>();
         GameBridge.ChainIndex          = 0;
         GameBridge.SelectedEncounterId = "pale_march_standard";
-        LaunchEncounter(wardenId);
+        ShowPassiveScreen(wardenId, () => LaunchEncounter(wardenId));
     }
 
     private void LaunchEncounter(string wardenId)

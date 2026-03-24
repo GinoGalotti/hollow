@@ -93,7 +93,7 @@ public class TideRunner
             GameEvents.TideStepStarted?.Invoke(TideStep.FearActions);
 
             // Warden passive fear (e.g., Root network fear) generates at Tide start
-            int passiveFear = state.Warden?.CalculatePassiveFear() ?? 0;
+            int passiveFear = state.Warden?.CalculatePassiveFear(state) ?? 0;
             if (passiveFear > 0)
             {
                 int appliedFear = state.ApplyFearMultiplier(passiveFear);
@@ -215,7 +215,7 @@ public class TideRunner
     /// <summary>Applies passive warden fear at the start of a non-first Tide.</summary>
     public void ApplyPassiveFear(EncounterState state)
     {
-        int passiveFear = state.Warden?.CalculatePassiveFear() ?? 0;
+        int passiveFear = state.Warden?.CalculatePassiveFear(state) ?? 0;
         if (passiveFear > 0)
         {
             int applied = state.ApplyFearMultiplier(passiveFear);

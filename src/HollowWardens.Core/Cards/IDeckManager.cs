@@ -24,4 +24,10 @@ public interface IDeckManager
     /// Returns the number of cards actually moved.
     /// </summary>
     int ReturnDiscardToHand(int maxCount);
+
+    /// <summary>
+    /// Moves up to <paramref name="maxCount"/> non-dormant cards from discard back into the draw pile
+    /// at random positions. Returns the number of cards actually moved.
+    /// </summary>
+    int ReturnDiscardToDraw(int maxCount);
 }

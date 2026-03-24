@@ -44,6 +44,8 @@ public class PassiveData
     public string Mechanic { get; set; } = string.Empty;
     public Dictionary<string, object>? Params { get; set; }
     public PassiveUpgradeData? Upgrade { get; set; }
+    /// <summary>True = pool passive (player selects 2 per run). False = always-active base passive.</summary>
+    public bool IsPool { get; set; }
 }
 
 public class PassiveUpgradeData

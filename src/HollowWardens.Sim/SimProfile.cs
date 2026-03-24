@@ -17,6 +17,14 @@ public class SimProfile
     public string Encounter { get; set; } = "pale_march_standard";
     public string? Output { get; set; }
 
+    /// <summary>
+    /// Bot strategy to use. Options: "root_tall" (stack presence, default for root),
+    /// "root_wide" (spread only), "ember" / "ember_aggressive", "telemetry".
+    /// Falls back to warden default when omitted.
+    /// </summary>
+    [JsonPropertyName("strategy")]
+    public string? Strategy { get; set; }
+
     [JsonPropertyName("mode")]
     public string Mode { get; set; } = "single"; // "single" or "chain"
 
@@ -79,6 +87,10 @@ public class WardenOverrides
 
     [JsonPropertyName("lock_passives")]
     public List<string>? LockPassives { get; set; }
+
+    /// <summary>Apply passive upgrades by upgrade ID (e.g. "network_fear_u1", "rest_growth_u1").</summary>
+    [JsonPropertyName("upgrade_passives")]
+    public List<string>? UpgradePassives { get; set; }
 
     [JsonPropertyName("starting_elements")]
     public Dictionary<string, int>? StartingElements { get; set; }

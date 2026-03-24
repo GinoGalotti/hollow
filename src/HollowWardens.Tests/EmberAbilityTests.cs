@@ -142,9 +142,8 @@ public class EmberAbilityTests : IDisposable
         // B4: Fury requires L2 (Defiled = 8+ pts). Set 3 territories at L2.
         var territories = BuildThreeTerritoryState(corruption: new[] { 8, 8, 8 }, presenceAll: false);
 
-        var gating = new PassiveGating("ember"); // ember_fury unlocks on Ash T1
-        // Manually activate ember_fury for this test (by triggering Ash T1)
-        gating.OnThresholdTriggered(Element.Ash, 1);
+        var gating = new PassiveGating("ember");
+        gating.ForceUnlock("ember_fury");
 
         var state = new EncounterState
         {
@@ -197,7 +196,7 @@ public class EmberAbilityTests : IDisposable
         territories[1].Invaders.Add(inv2);
 
         var gating = new PassiveGating("ember");
-        gating.OnThresholdTriggered(Element.Ash, 2); // unlocks heat_wave
+        gating.ForceUnlock("heat_wave");
 
         var state = new EncounterState
         {
@@ -226,7 +225,7 @@ public class EmberAbilityTests : IDisposable
         var ember       = new EmberAbility();
         var dread       = new DreadSystem();
         var gating      = new PassiveGating("ember");
-        gating.OnThresholdTriggered(Element.Gale, 1); // unlock phoenix_spark
+        gating.ForceUnlock("phoenix_spark");
 
         var state = new EncounterState
         {
@@ -267,23 +266,28 @@ public class EmberAbilityTests : IDisposable
     [Fact]
     public void Ember_AshT3_DealsOnlyDamage_NoCorruption()
     {
+        // Ash T3: 2 damage per presence token in target territory — no corruption rider
         var territories = new List<Territory>
         {
-            new() { Id = "M1", Row = TerritoryRow.Middle,  PresenceCount = 0 },
+            new() { Id = "M1", Row = TerritoryRow.Middle,  PresenceCount = 2 },
             new() { Id = "A1", Row = TerritoryRow.Arrival, PresenceCount = 0 }
         };
-        var invM1 = new Invader { Id = "i1", UnitType = UnitType.Marcher,  Hp = 4, MaxHp = 4, TerritoryId = "M1" };
+        var invM1 = new Invader { Id = "i1", UnitType = UnitType.Marcher,  Hp = 6, MaxHp = 6, TerritoryId = "M1" };
         var invA1 = new Invader { Id = "i2", UnitType = UnitType.Ironclad, Hp = 5, MaxHp = 5, TerritoryId = "A1" };
         territories[0].Invaders.Add(invM1);
         territories[1].Invaders.Add(invA1);
 
         var state = new EncounterState { Territories = territories, Corruption = new CorruptionSystem() };
 
-        new ThresholdResolver().AutoResolve(Element.Ash, 3, state);
+        // Resolve with target M1 (2 presence → 4 damage)
+        var resolver = new ThresholdResolver();
+        resolver.OnThresholdTriggered(Element.Ash, 3, state);
+        resolver.Resolve(Element.Ash, 3, state, targetTerritoryId: "M1");
 
-        // Marcher (HP4) takes 3 → HP1; Ironclad (HP5) takes 3 → HP2
-        Assert.Equal(1, invM1.Hp);
-        Assert.Equal(2, invA1.Hp);
+        // M1 invader takes 2×2=4 damage: HP6 → HP2
+        Assert.Equal(2, invM1.Hp);
+        // A1 invader untouched
+        Assert.Equal(5, invA1.Hp);
         // No corruption added to any territory
         Assert.Equal(0, territories[0].CorruptionPoints);
         Assert.Equal(0, territories[1].CorruptionPoints);
@@ -423,7 +427,7 @@ public class EmberAbilityTests : IDisposable
             new() { Id = "M1", Row = TerritoryRow.Middle,  CorruptionPoints = 4 }
         };
         var gating = new PassiveGating("ember");
-        gating.OnThresholdTriggered(Element.Shadow, 1); // unlocks controlled_burn
+        gating.ForceUnlock("controlled_burn");
         var dread = new DreadSystem();
         int fearGenerated = 0;
         GameEvents.FearGenerated += amt => fearGenerated += amt;
@@ -453,7 +457,7 @@ public class EmberAbilityTests : IDisposable
             new() { Id = "M1", Row = TerritoryRow.Middle,  CorruptionPoints = 0 } // L0
         };
         var gating = new PassiveGating("ember");
-        gating.OnThresholdTriggered(Element.Shadow, 1);
+        gating.ForceUnlock("controlled_burn");
         int fearGenerated = 0;
         GameEvents.FearGenerated += amt => fearGenerated += amt;
 
@@ -482,7 +486,7 @@ public class EmberAbilityTests : IDisposable
             new() { Id = "M2", Row = TerritoryRow.Middle,  CorruptionPoints = 12 }  // L2
         };
         var gating = new PassiveGating("ember");
-        gating.OnThresholdTriggered(Element.Shadow, 1);
+        gating.ForceUnlock("controlled_burn");
         int fearGenerated = 0;
         GameEvents.FearGenerated += amt => fearGenerated += amt;
 

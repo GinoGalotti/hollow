@@ -52,8 +52,12 @@ public partial class PassivePanelController : VBoxContainer
         var gating = bridge?.State?.PassiveGating;
 
         // One entry per passive: VBoxContainer(HBoxContainer(icon+name) + description label)
+        // D42: only show base passives + pool passives selected for this run
         foreach (var passive in passives)
         {
+            if (gating != null && !gating.IsRunAvailable(passive.Id))
+                continue; // hide run-locked pool passives entirely
+
             var entry = new VBoxContainer
             {
                 TooltipText = passive.Flavor  // hover shows lore/flavor text

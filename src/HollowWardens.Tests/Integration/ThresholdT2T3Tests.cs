@@ -33,29 +33,29 @@ public class ThresholdT2T3Tests : IDisposable
     // ── ROOT T2 ───────────────────────────────────────────────────────────────
 
     [Fact]
-    public void RootTier2_ReducesCorruptionByThree_InHighestCorruptTerritory()
+    public void RootTier2_PlacesPresenceAdjacentToExistingPresence()
     {
         var (state, _) = BuildState();
-        state.GetTerritory("I1")!.CorruptionPoints = 10;
+        // I1 has presence (set in BuildState); T2 should place 1 presence adjacent to I1
+        int before = state.Territories.Sum(t => t.PresenceCount);
 
         new ThresholdResolver().AutoResolve(Element.Root, 2, state);
 
-        Assert.Equal(7, state.GetTerritory("I1")!.CorruptionPoints);
+        Assert.Equal(before + 1, state.Territories.Sum(t => t.PresenceCount));
+        // Must be adjacent to I1 (M1 or M2)
+        bool placedNearI1 = state.GetTerritory("M1")!.PresenceCount > 0
+                         || state.GetTerritory("M2")!.PresenceCount > 0;
+        Assert.True(placedNearI1);
     }
 
     [Fact]
-    public void RootTier2_PicksTerritoryWithPresenceAndHighestCorruption()
+    public void RootTier2_WithTarget_PlacesPresenceInSpecifiedTerritory()
     {
         var (state, _) = BuildState();
-        // I1 has presence (1) + 5 corruption; M1 no presence + 10 corruption
-        state.GetTerritory("I1")!.CorruptionPoints = 5;
-        state.GetTerritory("M1")!.CorruptionPoints = 10;
 
-        new ThresholdResolver().AutoResolve(Element.Root, 2, state);
+        new ThresholdResolver().Resolve(Element.Root, 2, state, "M1");
 
-        // Only I1 has presence → reduced; M1 untouched
-        Assert.Equal(2, state.GetTerritory("I1")!.CorruptionPoints);
-        Assert.Equal(10, state.GetTerritory("M1")!.CorruptionPoints);
+        Assert.True(state.GetTerritory("M1")!.HasPresence);
     }
 
     // ── ROOT T3 ───────────────────────────────────────────────────────────────
@@ -72,36 +72,67 @@ public class ThresholdT2T3Tests : IDisposable
     }
 
     [Fact]
-    public void RootTier3_ReducesCorruptionByTwoInEachPresenceTerritory()
+    public void RootTier3_WithTarget_PlacesTwoPresenceAndReducesCorruptionByThree()
     {
         var (state, _) = BuildState();
-        state.GetTerritory("I1")!.CorruptionPoints = 6;
-        state.GetTerritory("M1")!.CorruptionPoints = 4;
-        state.GetTerritory("M1")!.PresenceCount = 1;
+        state.GetTerritory("M1")!.CorruptionPoints = 6;
+
+        new ThresholdResolver().Resolve(Element.Root, 3, state, "M1");
+
+        Assert.Equal(2, state.GetTerritory("M1")!.PresenceCount);
+        Assert.Equal(3, state.GetTerritory("M1")!.CorruptionPoints); // 6-3=3
+    }
+
+    [Fact]
+    public void RootTier3_AutoResolve_ReducesCorruptionByThreeInPlacedTerritories()
+    {
+        var (state, _) = BuildState();
+        // Give M1 and M2 corruption so we can detect cleansing in placed territories
+        state.GetTerritory("M1")!.CorruptionPoints = 6;
+        state.GetTerritory("M2")!.CorruptionPoints = 6;
 
         new ThresholdResolver().AutoResolve(Element.Root, 3, state);
 
-        // Both territories with presence lose 2 corruption
-        Assert.True(state.GetTerritory("I1")!.CorruptionPoints <= 4);
-        Assert.True(state.GetTerritory("M1")!.CorruptionPoints <= 2);
+        // T3 places 2 presence adjacent to I1 (M1 or M2) and cleanses 3 in each placed territory.
+        // At least one of M1/M2 should have been cleansed.
+        bool anyCleansingOccurred = state.GetTerritory("M1")!.CorruptionPoints < 6
+                                 || state.GetTerritory("M2")!.CorruptionPoints < 6;
+        Assert.True(anyCleansingOccurred);
     }
 
     // ── MIST T2 ───────────────────────────────────────────────────────────────
 
     [Fact]
-    public void MistTier2_ReturnsOneCardFromDiscardToHand()
+    public void MistTier2_ReturnsTwoCardsFromDiscardToDrawPile()
     {
         var (state, _) = BuildState();
         state.Deck!.RefillHand();
-        state.Deck.PlayTop(state.Deck.Hand[0]); // put 1 card in discard
+        state.Deck.PlayTop(state.Deck.Hand[0]);
+        state.Deck.PlayTop(state.Deck.Hand[0]); // 2 cards in discard
 
-        int handBefore    = state.Deck.Hand.Count;
+        int drawBefore    = state.Deck.DrawPileCount;
         int discardBefore = state.Deck.DiscardCount;
 
         new ThresholdResolver().AutoResolve(Element.Mist, 2, state);
 
-        Assert.Equal(handBefore + 1,    state.Deck.Hand.Count);
-        Assert.Equal(discardBefore - 1, state.Deck.DiscardCount);
+        Assert.Equal(discardBefore - 2, state.Deck.DiscardCount);
+        Assert.Equal(drawBefore + 2,    state.Deck.DrawPileCount);
+        // Hand unchanged
+    }
+
+    [Fact]
+    public void MistTier2_MovesOnlyAvailableCards_WhenDiscardHasOne()
+    {
+        var (state, _) = BuildState();
+        state.Deck!.RefillHand();
+        state.Deck.PlayTop(state.Deck.Hand[0]); // 1 card in discard
+
+        int drawBefore = state.Deck.DrawPileCount;
+
+        new ThresholdResolver().AutoResolve(Element.Mist, 2, state);
+
+        Assert.Equal(0,             state.Deck.DiscardCount);
+        Assert.Equal(drawBefore + 1, state.Deck.DrawPileCount);
     }
 
     [Fact]
@@ -109,11 +140,11 @@ public class ThresholdT2T3Tests : IDisposable
     {
         var (state, _) = BuildState();
         state.Deck!.RefillHand();
-        int handBefore = state.Deck.Hand.Count;
+        int drawBefore = state.Deck.DrawPileCount;
 
         new ThresholdResolver().AutoResolve(Element.Mist, 2, state);
 
-        Assert.Equal(handBefore, state.Deck.Hand.Count);
+        Assert.Equal(drawBefore, state.Deck.DrawPileCount);
     }
 
     // ── MIST T3 ───────────────────────────────────────────────────────────────
@@ -129,16 +160,20 @@ public class ThresholdT2T3Tests : IDisposable
     }
 
     [Fact]
-    public void MistTier3_ReturnsAllDiscardedCardsToHand()
+    public void MistTier3_ReturnsThreeCardsFromDiscardToDrawPile()
     {
         var (state, _) = BuildState();
         state.Deck!.RefillHand();
         state.Deck.PlayTop(state.Deck.Hand[0]);
-        state.Deck.PlayTop(state.Deck.Hand[0]); // 2 in discard
+        state.Deck.PlayTop(state.Deck.Hand[0]);
+        state.Deck.PlayTop(state.Deck.Hand[0]); // 3 in discard
+
+        int drawBefore = state.Deck.DrawPileCount;
 
         new ThresholdResolver().AutoResolve(Element.Mist, 3, state);
 
-        Assert.Equal(0, state.Deck.DiscardCount);
+        Assert.Equal(0,             state.Deck.DiscardCount);
+        Assert.Equal(drawBefore + 3, state.Deck.DrawPileCount);
     }
 
     // ── SHADOW T2 ─────────────────────────────────────────────────────────────
@@ -217,48 +252,60 @@ public class ThresholdT2T3Tests : IDisposable
     // ── ASH T3 ────────────────────────────────────────────────────────────────
 
     [Fact]
-    public void AshTier3_DealsThreeDamageToAllBoardInvaders()
+    public void AshTier3_WithTarget_DealsPresenceScaledDamageInChosenTerritory()
     {
         var (state, faction) = BuildState();
-        var m1inv = MakeMarcher(faction, "M1");  // wounded to 3 → 3 damage kills
-        m1inv.Hp = 3;
-        var a1inv = MakeOutrider(faction, "A1"); // MaxHp=3 → 3 damage kills
-        state.GetTerritory("M1")!.Invaders.Add(m1inv);
+        // I1 has 1 presence (from BuildState). Place invaders in I1.
+        var inv1 = MakeMarcher(faction, "I1");   // HP=4; 2×1 presence = 2 damage → HP 2
+        var inv2 = MakeOutrider(faction, "I1");  // HP=3; 2 damage → HP 1
+        state.GetTerritory("I1")!.Invaders.Add(inv1);
+        state.GetTerritory("I1")!.Invaders.Add(inv2);
+        // Invader in other territory should be untouched
+        var a1inv = MakeMarcher(faction, "A1");
         state.GetTerritory("A1")!.Invaders.Add(a1inv);
 
-        new ThresholdResolver().AutoResolve(Element.Ash, 3, state);
+        new ThresholdResolver().Resolve(Element.Ash, 3, state, "I1");
 
-        Assert.False(m1inv.IsAlive);
-        Assert.False(a1inv.IsAlive);
+        Assert.Equal(2, inv1.Hp);   // 4 - 2 = 2
+        Assert.Equal(1, inv2.Hp);   // 3 - 2 = 1
+        Assert.Equal(a1inv.MaxHp, a1inv.Hp); // untouched
     }
 
     [Fact]
-    public void AshTier3_NoCorruptionAdded_CorruptionRiderRemoved()
+    public void AshTier3_TwoPresence_DealsFourDamagePerInvader()
     {
-        // D31 fix: Ash T3 no longer adds +1 corruption to each territory.
         var (state, faction) = BuildState();
-        var m1 = state.GetTerritory("M1")!;
-        var a1 = state.GetTerritory("A1")!;
-        m1.Invaders.Add(MakeMarcher(faction, "M1"));
-        a1.Invaders.Add(MakeMarcher(faction, "A1"));
+        state.GetTerritory("I1")!.PresenceCount = 2; // 2×2 = 4 damage
+        var inv = MakeIronclad(faction, "I1"); // HP=5; 4 damage → HP 1
+        state.GetTerritory("I1")!.Invaders.Add(inv);
 
-        new ThresholdResolver().AutoResolve(Element.Ash, 3, state);
+        new ThresholdResolver().Resolve(Element.Ash, 3, state, "I1");
 
-        Assert.Equal(0, m1.CorruptionPoints);
-        Assert.Equal(0, a1.CorruptionPoints);
+        Assert.Equal(1, inv.Hp);
     }
 
     [Fact]
-    public void AshTier3_IroncladSurvivesThreeDamage()
+    public void AshTier3_AutoResolve_PicksTerritoryWithPresenceAndInvaders()
     {
         var (state, faction) = BuildState();
-        var inv = MakeIronclad(faction, "M1"); // MaxHp=5
-        state.GetTerritory("M1")!.Invaders.Add(inv);
+        // I1 has presence (1). Add an invader to I1 for auto-resolve to target it.
+        var inv = MakeOutrider(faction, "I1"); // HP=3; 2×1=2 damage → HP 1
+        state.GetTerritory("I1")!.Invaders.Add(inv);
 
         new ThresholdResolver().AutoResolve(Element.Ash, 3, state);
 
-        Assert.True(inv.IsAlive);
-        Assert.Equal(2, inv.Hp); // 5-3=2
+        Assert.Equal(1, inv.Hp);
+    }
+
+    [Fact]
+    public void AshTier3_NoCorruptionAdded()
+    {
+        var (state, faction) = BuildState();
+        state.GetTerritory("I1")!.Invaders.Add(MakeMarcher(faction, "I1"));
+
+        new ThresholdResolver().Resolve(Element.Ash, 3, state, "I1");
+
+        Assert.Equal(0, state.GetTerritory("I1")!.CorruptionPoints);
     }
 
     // ── GALE T2 ───────────────────────────────────────────────────────────────
@@ -347,6 +394,18 @@ public class ThresholdT2T3Tests : IDisposable
     }
 
     [Fact]
+    public void VoidTier2_NativesAlsoTakeOneDamage()
+    {
+        var (state, _) = BuildState();
+        var native = new Native { Hp = 2, MaxHp = 2, TerritoryId = "M1" };
+        state.GetTerritory("M1")!.Natives.Add(native);
+
+        new ThresholdResolver().AutoResolve(Element.Void, 2, state);
+
+        Assert.Equal(1, native.Hp); // 2-1=1
+    }
+
+    [Fact]
     public void VoidTier2_KillsOutrider_WithOneDamage()
     {
         var (state, faction) = BuildState();
@@ -362,30 +421,44 @@ public class ThresholdT2T3Tests : IDisposable
     // ── VOID T3 ───────────────────────────────────────────────────────────────
 
     [Fact]
-    public void VoidTier3_AllInvadersTakeTwoDamage()
+    public void VoidTier3_AllInvadersTakeOneDamage()
     {
         var (state, faction) = BuildState();
-        var m1inv = MakeMarcher(faction, "M1");   // MaxHp=4 → 4-2=2
-        var m2inv = MakeIronclad(faction, "M2");  // MaxHp=5 → 5-2=3
+        var m1inv = MakeMarcher(faction, "M1");   // MaxHp=4 → 4-1=3
+        var m2inv = MakeIronclad(faction, "M2");  // MaxHp=5 → 5-1=4
         state.GetTerritory("M1")!.Invaders.Add(m1inv);
         state.GetTerritory("M2")!.Invaders.Add(m2inv);
 
         new ThresholdResolver().AutoResolve(Element.Void, 3, state);
 
-        Assert.Equal(2, m1inv.Hp);
-        Assert.Equal(3, m2inv.Hp);
+        Assert.Equal(3, m1inv.Hp);
+        Assert.Equal(4, m2inv.Hp);
     }
 
     [Fact]
-    public void VoidTier3_KillsOutrider_WithTwoDamage()
+    public void VoidTier3_KillsOutrider_WoundedToOne()
     {
         var (state, faction) = BuildState();
-        var inv = MakeOutrider(faction, "M1"); // wounded to 2 → dies to 2 damage
-        inv.Hp = 2;
+        var inv = MakeOutrider(faction, "M1");
+        inv.Hp = 1; // wounded to 1 HP → dies to 1 damage
         state.GetTerritory("M1")!.Invaders.Add(inv);
 
         new ThresholdResolver().AutoResolve(Element.Void, 3, state);
 
         Assert.False(inv.IsAlive);
+    }
+
+    [Fact]
+    public void VoidTier3_KillGeneratesFear()
+    {
+        var (state, faction) = BuildState();
+        var inv = MakeOutrider(faction, "M1");
+        inv.Hp = 1;
+        state.GetTerritory("M1")!.Invaders.Add(inv);
+        int fearBefore = state.Dread!.TotalFearGenerated;
+
+        new ThresholdResolver().AutoResolve(Element.Void, 3, state);
+
+        Assert.True(state.Dread.TotalFearGenerated > fearBefore);
     }
 }

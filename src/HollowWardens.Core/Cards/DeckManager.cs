@@ -148,6 +148,26 @@ public class DeckManager : IDeckManager
         return moved;
     }
 
+    /// <summary>
+    /// Moves up to <paramref name="maxCount"/> non-dormant cards from discard into the draw pile
+    /// at random positions. Returns the number of cards moved.
+    /// </summary>
+    public int ReturnDiscardToDraw(int maxCount)
+    {
+        int moved = 0;
+        for (int i = _discardPile.Count - 1; i >= 0 && moved < maxCount; i--)
+        {
+            var card = _discardPile[i];
+            if (card.IsDormant) continue;
+            _discardPile.RemoveAt(i);
+            // Insert at a random position in the draw pile so restored cards aren't drawn immediately
+            int insertAt = _rng.Next(_drawPile.Count + 1);
+            _drawPile.Insert(insertAt, card);
+            moved++;
+        }
+        return moved;
+    }
+
     /// <summary>Awakens a specific dormant card, making it playable again.</summary>
     public void AwakenDormant(Card card)
     {
