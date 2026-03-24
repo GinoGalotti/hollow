@@ -1,0 +1,38 @@
+{
+    "tier1": {
+        "root": {
+            "stage_1": ["dormant", "awakened"],
+            "stage_2": ["awakened"],
+            "stage_3": ["awakened", "ancient"]
+        },
+        "ember": {
+            "stage_1": ["dormant", "awakened"],
+            "stage_2": ["awakened"],
+            "stage_3": ["awakened", "ancient"]
+        }
+    },
+    "tier2": {
+        "root": {
+            "stage_1": ["dormant"],
+            "stage_2": ["dormant", "awakened"],
+            "stage_3": ["awakened"]
+        },
+        "ember": {
+            "stage_1": ["dormant"],
+            "stage_2": ["dormant", "awakened"],
+            "stage_3": ["awakened"]
+        }
+    },
+    "tier3": {
+        "root": {
+            "stage_1": ["dormant"],
+            "stage_2": ["dormant"],
+            "stage_3": ["dormant", "awakened"]
+        },
+        "ember": {
+            "stage_1": ["dormant"],
+            "stage_2": ["dormant"],
+            "stage_3": ["dormant", "awakened"]
+        }
+    }
+}

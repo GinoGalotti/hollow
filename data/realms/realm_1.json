@@ -1,0 +1,49 @@
+{
+    "id": "realm_1",
+    "name_key": "REALM_1_NAME",
+    "stages": [
+        {
+            "stage": 1,
+            "encounter_id": "pale_march_standard",
+            "post_encounter_nodes": [
+                { "id": "r1_n1", "type": "event", "tags": ["stage_1"], "column": 0 },
+                { "id": "r1_n2", "type": "rest", "tags": [], "column": 1 },
+                { "id": "r1_n3", "type": "event", "tags": ["stage_1"], "column": 2 }
+            ]
+        },
+        {
+            "stage": 2,
+            "encounter_options": [
+                { "column": 0, "encounter_id": "pale_march_scouts" },
+                { "column": 1, "encounter_id": "pale_march_scouts" },
+                { "column": 2, "encounter_id": "pale_march_siege" }
+            ],
+            "post_encounter_nodes": [
+                { "id": "r1_n4", "type": "merchant", "tags": ["stage_2"], "column": 0 },
+                { "id": "r1_n5", "type": "event", "tags": ["stage_2"], "column": 1 },
+                { "id": "r1_n6", "type": "corruption", "tags": ["stage_2"], "column": 2 }
+            ]
+        },
+        {
+            "stage": 3,
+            "encounter_id": "pale_march_elite",
+            "post_encounter_nodes": [
+                { "id": "r1_n7", "type": "rest", "tags": [], "column": 0 },
+                { "id": "r1_n8", "type": "event", "tags": ["stage_3"], "column": 1 }
+            ]
+        },
+        {
+            "stage": 4,
+            "encounter_id": "pale_march_frontier",
+            "is_optional": true,
+            "requires_tier1_on_previous": true,
+            "post_encounter_nodes": []
+        }
+    ],
+    "paths": [
+        { "from_stage": 1, "from_column": 0, "to_stage": 2, "to_column": 0 },
+        { "from_stage": 1, "from_column": 1, "to_stage": 2, "to_column": 0 },
+        { "from_stage": 1, "from_column": 1, "to_stage": 2, "to_column": 2 },
+        { "from_stage": 1, "from_column": 2, "to_stage": 2, "to_column": 2 }
+    ]
+}

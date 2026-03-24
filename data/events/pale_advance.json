@@ -1,0 +1,27 @@
+{
+    "id": "pale_advance",
+    "type": "corruption",
+    "name_key": "EVENT_PALE_ADVANCE",
+    "description_key": "EVENT_PALE_ADVANCE_DESC",
+    "warden_filter": null,
+    "tags": ["stage_1", "stage_2"],
+    "rarity": "common",
+    "options": [
+        {
+            "label_key": "EVENT_PALE_ADVANCE_A",
+            "description_key": "EVENT_PALE_ADVANCE_A_DESC",
+            "effects": [
+                { "type": "add_corruption", "territories": ["random"], "value": 1 },
+                { "type": "add_corruption", "territories": ["random"], "value": 1 }
+            ]
+        },
+        {
+            "label_key": "EVENT_PALE_ADVANCE_B",
+            "description_key": "EVENT_PALE_ADVANCE_B_DESC",
+            "effects": [
+                { "type": "remove_tokens", "value": 1 },
+                { "type": "add_corruption", "territories": ["random"], "value": 1 }
+            ]
+        }
+    ]
+}

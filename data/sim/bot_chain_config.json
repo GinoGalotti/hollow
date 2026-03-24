@@ -1,0 +1,12 @@
+{
+    "draft_priority": ["DamageInvaders", "PlacePresence", "ReduceCorruption", "GenerateFear", "RestoreWeave"],
+    "upgrade_priority": "highest_value_damage_card",
+    "passive_upgrade_over_unlock": true,
+    "event_strategy": "safe",
+    "path_strategy": "balanced",
+    "rest_stop_strategy": {
+        "heal_threshold_percent": 80,
+        "prefer_max_weave_heal_below": 16,
+        "otherwise": "upgrade_card"
+    }
+}

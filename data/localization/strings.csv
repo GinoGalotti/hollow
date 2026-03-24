@@ -93,3 +93,230 @@ ENCOUNTER_ELITE_NAME,Elite
 ENCOUNTER_ELITE_SUB,"Veteran Forces, Starting Corruption"
 ENCOUNTER_FRONTIER_NAME,Frontier
 ENCOUNTER_FRONTIER_SUB,"7 Tides, Wide Pressure"
+PHASE_VIGIL_N,"VIGIL  (Tide {0}/{1})"
+DECK_COUNTS,"Draw: {0}  Disc: {1}\nDissolved: {2}  Dormant: {3}"
+BTN_BACK,← Back
+BTN_PLAY_TOP_RES,Play (Top)
+BTN_SKIP_DMG,Skip (0 dmg)
+LABEL_REVEALED,Revealed:
+LABEL_NEXT,Next:
+LABEL_NO_CARD,(no card yet)
+LABEL_NONE,(none)
+CA_NO_DAMAGE,No damage assigned
+CA_DMG_N,"{0} dmg"
+FEAR_CONFIRM_BTN,Confirm (Space)
+ENCOUNTER_SELECT_MODE_SINGLE,Single
+ENCOUNTER_SELECT_MODE_CHAIN,Chain
+CHAIN_SLOT_E1,E1:
+CHAIN_SLOT_E2,E2:
+CHAIN_SLOT_CAPSTONE,Capstone:
+BTN_START_CHAIN,Start Chain
+CHAIN_RESULT_TITLE,"Encounter {0} Complete"
+CHAIN_CONTINUE,"Continue → Encounter {0}"
+CHAIN_CARRYOVER,"Weave: {0}  Dread: {1}"
+UPGRADE_ROOT_001_U1,Top: Cleanse +1 (2→3 pts)
+UPGRADE_ROOT_001_U2,Add Shadow element
+UPGRADE_ROOT_002_U1,Top: Range +1 (1→2)
+UPGRADE_ROOT_002_U2,Add Root element
+UPGRADE_ROOT_003_U1,Bottom: Cleanse +1 (4→5 pts)
+UPGRADE_ROOT_003_U2,Add Mist element
+UPGRADE_ROOT_004_U1,Top: Fear +1 (3→4)
+UPGRADE_ROOT_004_U2,Add Shadow element
+UPGRADE_ROOT_005_U1,Top: Fear +1 (2→3)
+UPGRADE_ROOT_005_U2,Add Root element
+UPGRADE_ROOT_006_U1,Bottom: +1 Presence (2→3)
+UPGRADE_ROOT_006_U2,Add Root element
+UPGRADE_ROOT_007_U1,Top: Restore +1 (1→2)
+UPGRADE_ROOT_007_U2,Add Mist element
+UPGRADE_ROOT_008_U1,Add Shadow element
+UPGRADE_ROOT_009_U1,Bottom: Damage +1 (5→6)
+UPGRADE_ROOT_009_U2,Add Root element
+UPGRADE_ROOT_010_U1,Bottom: Restore +1 (2→3)
+UPGRADE_ROOT_010_U2,Add Shadow element
+UPGRADE_ROOT_011_U1,Bottom: Cleanse +2 (6→8 pts)
+UPGRADE_ROOT_011_U2,Add Root element
+UPGRADE_ROOT_012_U1,Add Mist element
+UPGRADE_ROOT_013_U1,Top: Range +1 (2→3)
+UPGRADE_ROOT_013_U2,Add Root element
+UPGRADE_ROOT_014_U1,Top: Fear +1 (2→3)
+UPGRADE_ROOT_014_U2,Add Shadow element
+UPGRADE_ROOT_015_U1,Add Gale element
+UPGRADE_ROOT_016_U1,Top: Fear +1 (4→5)
+UPGRADE_ROOT_016_U2,Add Shadow element
+UPGRADE_ROOT_017_U1,Top: Range +1 (2→3)
+UPGRADE_ROOT_017_U2,Add Mist element
+UPGRADE_ROOT_018_U1,Top: Shield +1 (2→3)
+UPGRADE_ROOT_018_U2,Add Root element
+UPGRADE_ROOT_019_U1,Top: Fear +1 (3→4)
+UPGRADE_ROOT_019_U2,Add Shadow element
+UPGRADE_ROOT_020_U1,Bottom: +1 Presence (3→4)
+UPGRADE_ROOT_020_U2,Add Root element
+UPGRADE_ROOT_021_U1,Add Shadow element
+UPGRADE_ROOT_022_U1,Add Root element
+UPGRADE_ROOT_023_U1,Top: Cleanse +1 (3→4 pts)
+UPGRADE_ROOT_023_U2,Add Mist element
+UPGRADE_ROOT_024_U1,Add Root element
+UPGRADE_ROOT_025_U1,Top: Damage +1 (2→3)
+UPGRADE_ROOT_025_U2,Add Root element
+UPGRADE_EMBER_001_U1,Top: Damage +1 (2→3)
+UPGRADE_EMBER_001_U2,Add Shadow element
+UPGRADE_EMBER_002_U1,Top: Range +1 (1→2)
+UPGRADE_EMBER_002_U2,Add Gale element
+UPGRADE_EMBER_003_U1,Top: Damage +1 (2→3)
+UPGRADE_EMBER_003_U2,Add Shadow element
+UPGRADE_EMBER_004_U1,Top: Fear +1 (3→4)
+UPGRADE_EMBER_004_U2,Add Shadow element
+UPGRADE_EMBER_005_U1,Bottom: Cleanse +1 (4→5 pts)
+UPGRADE_EMBER_005_U2,Add Ash element
+UPGRADE_EMBER_006_U1,Bottom: +1 Presence (2→3)
+UPGRADE_EMBER_006_U2,Add Ash element
+UPGRADE_EMBER_007_U1,Bottom: Restore +1 (2→3)
+UPGRADE_EMBER_007_U2,Add Gale element
+UPGRADE_EMBER_008_U1,Top: Damage +1 (2→3)
+UPGRADE_EMBER_008_U2,Add Ash element
+UPGRADE_EMBER_009_U1,Top: Fear +1 (2→3)
+UPGRADE_EMBER_009_U2,Add Shadow element
+UPGRADE_EMBER_010_U1,Bottom: Range +1 (2→3)
+UPGRADE_EMBER_010_U2,Add Ash element
+UPGRADE_EMBER_011_U1,Top: Damage +1 (3→4)
+UPGRADE_EMBER_011_U2,Add Ash element
+UPGRADE_EMBER_012_U1,Top: Cleanse +1 (3→4 pts)
+UPGRADE_EMBER_012_U2,Add Gale element
+UPGRADE_EMBER_013_U1,Top: Restore +1 (2→3)
+UPGRADE_EMBER_013_U2,Add Shadow element
+UPGRADE_EMBER_014_U1,Top: Damage +1 (4→5)
+UPGRADE_EMBER_014_U2,Add Ash element
+UPGRADE_EMBER_015_U1,Bottom: Range +1 (2→3)
+UPGRADE_EMBER_015_U2,Add Ash element
+UPGRADE_EMBER_016_U1,Top: Fear +1 (4→5)
+UPGRADE_EMBER_016_U2,Add Shadow element
+UPGRADE_EMBER_017_U1,Top: Damage +1 (4→5)
+UPGRADE_EMBER_017_U2,Add Ash element
+UPGRADE_EMBER_018_U1,Top: Fear +1 (6→7)
+UPGRADE_EMBER_018_U2,Add Shadow element
+UPGRADE_PASSIVE_NETWORK_FEAR,Network Fear cap +2 (4→6)
+UPGRADE_PASSIVE_NETWORK_SLOW,Movement penalty ×2 (1→2)
+UPGRADE_PASSIVE_PRESENCE_PROVOCATION,Provocation extends to adjacent territories
+UPGRADE_PASSIVE_REST_GROWTH,Rest places 2 Presence instead of 1
+UPGRADE_PASSIVE_DORMANCY,Awaken 1 dormant card on Rest
+UPGRADE_PASSIVE_ASSIMILATION,Assimilation extends to all territories
+UPGRADE_PASSIVE_ASH_TRAIL,Ash Trail deals 2 damage (up from 1)
+UPGRADE_PASSIVE_FLAME_OUT,Refund 1 Weave on each card dissolved
+UPGRADE_PASSIVE_SCORCHED_EARTH,Reduce to one-third instead of one-half
+UPGRADE_PASSIVE_EMBER_FURY,Fury bonus +2 per tainted territory (up from +1)
+UPGRADE_PASSIVE_HEAT_WAVE,Heat Wave deals 3 damage (up from 2)
+UPGRADE_PASSIVE_CONTROLLED_BURN,Trigger at 2+ tainted territories (down from 3)
+UPGRADE_PASSIVE_PHOENIX_SPARK,Phoenix Spark generates 5 Fear (up from 3)
+MENU_TITLE,HOLLOW WARDENS
+MODE_SELECT_TITLE,Choose Your Path
+MODE_FULL_RUN,Full Run
+MODE_FULL_RUN_DESC,Journey through the realm across multiple encounters
+MODE_SINGLE,Single Encounter
+MODE_SINGLE_DESC,Play a single hand-picked encounter
+MODE_PRACTICE,Practice
+MODE_PRACTICE_DESC,Play any encounter without consequences
+REALM_SELECT_TITLE,Choose Your Realm
+REALM_1_NAME,The Pale Reaches
+REALM_1_DESC,The Pale March encroaches — 4 stages of escalating threat
+BTN_START_FULL_RUN,Begin the Run
+EVENT_WHISPERING_GROVE,The Whispering Grove
+EVENT_WHISPERING_GROVE_DESC,Ancient trees offer power — at a cost.
+EVENT_WHISPERING_GROVE_A,Accept the Gift
+EVENT_WHISPERING_GROVE_A_DESC,Gain an Ancient card. Two territories gain L1 corruption.
+EVENT_WHISPERING_GROVE_B,Purge the Memory
+EVENT_WHISPERING_GROVE_B_DESC,Cleanse all corruption carryover. Dissolve 1 card.
+EVENT_BURNT_OFFERING,Burnt Offering
+EVENT_BURNT_OFFERING_DESC,The fire demands sacrifice.
+EVENT_BURNT_OFFERING_A,Feed the Flame
+EVENT_BURNT_OFFERING_A_DESC,Upgrade a passive. Lose 3 max weave.
+EVENT_BURNT_OFFERING_B,Temper the Ash
+EVENT_BURNT_OFFERING_B_DESC,Gain 2 upgrade tokens. Hand limit -1 next encounter.
+EVENT_ROOT_GATE,The Root Gate
+EVENT_ROOT_GATE_DESC,A threshold of living wood. Prove your attunement.
+EVENT_ROOT_GATE_A,Channel 6 Root
+EVENT_ROOT_GATE_A_DESC,Spend 6 Root elements to unlock the Rest Growth passive.
+EVENT_ASH_CRUCIBLE,The Ash Crucible
+EVENT_ASH_CRUCIBLE_DESC,Only pure fire may enter.
+EVENT_ASH_CRUCIBLE_A,Channel 8 Ash
+EVENT_ASH_CRUCIBLE_A_DESC,Spend 8 Ash elements to upgrade Ember Fury.
+EVENT_SHELTERED_GROVE,Sheltered Grove
+EVENT_SHELTERED_GROVE_DESC,A quiet place to recover.
+EVENT_SHELTERED_GROVE_A,Rest and Heal
+EVENT_SHELTERED_GROVE_A_DESC,Heal 3 weave.
+EVENT_SHELTERED_GROVE_B,Deepen Roots
+EVENT_SHELTERED_GROVE_B_DESC,Restore 1 max weave.
+EVENT_SHELTERED_GROVE_C,Hone a Card
+EVENT_SHELTERED_GROVE_C_DESC,Upgrade one card in your deck.
+EVENT_SHELTERED_GROVE_D,Cull the Weak
+EVENT_SHELTERED_GROVE_D_DESC,Permanently remove one card from your deck.
+EVENT_SHELTERED_GROVE_E,Reclaim the Lost
+EVENT_SHELTERED_GROVE_E_DESC,Recover one dissolved card.
+EVENT_ANCIENT_SPRING,Ancient Spring
+EVENT_ANCIENT_SPRING_DESC,Waters that restore what was lost.
+EVENT_ANCIENT_SPRING_A,Drink Deep
+EVENT_ANCIENT_SPRING_A_DESC,Heal 5 weave.
+EVENT_ANCIENT_SPRING_B,Renew the Weave
+EVENT_ANCIENT_SPRING_B_DESC,Restore 2 max weave.
+EVENT_ANCIENT_SPRING_C,Draw Power
+EVENT_ANCIENT_SPRING_C_DESC,Gain 1 upgrade token.
+EVENT_PALE_ADVANCE,Pale Advance
+EVENT_PALE_ADVANCE_DESC,The pale march presses forward.
+EVENT_PALE_ADVANCE_A,Endure
+EVENT_PALE_ADVANCE_A_DESC,Two territories gain L1 corruption carryover.
+EVENT_PALE_ADVANCE_B,Spend Resources
+EVENT_PALE_ADVANCE_B_DESC,Spend 1 token. Only one territory gains L1 corruption.
+EVENT_ECLIPSE_APPROACHING,Eclipse Approaching
+EVENT_ECLIPSE_APPROACHING_DESC,Darkness falls over the realm.
+EVENT_ECLIPSE_APPROACHING_A,Brace for Night
+EVENT_ECLIPSE_APPROACHING_A_DESC,Next encounter gains Eclipse condition on Tides 4-5.
+EVENT_DEEP_NETWORK,The Deep Network
+EVENT_DEEP_NETWORK_DESC,Roots spread further than the eye can see.
+EVENT_DEEP_NETWORK_A,Extend the Web
+EVENT_DEEP_NETWORK_A_DESC,Gain a permanent presence that persists across all encounters.
+EVENT_PHOENIX_REBIRTH,Phoenix Rebirth
+EVENT_PHOENIX_REBIRTH_DESC,From ash, life returns.
+EVENT_PHOENIX_REBIRTH_A,Rise from Ash
+EVENT_PHOENIX_REBIRTH_A_DESC,Recover all dissolved cards. Lose 5 max weave.
+EVENT_WANDERING_TRADER,Wandering Trader
+EVENT_WANDERING_TRADER_DESC,A merchant appears with rare wares.
+EVENT_WANDERING_TRADER_A,Purchase Card 1
+EVENT_WANDERING_TRADER_A_DESC,Add this card to your deck.
+EVENT_WANDERING_TRADER_B,Purchase Card 2
+EVENT_WANDERING_TRADER_B_DESC,Add this card to your deck.
+EVENT_WANDERING_TRADER_C,Purchase Card 3
+EVENT_WANDERING_TRADER_C_DESC,Add this card to your deck.
+EVENT_WANDERING_TRADER_D,Purchase Card 4
+EVENT_WANDERING_TRADER_D_DESC,Add this card to your deck.
+EVENT_ANCIENT_ARMORY,Ancient Armory
+EVENT_ANCIENT_ARMORY_DESC,Weapons forged in the age before the pale.
+EVENT_ANCIENT_ARMORY_A,Claim Relic 1
+EVENT_ANCIENT_ARMORY_A_DESC,Add this Ancient card to your deck.
+EVENT_ANCIENT_ARMORY_B,Claim Relic 2
+EVENT_ANCIENT_ARMORY_B_DESC,Add this Ancient card to your deck.
+EVENT_ANCIENT_ARMORY_C,Claim Relic 3
+EVENT_ANCIENT_ARMORY_C_DESC,Add this Ancient card to your deck.
+REWARD_SCREEN_TITLE,Encounter Complete
+REWARD_RESULT_CLEAN,Clean Victory
+REWARD_RESULT_WEATHERED,Weathered
+REWARD_RESULT_BREACH,Breach
+REWARD_TIER_LABEL,Tier {0}
+REWARD_TOKENS_EARNED,+{0} Upgrade Token(s)
+REWARD_DRAFT_TITLE,Choose a Card (pick 1 of {0})
+REWARD_REMOVE_CARD,Remove a Card from your Deck
+REWARD_HEAL_INSTEAD,Heal 2 Weave instead of Token
+BTN_CONTINUE,Continue
+BTN_CONFIRM,Confirm
+BTN_SKIP,Skip
+BTN_REMOVE,Remove
+BTN_CLOSE,Close
+UPGRADE_SCREEN_TITLE,Upgrade
+UPGRADE_TOKENS_AVAILABLE,Upgrade Tokens: {0}
+UPGRADE_CARD_TAB,Upgrade Card
+UPGRADE_PASSIVE_TAB,Upgrade Passive
+UPGRADE_COST,Cost: {0} Token
+UPGRADE_NO_CARDS,No upgradable cards
+UPGRADE_NO_PASSIVES,No upgradable passives
+DEV_CONSOLE_PLACEHOLDER,Type a command (e.g. /help)
+DEV_CONSOLE_WELCOME,[color=#88ff88]Dev Console — type /help for commands[/color]
+FULL_RUN_COMPLETE,Run Complete!
+FULL_RUN_SUMMARY,"Encounters: {0}  Final Weave: {1}  Dread: {2}"

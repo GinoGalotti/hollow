@@ -1,4 +1,5 @@
 using Godot;
+using HollowWardens.Core.Localization;
 
 /// <summary>
 /// Segmented dread bar with threshold markers at 15/30/45 fear.
@@ -16,7 +17,7 @@ public partial class DreadBarController : VBoxContainer
         var cinzel     = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
         var skullIcon  = GD.Load<Texture2D>("res://godot/assets/art/kenney_board-game-icons/PNG/Default (64px)/skull.png");
 
-        var header = new Label { Text = "── Dread / Weave ──", Modulate = Colors.Orange };
+        var header = new Label { Text = Loc.Get("LABEL_DREAD_WEAVE"), Modulate = Colors.Orange };
         if (cinzel != null) header.AddThemeFontOverride("font", cinzel);
         AddChild(header);
 
@@ -64,9 +65,9 @@ public partial class DreadBarController : VBoxContainer
         int total = bridge.State.Dread?.TotalFearGenerated ?? 0;
         int weave = bridge.State.Weave?.CurrentWeave ?? 0;
 
-        _dreadLabel.Text  = $"Dread Level: {level}";
-        _fearLabel.Text   = $"Total Fear:  {total}  (next: {NextThreshold(total)})";
-        _weaveLabel.Text  = $"Weave: {weave}/20" + (weave <= 0 ? " [BREACH!]" : "");
+        _dreadLabel.Text  = Loc.Get("DREAD_LEVEL", level);
+        _fearLabel.Text   = Loc.Get("TOTAL_FEAR", total, NextThreshold(total));
+        _weaveLabel.Text  = Loc.Get("WEAVE_DISPLAY", weave, 20) + (weave <= 0 ? " " + Loc.Get("WEAVE_BREACH") : "");
 
         // Bar: 45 chars, markers at 15 and 30
         int bars    = System.Math.Min(total, 45);

@@ -14,6 +14,7 @@ public class WeaveSystem : IWeaveSystem
     }
 
     public int CurrentWeave => _weave;
+    public int MaxWeave => _maxWeave;
     public bool IsGameOver => _weave <= 0;
 
     public void DealDamage(int amount)

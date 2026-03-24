@@ -30,7 +30,11 @@ public class TurnActions
     public void PlayBottom(Card card, TargetInfo? target = null)
     {
         _state.Deck?.PlayBottom(card, _state.Config.Tier);
-        _state.Elements?.AddElements(card.Elements, _state.Balance.BottomElementMultiplier);
+        // Flame Out: permanently consumed bottoms generate a bigger element surge (3× instead of 2×)
+        int bottomMult = _state.Warden?.WardenId == "ember"
+            ? 3
+            : _state.Balance.BottomElementMultiplier;
+        _state.Elements?.AddElements(card.Elements, bottomMult);
         ResolveEffect(card.BottomEffect, target);
         if (card.BottomSecondary != null)
             ResolveEffect(card.BottomSecondary, target);

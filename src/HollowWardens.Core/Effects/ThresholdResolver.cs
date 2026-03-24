@@ -47,9 +47,16 @@ public class ThresholdResolver
     /// <summary>
     /// Returns true when this (element, tier) combination requires the player
     /// to select a territory before the effect can be executed.
+    /// T3 effects always broadcast to all territories — no player targeting needed.
     /// </summary>
     public static bool NeedsTarget(Element element, int tier)
-        => element == Element.Root && tier == 1;
+        => (element, tier) switch
+        {
+            (Element.Root,   1) or (Element.Root,   2) => true,
+            (Element.Ash,    1) or (Element.Ash,    2) => true,
+            (Element.Gale,   1) or (Element.Gale,   2) => true,
+            _                                           => false
+        };
 
     /// <summary>
     /// Returns an EffectData describing the targeting requirement for effects
@@ -58,8 +65,13 @@ public class ThresholdResolver
     public static EffectData? GetTargetEffect(Element element, int tier)
         => (element, tier) switch
         {
-            (Element.Root, 1) => new EffectData { Type = EffectType.PlacePresence, Range = 1, Value = 1 },
-            _                 => null
+            (Element.Root,   1) => new EffectData { Type = EffectType.PlacePresence,   Range = 1, Value = 1 },
+            (Element.Root,   2) => new EffectData { Type = EffectType.ReduceCorruption, Value = 3 },
+            (Element.Ash,    1) => new EffectData { Type = EffectType.DamageInvaders,   Value = 1 },
+            (Element.Ash,    2) => new EffectData { Type = EffectType.DamageInvaders,   Value = 2 },
+            (Element.Gale,   1) => new EffectData { Type = EffectType.PushInvaders,     Value = 1 },
+            (Element.Gale,   2) => new EffectData { Type = EffectType.PushInvaders,     Value = 1 },
+            _                   => null
         };
 
     // ── Player-driven queue API ───────────────────────────────────────────────
@@ -126,12 +138,12 @@ public class ThresholdResolver
     {
         switch (element)
         {
-            case Element.Root:   ResolveRoot(tier, state, targetTerritoryId); break;
-            case Element.Mist:   ResolveMist(tier, state);   break;
-            case Element.Shadow: ResolveShadow(tier, state); break;
-            case Element.Ash:    ResolveAsh(tier, state);    break;
-            case Element.Gale:   ResolveGale(tier, state);   break;
-            case Element.Void:   ResolveVoid(tier, state);   break;
+            case Element.Root:   ResolveRoot(tier, state, targetTerritoryId);   break;
+            case Element.Mist:   ResolveMist(tier, state);                      break;
+            case Element.Shadow: ResolveShadow(tier, state);                    break;
+            case Element.Ash:    ResolveAsh(tier, state, targetTerritoryId);    break;
+            case Element.Gale:   ResolveGale(tier, state, targetTerritoryId);   break;
+            case Element.Void:   ResolveVoid(tier, state);                      break;
         }
     }
 
@@ -155,13 +167,17 @@ public class ThresholdResolver
                 break;
 
             case 2:
-                var target = state.Territories
-                    .Where(t => t.HasPresence && t.CorruptionPoints > 0)
-                    .OrderByDescending(t => t.CorruptionPoints)
-                    .FirstOrDefault();
+            {
+                var target = targetTerritoryId != null
+                    ? state.GetTerritory(targetTerritoryId)
+                    : state.Territories
+                        .Where(t => t.HasPresence && t.CorruptionPoints > 0)
+                        .OrderByDescending(t => t.CorruptionPoints)
+                        .FirstOrDefault();
                 if (target != null)
                     state.Corruption?.ReduceCorruption(target, 3);
                 break;
+            }
 
             case 3:
                 PlacePresenceAdjacent(state); // first Presence
@@ -246,15 +262,17 @@ public class ThresholdResolver
     // T1: 1 damage to all invaders in territory with most invaders
     // T2: 2 damage to all in one territory (auto: most invaders) + 1 Corruption to that territory
     // T3: 3 damage to ALL invaders on board (no corruption rider)
-    private static void ResolveAsh(int tier, EncounterState state)
+    private static void ResolveAsh(int tier, EncounterState state, string? targetTerritoryId = null)
     {
         switch (tier)
         {
             case 1:
             {
-                var target = state.TerritoriesWithInvaders()
-                    .OrderByDescending(t => t.Invaders.Count(i => i.IsAlive))
-                    .FirstOrDefault();
+                var target = targetTerritoryId != null
+                    ? state.GetTerritory(targetTerritoryId)
+                    : state.TerritoriesWithInvaders()
+                        .OrderByDescending(t => t.Invaders.Count(i => i.IsAlive))
+                        .FirstOrDefault();
                 if (target == null) return;
                 int dmg1 = state.Balance.GetThresholdDamage(Element.Ash, 1);
                 foreach (var invader in target.Invaders.Where(i => i.IsAlive).ToList())
@@ -264,9 +282,11 @@ public class ThresholdResolver
 
             case 2:
             {
-                var target = state.TerritoriesWithInvaders()
-                    .OrderByDescending(t => t.Invaders.Count(i => i.IsAlive))
-                    .FirstOrDefault();
+                var target = targetTerritoryId != null
+                    ? state.GetTerritory(targetTerritoryId)
+                    : state.TerritoriesWithInvaders()
+                        .OrderByDescending(t => t.Invaders.Count(i => i.IsAlive))
+                        .FirstOrDefault();
                 if (target == null) return;
                 int dmg2 = state.Balance.GetThresholdDamage(Element.Ash, 2);
                 foreach (var invader in target.Invaders.Where(i => i.IsAlive).ToList())
@@ -292,15 +312,17 @@ public class ThresholdResolver
     // T1: Push 1 invader one territory toward spawn (away from I1)
     // T2: Push ALL invaders in one territory (auto: closest to I1)
     // T3: Push ALL invaders on board one territory toward spawn
-    private static void ResolveGale(int tier, EncounterState state)
+    private static void ResolveGale(int tier, EncounterState state, string? targetTerritoryId = null)
     {
         switch (tier)
         {
             case 1:
             {
-                var territory = state.TerritoriesWithInvaders()
-                    .OrderBy(t => state.Graph.Distance(t.Id, state.Graph.HeartId))
-                    .FirstOrDefault();
+                var territory = targetTerritoryId != null
+                    ? state.GetTerritory(targetTerritoryId)
+                    : state.TerritoriesWithInvaders()
+                        .OrderBy(t => state.Graph.Distance(t.Id, state.Graph.HeartId))
+                        .FirstOrDefault();
                 if (territory == null) return;
                 var invader = territory.Invaders.FirstOrDefault(i => i.IsAlive);
                 if (invader != null)
@@ -310,9 +332,11 @@ public class ThresholdResolver
 
             case 2:
             {
-                var territory = state.TerritoriesWithInvaders()
-                    .OrderBy(t => state.Graph.Distance(t.Id, state.Graph.HeartId))
-                    .FirstOrDefault();
+                var territory = targetTerritoryId != null
+                    ? state.GetTerritory(targetTerritoryId)
+                    : state.TerritoriesWithInvaders()
+                        .OrderBy(t => state.Graph.Distance(t.Id, state.Graph.HeartId))
+                        .FirstOrDefault();
                 if (territory == null) return;
                 PushAllInTerritory(territory, state);
                 break;

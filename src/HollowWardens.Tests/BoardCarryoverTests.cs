@@ -140,6 +140,73 @@ public class BoardCarryoverTests
         Assert.Equal(12, state.Weave!.CurrentWeave);
     }
 
+    // ── 9. WeaveLoss_ZeroMissing_NoDecay ──────────────────────────────────────
+
+    [Fact]
+    public void WeaveLoss_ZeroMissing_NoDecay()
+    {
+        Assert.Equal(0, BoardCarryover.CalculateMaxWeaveLoss(20, 20));
+    }
+
+    // ── 10. WeaveLoss_3Missing_Loses1Max ─────────────────────────────────────
+
+    [Fact]
+    public void WeaveLoss_3Missing_Loses1Max()
+    {
+        Assert.Equal(1, BoardCarryover.CalculateMaxWeaveLoss(20, 17)); // missing=3
+    }
+
+    // ── 11. WeaveLoss_4Missing_Loses2Max ─────────────────────────────────────
+
+    [Fact]
+    public void WeaveLoss_4Missing_Loses2Max()
+    {
+        Assert.Equal(2, BoardCarryover.CalculateMaxWeaveLoss(20, 16)); // missing=4
+    }
+
+    // ── 12. WeaveLoss_8Missing_Loses3Max ─────────────────────────────────────
+
+    [Fact]
+    public void WeaveLoss_8Missing_Loses3Max()
+    {
+        Assert.Equal(3, BoardCarryover.CalculateMaxWeaveLoss(20, 12)); // missing=8
+    }
+
+    // ── 13. ExtractCarryover_AppliesWeaveLoss ────────────────────────────────
+
+    [Fact]
+    public void ExtractCarryover_AppliesWeaveLoss()
+    {
+        // currentWeave=16, maxWeave=20 → missing=4 → loss=2 → MaxWeave carryover=18
+        var state = new EncounterState
+        {
+            Config      = new EncounterConfig { TideCount = 6, Tier = EncounterTier.Standard },
+            Territories = BoardState.CreatePyramid().Territories.Values.ToList(),
+            Weave       = new WeaveSystem(16, 20),
+            Dread       = new DreadSystem(new BalanceConfig()),
+            Corruption  = new CorruptionSystem(),
+            Balance     = new BalanceConfig()
+        };
+        var carryover = state.ExtractCarryover();
+        Assert.Equal(16, carryover.FinalWeave);
+        Assert.Equal(18, carryover.MaxWeave);
+    }
+
+    // ── 14. ApplyCarryover_SetsMaxWeave ──────────────────────────────────────
+
+    [Fact]
+    public void ApplyCarryover_SetsMaxWeave()
+    {
+        var state = BuildMinimalState();
+        var carryover = new BoardCarryover { FinalWeave = 16, MaxWeave = 18 };
+
+        EncounterRunner.ApplyCarryover(state, carryover);
+
+        // Max is 18; restoring more should be capped
+        state.Weave!.Restore(10);
+        Assert.Equal(18, state.Weave.CurrentWeave);
+    }
+
     // ── 8. ApplyCarryover_RemovesCards ───────────────────────────────────────
 
     [Fact]

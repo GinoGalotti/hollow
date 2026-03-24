@@ -43,4 +43,19 @@ public class PassiveData
     public string Trigger { get; set; } = string.Empty;
     public string Mechanic { get; set; } = string.Empty;
     public Dictionary<string, object>? Params { get; set; }
+    public PassiveUpgradeData? Upgrade { get; set; }
+}
+
+public class PassiveUpgradeData
+{
+    public string Id { get; set; } = string.Empty;
+    public string DescriptionKey { get; set; } = string.Empty;
+    public List<PassiveUpgradeEffect> Effects { get; set; } = new();
+}
+
+public class PassiveUpgradeEffect
+{
+    public string Type { get; set; } = string.Empty;
+    public string? Key { get; set; }
+    public int Value { get; set; }
 }

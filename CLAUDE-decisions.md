@@ -387,6 +387,19 @@ No change. Still valid.
 
 **Design implication:** Different encounter types naturally favor different wardens. Lean into this — Ember is the right pick for scouts, Root for siege. Future wardens should each have a comfort encounter and a challenge encounter.
 
+### D41: Elemental threshold → active targeted ability (planned, not yet implemented)
+**Decision:** Elemental threshold abilities should become active targeted actions rather than auto-broadcasting to all presence territories. When elements ≥ threshold, the ability enters a "ready" state; the player then chooses 1 presence territory to fire it at. At T3 the ability broadcasts to all presence territories (current auto-behavior becomes the T3 version only).
+
+**Rationale:** The current auto-broadcast makes Ember dominant without player skill — the AI spams damage cards and threshold fires everywhere automatically. Making it a targeted choice creates real decisions ("fire Ash Trail at A1 where invaders are heavy, or M1 where corruption is building?") and makes element accumulation feel like resource management rather than a passive speedometer. Sim evidence: Ember 0% Breach across all 500-seed runs with B3 fixes — the remaining dominance is structural, not solvable with raw number tweaks.
+
+**Implementation scope:** WeaveSystem (set PendingThreshold flag instead of auto-fire), TurnManager (expose UseThreshold(territoryId) free action), threshold effect classes (receive TargetInfo, fire on single territory), UI (threshold ready indicator + territory click to activate). ~2-3 hours, touches multiple systems. Not a hotfix — needs dedicated session.
+
+**T3 broadcast rationale:** Thematically "element surges beyond containment and floods all your presence at once." Mechanically gives the player a payoff for building high element counts.
+
+**Status:** Design confirmed. Implementation deferred — needs dedicated session with UI work.
+
+---
+
 ### D40: Ember carryover gap — deferred to playtest
 **Finding:** Ember's "Weathered" outcome = invaders reached I1 at encounter end (board-state classification), NOT weave damage. Ember never takes weave damage on any encounter in sim. Its run arc is completely flat — any carryover percentile produces identical subsequent encounter outcomes. This is the structural opposite of Root's progressive weave attrition arc.
 

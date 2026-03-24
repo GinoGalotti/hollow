@@ -62,14 +62,19 @@ public class EncounterState
         // Collect passives unlocked beyond the warden's base set
         var passives = PassiveGating?.ActivePassives.ToList() ?? new List<string>();
 
+        int maxWeave   = Weave?.MaxWeave ?? 20;
+        int finalWeave = Weave?.CurrentWeave ?? 20;
+        int weaveLoss  = BoardCarryover.CalculateMaxWeaveLoss(maxWeave, finalWeave);
+
         return new BoardCarryover
         {
-            CorruptionCarryover    = corruption,
-            FinalWeave             = Weave?.CurrentWeave ?? 20,
-            DreadLevel             = Dread?.DreadLevel   ?? 1,
-            TotalFearGenerated     = Dread?.TotalFearGenerated ?? 0,
+            CorruptionCarryover     = corruption,
+            FinalWeave              = finalWeave,
+            MaxWeave                = maxWeave - weaveLoss,
+            DreadLevel              = Dread?.DreadLevel   ?? 1,
+            TotalFearGenerated      = Dread?.TotalFearGenerated ?? 0,
             PermanentlyRemovedCards = dissolved,
-            UnlockedPassives       = passives
+            UnlockedPassives        = passives
         };
     }
 }

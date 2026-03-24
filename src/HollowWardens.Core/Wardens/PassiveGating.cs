@@ -10,6 +10,7 @@ public class PassiveGating
 {
     private readonly HashSet<string> _activePassives = new();
     private readonly HashSet<string> _lockedPassives = new();
+    private readonly HashSet<string> _upgradedPassives = new();
     private readonly Dictionary<(Element element, int tier), string> _unlockConditions = new();
     private readonly string _wardenId;
 
@@ -51,6 +52,22 @@ public class PassiveGating
     }
 
     public bool IsActive(string passiveId) => _activePassives.Contains(passiveId);
+
+    /// <summary>
+    /// Marks a passive as upgraded. Returns false if already upgraded.
+    /// The upgrade ID is the passive upgrade's ID (e.g. "network_fear_u1").
+    /// </summary>
+    public bool UpgradePassive(string upgradeId)
+    {
+        if (_upgradedPassives.Contains(upgradeId)) return false;
+        _upgradedPassives.Add(upgradeId);
+        return true;
+    }
+
+    /// <summary>Returns true if the given upgrade ID has been applied.</summary>
+    public bool IsUpgraded(string upgradeId) => _upgradedPassives.Contains(upgradeId);
+
+    public IReadOnlySet<string> UpgradedPassives => _upgradedPassives;
 
     /// <summary>
     /// Called when an element threshold fires. Returns the unlocked passive ID, or null.

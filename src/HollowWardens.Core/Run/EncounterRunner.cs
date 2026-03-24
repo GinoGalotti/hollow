@@ -271,9 +271,11 @@ public class EncounterRunner
     /// </summary>
     public static void ApplyCarryover(EncounterState state, BoardCarryover carryover)
     {
-        // Replace weave system to start at carryover value
+        // Replace weave system to start at carryover value with decayed max
+        int maxWeave = carryover.MaxWeave > 0 ? carryover.MaxWeave : state.Balance.MaxWeave;
         state.Weave = new HollowWardens.Core.Systems.WeaveSystem(
-            carryover.FinalWeave, state.Balance.MaxWeave);
+            carryover.FinalWeave, maxWeave);
+        state.Balance.MaxWeave = maxWeave;
 
         // Apply corruption per territory
         foreach (var (territoryId, pts) in carryover.CorruptionCarryover)

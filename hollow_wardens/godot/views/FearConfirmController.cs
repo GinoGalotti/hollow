@@ -1,4 +1,5 @@
 using Godot;
+using HollowWardens.Core.Localization;
 
 /// <summary>
 /// Overlay shown when a fear action is ready for player resolution.
@@ -31,7 +32,7 @@ public partial class FearConfirmController : Control
 
         vbox.AddChild(new Label
         {
-            Text     = "⚡ Fear Action",
+            Text     = Loc.Get("FEAR_ACTION_TITLE"),
             Modulate = new Color(0.45f, 1f, 0.45f)
         });
 
@@ -45,7 +46,7 @@ public partial class FearConfirmController : Control
         _hintLabel = new Label { Modulate = new Color(0.7f, 0.7f, 0.7f) };
         vbox.AddChild(_hintLabel);
 
-        _confirmButton = new Button { Text = "Confirm (Space)" };
+        _confirmButton = new Button { Text = Loc.Get("FEAR_CONFIRM_BTN") };
         _confirmButton.Pressed += () => GameBridge.Instance?.ConfirmFearAction();
         vbox.AddChild(_confirmButton);
 
@@ -72,12 +73,12 @@ public partial class FearConfirmController : Control
 
         if (needsTarget)
         {
-            _hintLabel.Text = "Click a territory to apply";
+            _hintLabel.Text = Loc.Get("FEAR_CLICK_TERRITORY");
             _hintLabel.Modulate = new Color(1f, 0.85f, 0.3f);
         }
         else
         {
-            _hintLabel.Text = "Press Space or click Confirm";
+            _hintLabel.Text = Loc.Get("FEAR_CONFIRM_SPACE");
             _hintLabel.Modulate = new Color(0.7f, 0.7f, 0.7f);
         }
 

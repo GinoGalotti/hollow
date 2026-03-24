@@ -22,6 +22,7 @@ public static class TargetValidator
     private static readonly HashSet<EffectType> TerritoryAtAnyRangeTypes = new()
     {
         EffectType.DamageInvaders,
+        EffectType.PushInvaders,
         EffectType.ReduceCorruption,
         EffectType.ShieldNatives,
         EffectType.BoostNatives,
@@ -73,7 +74,8 @@ public static class TargetValidator
                 var t = state.GetTerritory(id);
                 return t != null && t.CorruptionPoints > 0;
             }).ToList();
-        else if (effectType == EffectType.DamageInvaders || effectType == EffectType.SlowInvaders)
+        else if (effectType == EffectType.DamageInvaders || effectType == EffectType.SlowInvaders
+              || effectType == EffectType.PushInvaders)
             list = list.Where(id => state.GetTerritory(id)?.Invaders.Any(i => i.IsAlive) == true).ToList();
         else if (effectType == EffectType.ShieldNatives || effectType == EffectType.BoostNatives)
             list = list.Where(id => state.GetTerritory(id)?.Natives.Any(n => n.IsAlive) == true).ToList();

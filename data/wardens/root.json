@@ -22,7 +22,14 @@
       "flavor": "Where roots intertwine, the land whispers of what was lost. Invaders feel it in their bones.",
       "description": "Each turn, generate Fear equal to the number of adjacent Presence pairs (each pair counted twice).",
       "trigger": "turn_start",
-      "mechanic": "network_fear"
+      "mechanic": "network_fear",
+      "upgrade": {
+        "id": "network_fear_u1",
+        "description_key": "UPGRADE_PASSIVE_NETWORK_FEAR",
+        "effects": [
+          { "type": "set_balance", "key": "network_fear_cap", "value": 6 }
+        ]
+      }
     },
     {
       "id": "network_slow",
@@ -32,7 +39,14 @@
       "description": "Invaders adjacent to 2+ Presence territories have −1 Advance movement.",
       "trigger": "on_advance",
       "mechanic": "network_slow",
-      "params": { "min_adjacent_presence": 2, "movement_penalty": 1 }
+      "params": { "min_adjacent_presence": 2, "movement_penalty": 1 },
+      "upgrade": {
+        "id": "network_slow_u1",
+        "description_key": "UPGRADE_PASSIVE_NETWORK_SLOW",
+        "effects": [
+          { "type": "set_ability_param", "key": "movement_penalty", "value": 2 }
+        ]
+      }
     },
     {
       "id": "presence_provocation",
@@ -41,7 +55,14 @@
       "flavor": "The spirit's roots stir the Natives to action. In its shadow, they will not stand idle.",
       "description": "Natives in Presence territories counter-attack on every invader action, not just Ravage.",
       "trigger": "on_activate",
-      "mechanic": "always_provoke"
+      "mechanic": "always_provoke",
+      "upgrade": {
+        "id": "presence_provocation_u1",
+        "description_key": "UPGRADE_PASSIVE_PRESENCE_PROVOCATION",
+        "effects": [
+          { "type": "set_ability_param", "key": "provocation_range", "value": 1 }
+        ]
+      }
     },
     {
       "id": "rest_growth",
@@ -51,7 +72,14 @@
       "description": "On Rest, place 1 free Presence on any territory with existing Presence.",
       "trigger": "on_rest",
       "mechanic": "place_presence",
-      "params": { "count": 1, "requires_existing": true }
+      "params": { "count": 1, "requires_existing": true },
+      "upgrade": {
+        "id": "rest_growth_u1",
+        "description_key": "UPGRADE_PASSIVE_REST_GROWTH",
+        "effects": [
+          { "type": "set_ability_param", "key": "rest_growth_count", "value": 2 }
+        ]
+      }
     },
     {
       "id": "dormancy",
@@ -60,7 +88,14 @@
       "flavor": "What the Root sacrifices does not vanish. It sleeps, waiting to be called again.",
       "description": "Playing a bottom makes the card Dormant instead of dissolving it. Awaken effects restore dormant cards.",
       "trigger": "on_bottom_played",
-      "mechanic": "dormancy"
+      "mechanic": "dormancy",
+      "upgrade": {
+        "id": "dormancy_u1",
+        "description_key": "UPGRADE_PASSIVE_DORMANCY",
+        "effects": [
+          { "type": "set_ability_param", "key": "dormancy_restore_count", "value": 1 }
+        ]
+      }
     },
     {
       "id": "assimilation",
@@ -69,7 +104,14 @@
       "flavor": "When the tide ebbs, the roots pull everything back into the earth.",
       "description": "At Resolution, all invaders adjacent to Presence territories are removed. Each reduces Corruption by 1.",
       "trigger": "on_resolution",
-      "mechanic": "assimilation"
+      "mechanic": "assimilation",
+      "upgrade": {
+        "id": "assimilation_u1",
+        "description_key": "UPGRADE_PASSIVE_ASSIMILATION",
+        "effects": [
+          { "type": "set_ability_param", "key": "assimilation_range", "value": 1 }
+        ]
+      }
     }
   ],
 
@@ -86,7 +128,10 @@
       "top":    { "type": "ReduceCorruption", "value": 2, "range": 1, "desc": "Reduce Corruption by 2 points in range 1" },
       "bottom": { "type": "ReduceCorruption", "value": 5, "range": 2, "desc": "Reduce Corruption by 5 points in range 2, and restore 1 Weave",
                   "secondary": { "type": "RestoreWeave", "value": 1 } },
-      "design_note": "Starter cleanse. Top counters one Ravage exactly (2 pts vs 2 pts). Bottom worth dissolving at 6-7 pts corruption."
+      "upgrades": [
+        { "id": "root_001_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_001_U1" },
+        { "id": "root_001_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_001_U2" }
+      ]
     },
     {
       "num": "002",
@@ -98,7 +143,10 @@
       "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
       "bottom": { "type": "PlacePresence", "value": 1, "range": 3, "desc": "Place 1 Presence in range 3, then reduce Corruption by 2 points in that territory",
                   "secondary": { "type": "ReduceCorruption", "value": 2, "range": 0 } },
-      "design_note": "Presence placement starter. Bottom is emergency reach — range 3 means anywhere on the pyramid."
+      "upgrades": [
+        { "id": "root_002_u1", "slot": "top", "field": "range", "from": 1, "to": 2, "cost": 1, "description_key": "UPGRADE_ROOT_002_U1" },
+        { "id": "root_002_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_002_U2" }
+      ]
     },
     {
       "num": "003",
@@ -110,7 +158,10 @@
       "top":    { "type": "ReduceCorruption", "value": 2, "range": 0, "desc": "Reduce Corruption by 2 points anywhere on the board" },
       "bottom": { "type": "ReduceCorruption", "value": 4, "range": 0, "desc": "Reduce Corruption by 4 points anywhere, and reduce Corruption by 2 points in an adjacent territory",
                   "secondary": { "type": "ReduceCorruption", "value": 2, "range": 1 } },
-      "design_note": "Range-0 cleanse. Double Root is best threshold fuel — with any other Root card gives Root x3+."
+      "upgrades": [
+        { "id": "root_003_u1", "slot": "bottom", "field": "value", "from": 4, "to": 5, "cost": 1, "description_key": "UPGRADE_ROOT_003_U1" },
+        { "id": "root_003_u2", "slot": "elements", "action": "add", "element": "Mist", "cost": 1, "description_key": "UPGRADE_ROOT_003_U2" }
+      ]
     },
     {
       "num": "004",
@@ -121,7 +172,10 @@
       "elements": ["Shadow", "Mist"],
       "top":    { "type": "GenerateFear", "value": 3, "range": 0, "desc": "Generate 3 Fear" },
       "bottom": { "type": "GenerateFear", "value": 7, "range": 0, "desc": "Generate 7 Fear" },
-      "design_note": "Primary fear card. Bottom's 7 Fear is nearly 1.5 Fear Actions."
+      "upgrades": [
+        { "id": "root_004_u1", "slot": "top", "field": "value", "from": 3, "to": 4, "cost": 1, "description_key": "UPGRADE_ROOT_004_U1" },
+        { "id": "root_004_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_004_U2" }
+      ]
     },
     {
       "num": "005",
@@ -133,7 +187,10 @@
       "top":    { "type": "GenerateFear", "value": 2, "range": 0, "desc": "Generate 2 Fear" },
       "bottom": { "type": "DamageInvaders", "value": 4, "range": 1, "desc": "Deal 4 damage to all invaders in one territory in range 1, then generate 2 Fear",
                   "secondary": { "type": "GenerateFear", "value": 2 } },
-      "design_note": "Fear + damage hybrid. Bottom's 4 damage + presence amplification kills Marchers and Outriders."
+      "upgrades": [
+        { "id": "root_005_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_005_U1" },
+        { "id": "root_005_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_005_U2" }
+      ]
     },
     {
       "num": "006",
@@ -144,7 +201,10 @@
       "elements": ["Root", "Root"],
       "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
       "bottom": { "type": "PlacePresence", "value": 2, "range": 2, "desc": "Place 2 Presence, each in different territories in range 2" },
-      "design_note": "Pure network expansion. Double Root means Root x4 with bottom doubling — guaranteed tier 1."
+      "upgrades": [
+        { "id": "root_006_u1", "slot": "bottom", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_006_U1" },
+        { "id": "root_006_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_006_U2" }
+      ]
     },
     {
       "num": "007",
@@ -156,7 +216,10 @@
       "top":    { "type": "RestoreWeave", "value": 1, "range": 0, "desc": "Restore 1 Weave" },
       "bottom": { "type": "RestoreWeave", "value": 3, "range": 0, "desc": "Restore 3 Weave and reduce Corruption by 2 points anywhere",
                   "secondary": { "type": "ReduceCorruption", "value": 2, "range": 0 } },
-      "design_note": "Only dedicated Weave recovery in starting deck."
+      "upgrades": [
+        { "id": "root_007_u1", "slot": "top", "field": "value", "from": 1, "to": 2, "cost": 1, "description_key": "UPGRADE_ROOT_007_U1" },
+        { "id": "root_007_u2", "slot": "elements", "action": "add", "element": "Mist", "cost": 1, "description_key": "UPGRADE_ROOT_007_U2" }
+      ]
     },
     {
       "num": "008",
@@ -168,7 +231,9 @@
       "top":    { "type": "AwakeDormant", "value": 1, "range": 0, "desc": "Awaken 1 dormant card in hand" },
       "bottom": { "type": "AwakeDormant", "value": 0, "range": 0, "desc": "Awaken all dormant cards in hand, then generate 2 Fear per card awakened",
                   "secondary": { "type": "GenerateFear", "value": 0 } },
-      "design_note": "Root's hand quality card. Becomes MORE valuable as dormant cards accumulate."
+      "upgrades": [
+        { "id": "root_008_u1", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_008_U1" }
+      ]
     },
     {
       "num": "009",
@@ -180,7 +245,10 @@
       "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1" },
       "bottom": { "type": "DamageInvaders", "value": 5, "range": 1, "desc": "Deal 5 damage to all invaders in one territory in range 1, and shield all Natives in that territory (Shield 2)",
                   "secondary": { "type": "ShieldNatives", "value": 2, "range": 0 } },
-      "design_note": "Defensive combat card. 5 damage + presence amplification kills Ironclads."
+      "upgrades": [
+        { "id": "root_009_u1", "slot": "bottom", "field": "value", "from": 5, "to": 6, "cost": 1, "description_key": "UPGRADE_ROOT_009_U1" },
+        { "id": "root_009_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_009_U2" }
+      ]
     },
     {
       "num": "025",
@@ -192,7 +260,10 @@
       "top":    { "type": "DamageInvaders", "value": 2, "range": 1, "desc": "Roots erupt, dealing 2 damage to all invaders in one territory in range 1" },
       "bottom": { "type": "DamageInvaders", "value": 3, "range": 2, "desc": "Roots entangle everything in range 2. Deal 3 damage to all invaders in one territory in range 2. All invaders in that territory have their Advance halved next Tide.",
                   "secondary": { "type": "SlowInvaders", "value": 1, "range": 2 } },
-      "design_note": "Root's only repeatable damage top (D29). 2 + presence amplification = 3+ damage. Double Root feeds threshold engine."
+      "upgrades": [
+        { "id": "root_025_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_025_U1" },
+        { "id": "root_025_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_025_U2" }
+      ]
     },
 
     {
@@ -206,7 +277,10 @@
                   "secondary": { "type": "GenerateFear", "value": 1 } },
       "bottom": { "type": "RestoreWeave", "value": 2, "range": 0, "desc": "Restore 2 Weave, generate 3 Fear, and place 1 Presence in range 1",
                   "secondary": { "type": "GenerateFear", "value": 3 } },
-      "design_note": "DRAFT. Utility card — flexibility pick for off-element diversity."
+      "upgrades": [
+        { "id": "root_010_u1", "slot": "bottom", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_010_U1" },
+        { "id": "root_010_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_010_U2" }
+      ]
     },
     {
       "num": "011",
@@ -218,7 +292,10 @@
       "top":    { "type": "PlacePresence", "value": 1, "range": 0, "desc": "Place 1 Presence at any existing Presence token (reinforce a territory)" },
       "bottom": { "type": "ReduceCorruption", "value": 6, "range": 1, "desc": "Reduce Corruption by 6 points in range 1, then place 1 Presence in range 1",
                   "secondary": { "type": "PlacePresence", "value": 1, "range": 1 } },
-      "design_note": "DRAFT (D29). Strong presence stacking + biggest single-target cleanse in Dormant pool."
+      "upgrades": [
+        { "id": "root_011_u1", "slot": "bottom", "field": "value", "from": 6, "to": 8, "cost": 1, "description_key": "UPGRADE_ROOT_011_U1" },
+        { "id": "root_011_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_011_U2" }
+      ]
     },
     {
       "num": "012",
@@ -230,7 +307,9 @@
       "top":    { "type": "PlacePresence", "value": 2, "range": 0, "desc": "Place 2 Presence at existing Presence (reinforce one territory with 2 tokens)" },
       "bottom": { "type": "GenerateFear", "value": 0, "range": 0, "desc": "Generate Fear equal to 2 x the number of Presence tokens in the highest-presence territory, then restore 1 Weave",
                   "secondary": { "type": "RestoreWeave", "value": 1 } },
-      "design_note": "DRAFT. Network payoff — scales with presence density. Build-defining for wide-network runs."
+      "upgrades": [
+        { "id": "root_012_u1", "slot": "elements", "action": "add", "element": "Mist", "cost": 1, "description_key": "UPGRADE_ROOT_012_U1" }
+      ]
     },
     {
       "num": "013",
@@ -241,7 +320,10 @@
       "elements": ["Root", "Root"],
       "top":    { "type": "PlacePresence", "value": 1, "range": 2, "desc": "Place 1 Presence in range 2" },
       "bottom": { "type": "PlacePresence", "value": 1, "range": 3, "desc": "Place 1 Presence in range 3. This turn, Network Fear counts adjacency twice for all Presence territories." },
-      "design_note": "Draft-only deep network card. Temporary Network Fear doubling on bottom."
+      "upgrades": [
+        { "id": "root_013_u1", "slot": "top", "field": "range", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_013_U1" },
+        { "id": "root_013_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_013_U2" }
+      ]
     },
     {
       "num": "014",
@@ -253,7 +335,10 @@
       "top":    { "type": "GenerateFear", "value": 2, "range": 0, "desc": "Generate 2 Fear" },
       "bottom": { "type": "GenerateFear", "value": 3, "range": 0, "desc": "Generate 3 Fear and reduce Corruption by 1 point in all Presence territories",
                   "secondary": { "type": "ReduceCorruption", "value": 1, "range": 0 } },
-      "design_note": "Gentle sustain draft card. Board-wide cleanse rewards wide presence."
+      "upgrades": [
+        { "id": "root_014_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_014_U1" },
+        { "id": "root_014_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_014_U2" }
+      ]
     },
     {
       "num": "015",
@@ -265,7 +350,9 @@
       "top":    { "type": "MovePresence", "value": 1, "range": 2, "desc": "Move 1 Presence up to 2 territories" },
       "bottom": { "type": "SlowInvaders", "value": 1, "range": 2, "desc": "Move 1 Presence up to 2 territories. All invaders in range 2 have their Advance movement halved this Tide.",
                   "secondary": { "type": "MovePresence", "value": 1, "range": 2 } },
-      "design_note": "Awakened — MovePresence + SlowInvaders. Gale element unusual for Root."
+      "upgrades": [
+        { "id": "root_015_u1", "slot": "elements", "action": "add", "element": "Gale", "cost": 1, "description_key": "UPGRADE_ROOT_015_U1" }
+      ]
     },
     {
       "num": "016",
@@ -276,7 +363,10 @@
       "elements": ["Shadow", "Shadow"],
       "top":    { "type": "GenerateFear", "value": 4, "range": 0, "desc": "Generate 4 Fear" },
       "bottom": { "type": "GenerateFear", "value": 9, "range": 0, "desc": "Generate 9 Fear. The next Fear Action drawn this encounter is from the next Dread Level pool." },
-      "design_note": "Fear engine card. Double Shadow hits Shadow tier 1 from a single bottom play."
+      "upgrades": [
+        { "id": "root_016_u1", "slot": "top", "field": "value", "from": 4, "to": 5, "cost": 1, "description_key": "UPGRADE_ROOT_016_U1" },
+        { "id": "root_016_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_016_U2" }
+      ]
     },
     {
       "num": "017",
@@ -288,7 +378,10 @@
       "top":    { "type": "ReduceCorruption", "value": 2, "range": 2, "desc": "Reduce Corruption by 2 points in range 2" },
       "bottom": { "type": "Purify", "value": 1, "range": 1, "desc": "Remove one full Corruption level from one territory in range 1. Restore 2 Weave.",
                   "secondary": { "type": "RestoreWeave", "value": 2 } },
-      "design_note": "Only Purify in Root pool. Double Mist hits Mist tier 1 on bottom."
+      "upgrades": [
+        { "id": "root_017_u1", "slot": "top", "field": "range", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_017_U1" },
+        { "id": "root_017_u2", "slot": "elements", "action": "add", "element": "Mist", "cost": 1, "description_key": "UPGRADE_ROOT_017_U2" }
+      ]
     },
     {
       "num": "018",
@@ -300,7 +393,10 @@
       "top":    { "type": "ShieldNatives", "value": 2, "range": 1, "desc": "Give all Natives in range 1 Shield 2 until end of next Tide" },
       "bottom": { "type": "BoostNatives", "value": 2, "range": 2, "desc": "Shield 2 all Natives in range 2. All Natives in range 2 deal +2 damage on their counter-attack this Tide.",
                   "secondary": { "type": "ShieldNatives", "value": 2, "range": 2 } },
-      "design_note": "Native interaction card. Boosted + shielded Natives deal 5 damage each."
+      "upgrades": [
+        { "id": "root_018_u1", "slot": "top", "field": "value", "from": 2, "to": 3, "cost": 1, "description_key": "UPGRADE_ROOT_018_U1" },
+        { "id": "root_018_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_018_U2" }
+      ]
     },
     {
       "num": "019",
@@ -312,7 +408,10 @@
       "top":    { "type": "GenerateFear", "value": 3, "range": 0, "desc": "Generate 3 Fear" },
       "bottom": { "type": "PushInvaders", "value": 2, "range": 2, "desc": "Generate 3 Fear. Push up to 2 invaders in range 2 back toward their spawn point.",
                   "secondary": { "type": "GenerateFear", "value": 3 } },
-      "design_note": "Fear + disruption. Push from M-row to A-row buys a full turn."
+      "upgrades": [
+        { "id": "root_019_u1", "slot": "top", "field": "value", "from": 3, "to": 4, "cost": 1, "description_key": "UPGRADE_ROOT_019_U1" },
+        { "id": "root_019_u2", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_019_U2" }
+      ]
     },
     {
       "num": "020",
@@ -323,7 +422,10 @@
       "elements": ["Root", "Root", "Root"],
       "top":    { "type": "PlacePresence", "value": 1, "range": 2, "desc": "Place 1 Presence in range 2" },
       "bottom": { "type": "PlacePresence", "value": 3, "range": 2, "desc": "Place 3 Presence anywhere in range 2 (can be split across territories)" },
-      "design_note": "Triple Root contributes 6 on bottom — hits tier 1 and nearly tier 2."
+      "upgrades": [
+        { "id": "root_020_u1", "slot": "bottom", "field": "value", "from": 3, "to": 4, "cost": 1, "description_key": "UPGRADE_ROOT_020_U1" },
+        { "id": "root_020_u2", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_020_U2" }
+      ]
     },
     {
       "num": "021",
@@ -334,7 +436,9 @@
       "elements": ["Root", "Shadow", "Mist"],
       "top":    { "type": "AwakeDormant", "value": 1, "range": 0, "desc": "Awaken 1 dormant card" },
       "bottom": { "type": "Custom", "value": 2, "range": 0, "desc": "Awaken 2 dormant cards. For each card awakened, choose: play its top immediately for free, or return it to hand." },
-      "design_note": "Most decision-dense bottom in the deck. Three elements = 6 total on bottom."
+      "upgrades": [
+        { "id": "root_021_u1", "slot": "elements", "action": "add", "element": "Shadow", "cost": 1, "description_key": "UPGRADE_ROOT_021_U1" }
+      ]
     },
     {
       "num": "022",
@@ -345,7 +449,9 @@
       "elements": ["Root", "Root", "Mist"],
       "top":    { "type": "PlacePresence", "value": 1, "range": 1, "desc": "Place 1 Presence in range 1. For each adjacent territory that also has Presence, generate 2 Fear." },
       "bottom": { "type": "PlacePresence", "value": 2, "range": 2, "desc": "Place 2 Presence in range 2. Double Network Fear passive for the rest of this encounter." },
-      "design_note": "Ancient. Bottom's permanent Network Fear doubling is build-defining."
+      "upgrades": [
+        { "id": "root_022_u1", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_022_U1" }
+      ]
     },
     {
       "num": "023",
@@ -356,7 +462,10 @@
       "elements": ["Root", "Mist", "Shadow"],
       "top":    { "type": "ReduceCorruption", "value": 3, "range": 1, "desc": "Reduce Corruption by 3 in range 1. If this drops Tainted to Clean, generate 3 Fear." },
       "bottom": { "type": "Purify", "value": 0, "range": 2, "desc": "Fully cleanse one territory in range 2 (0 Corruption). Generate Fear equal to Corruption level cleared x 4." },
-      "design_note": "Ancient. Full cleanse + scaling Fear. Clearing Desecrated = 12 Fear."
+      "upgrades": [
+        { "id": "root_023_u1", "slot": "top", "field": "value", "from": 3, "to": 4, "cost": 1, "description_key": "UPGRADE_ROOT_023_U1" },
+        { "id": "root_023_u2", "slot": "elements", "action": "add", "element": "Mist", "cost": 1, "description_key": "UPGRADE_ROOT_023_U2" }
+      ]
     },
     {
       "num": "024",
@@ -367,7 +476,9 @@
       "elements": ["Root", "Root", "Mist"],
       "top":    { "type": "ShieldNatives", "value": 3, "range": 2, "desc": "Shield 3 all Natives in range 2. Surviving Natives with Shield 3 gain +1 permanent HP this encounter." },
       "bottom": { "type": "Custom", "value": 0, "range": 0, "desc": "All Natives fully heal. Each Native deals double counter-attack damage for rest of encounter. Generate 1 Fear per living Native." },
-      "design_note": "Ancient Native build-around. 6 Natives = 6 Fear + permanent double damage."
+      "upgrades": [
+        { "id": "root_024_u1", "slot": "elements", "action": "add", "element": "Root", "cost": 1, "description_key": "UPGRADE_ROOT_024_U1" }
+      ]
     }
   ]
 }

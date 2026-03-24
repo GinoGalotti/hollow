@@ -30,7 +30,8 @@ public static class EncounterLoader
         EscalationSchedule = new List<EscalationEntry>
         {
             new() { Tide = 4, CardId = "pm_corrupt", Pool = ActionPool.Painful }
-        }
+        },
+        RewardTiers = DefaultRewardTiers()
     };
 
     public static EncounterConfig Create(string encounterId) => encounterId switch
@@ -55,6 +56,7 @@ public static class EncounterLoader
             ["A1"] = 1, ["A2"] = 1, ["A3"] = 1,
             ["M1"] = 2, ["M2"] = 1, ["I1"] = 2
         },
+        RewardTiers = DefaultRewardTiers(),
         Waves = AddB2Marchers(new List<SpawnWave>
         {
             new() { TurnNumber = 1, ArrivalPoints = new() { "A1","A2","A3" }, Options = new()
@@ -119,6 +121,7 @@ public static class EncounterLoader
             new() { Tide = 3, CardId = "pm_corrupt", Pool = ActionPool.Painful },
             new() { Tide = 6, CardId = "pm_fortify", Pool = ActionPool.Painful }
         },
+        RewardTiers = SiegeRewardTiers(),
         Waves = AddB2Marchers(new List<SpawnWave>
         {
             new() { TurnNumber = 1, ArrivalPoints = new() { "A1","A2","A3" }, Options = new()
@@ -200,6 +203,7 @@ public static class EncounterLoader
             new() { Tide = 4, CardId = "pm_fortify", Pool = ActionPool.Painful },
             new() { Tide = 5, CardId = "pm_march",   Pool = ActionPool.Painful }
         },
+        RewardTiers = EliteRewardTiers(),
         Waves = AddB2Marchers(new List<SpawnWave>
         {
             new() { TurnNumber = 1, ArrivalPoints = new() { "A1","A2","A3" }, Options = new()
@@ -262,6 +266,7 @@ public static class EncounterLoader
             ["B1"] = 1, ["B2"] = 1,
             ["I1"] = 2
         },
+        RewardTiers = DefaultRewardTiers(),
         Waves = new List<SpawnWave>
         {
             new() { TurnNumber = 1, ArrivalPoints = new() { "A1","A2","A3","A4" }, Options = new()
@@ -313,6 +318,27 @@ public static class EncounterLoader
                 new() { Weight=25, Units=new(){ ["A1"]=new(){UnitType.Ironclad, UnitType.Marcher, UnitType.Pioneer}, ["A3"]=new(){UnitType.Ironclad, UnitType.Ironclad}, ["A4"]=new(){UnitType.Marcher} } }
             }},
         }
+    };
+
+    /// <summary>Default reward tiers: Clean=Tier1, Weathered=Tier2, Breach=Tier3.</summary>
+    public static Dictionary<string, RewardTierConfig> DefaultRewardTiers() => new()
+    {
+        ["root"]  = new() { Tier1MinResult = "clean",     Tier2MinResult = "weathered" },
+        ["ember"] = new() { Tier1MinResult = "clean",     Tier2MinResult = "weathered" }
+    };
+
+    /// <summary>Siege reward tiers: Weathered with high weave (60%+) = Tier1 for both wardens.</summary>
+    public static Dictionary<string, RewardTierConfig> SiegeRewardTiers() => new()
+    {
+        ["root"]  = new() { Tier1MinResult = "clean",     Tier2MinResult = "weathered" },
+        ["ember"] = new() { Tier1MinResult = "weathered", Tier1MinWeavePercent = 60, Tier2MinResult = "weathered" }
+    };
+
+    /// <summary>Elite reward tiers: Clean=Tier1, Weathered+50%weave=Tier2.</summary>
+    public static Dictionary<string, RewardTierConfig> EliteRewardTiers() => new()
+    {
+        ["root"]  = new() { Tier1MinResult = "clean", Tier2MinResult = "weathered", Tier2MinWeavePercent = 50 },
+        ["ember"] = new() { Tier1MinResult = "clean", Tier2MinResult = "weathered", Tier2MinWeavePercent = 50 }
     };
 
     private static List<SpawnWave> AddB2Marchers(List<SpawnWave> waves)

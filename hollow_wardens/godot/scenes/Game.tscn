@@ -13,6 +13,9 @@
 [ext_resource type="Script" path="res://godot/views/FearConfirmController.cs" id="11"]
 [ext_resource type="Script" path="res://godot/views/PassivePanelController.cs" id="12"]
 [ext_resource type="Script" path="res://godot/views/WardenSelectController.cs" id="13"]
+[ext_resource type="Script" path="res://godot/views/RewardScreenController.cs" id="14"]
+[ext_resource type="Script" path="res://godot/views/EventScreenController.cs" id="15"]
+[ext_resource type="Script" path="res://godot/views/UpgradeScreenController.cs" id="16"]
 
 [node name="Game" type="Node"]
 
@@ -119,3 +122,12 @@ script = ExtResource("12")
 
 [node name="WardenSelect" type="CanvasLayer" parent="."]
 script = ExtResource("13")
+
+[node name="RewardScreen" type="CanvasLayer" parent="."]
+script = ExtResource("14")
+
+[node name="EventScreen" type="CanvasLayer" parent="."]
+script = ExtResource("15")
+
+[node name="UpgradeScreen" type="CanvasLayer" parent="."]
+script = ExtResource("16")

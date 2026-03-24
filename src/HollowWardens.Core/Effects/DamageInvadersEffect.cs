@@ -24,7 +24,12 @@ public class DamageInvadersEffect : IEffect
         {
             ApplyDamage(invader, damage);
             if (!invader.IsAlive)
+            {
                 GameEvents.InvaderDefeated?.Invoke(invader);
+                // Card-effect kills generate fear (passive/elemental kills do not)
+                state.Dread?.OnFearGenerated(1);
+                GameEvents.FearGenerated?.Invoke(1);
+            }
         }
     }
 

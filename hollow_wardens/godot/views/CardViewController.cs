@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using HollowWardens.Core.Localization;
 using HollowWardens.Core.Models;
 
 /// <summary>
@@ -62,10 +63,10 @@ public partial class CardViewController : PanelContainer
         vbox.AddChild(_nameLabel);
         vbox.AddChild(_elemRow);
         vbox.AddChild(new HSeparator());
-        vbox.AddChild(new Label { Text = "TOP:" });
+        vbox.AddChild(new Label { Text = Loc.Get("CARD_TOP") });
         vbox.AddChild(_topLabel);
         vbox.AddChild(new HSeparator());
-        vbox.AddChild(new Label { Text = "BOT:" });
+        vbox.AddChild(new Label { Text = Loc.Get("CARD_BOT") });
         vbox.AddChild(_botLabel);
         vbox.AddChild(_playBtn);
 
@@ -154,20 +155,20 @@ public partial class CardViewController : PanelContainer
         }
         else if (dormant)
         {
-            _playBtn.Text     = "Dormant";
+            _playBtn.Text     = Loc.Get("CARD_DORMANT");
             _playBtn.Disabled = true;
         }
         else if (phase == TurnPhase.Vigil || inRes)
         {
             bool canPlay      = bridge?.CanPlayTop() ?? true;
-            _playBtn.Text     = inRes ? "Play (Top)" : "Play Top";
+            _playBtn.Text     = inRes ? Loc.Get("BTN_PLAY_TOP_RES") : Loc.Get("BTN_PLAY_TOP");
             _playBtn.Disabled = !canPlay;
             if (!canPlay) _playBtn.Modulate = new Color(1f, 1f, 1f, 0.4f);
         }
         else if (phase == TurnPhase.Dusk)
         {
             bool canPlay      = bridge?.CanPlayBottom() ?? true;
-            _playBtn.Text     = "Play Bottom";
+            _playBtn.Text     = Loc.Get("BTN_PLAY_BOTTOM");
             _playBtn.Disabled = !canPlay;
             if (!canPlay) _playBtn.Modulate = new Color(1f, 1f, 1f, 0.4f);
         }

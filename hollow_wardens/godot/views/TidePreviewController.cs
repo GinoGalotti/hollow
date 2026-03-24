@@ -1,4 +1,5 @@
 using Godot;
+using HollowWardens.Core.Localization;
 
 /// <summary>
 /// Shows the current action card name and pools, plus a preview of the next action card.
@@ -15,7 +16,7 @@ public partial class TidePreviewController : VBoxContainer
         var imFell = GD.Load<Font>("res://godot/assets/fonts/IMFellEnglish-Regular.ttf");
         // TODO: visual upgrade — card_empty.png mini frame for action card preview
 
-        var header = new Label { Text = "── Tide Preview ──", Modulate = new Color(0.5f, 0.8f, 1f) };
+        var header = new Label { Text = Loc.Get("LABEL_TIDE_PREVIEW"), Modulate = new Color(0.5f, 0.8f, 1f) };
         if (cinzel != null) header.AddThemeFontOverride("font", cinzel);
         AddChild(header);
 
@@ -33,7 +34,7 @@ public partial class TidePreviewController : VBoxContainer
         AddChild(_tideLabel);
         AddChild(_currentLabel);
         AddChild(new HSeparator());
-        AddChild(new Label { Text = "Next:", Modulate = Colors.LightGray });
+        AddChild(new Label { Text = Loc.Get("LABEL_NEXT"), Modulate = Colors.LightGray });
         AddChild(_nextLabel);
 
         var bridge = GameBridge.Instance;
@@ -54,7 +55,7 @@ public partial class TidePreviewController : VBoxContainer
         bridge.PhaseChanged          += _ => RefreshTide();
         bridge.ResolutionTurnStarted += n =>
         {
-            _tideLabel.Text    = $"Resolution {n}/{GameBridge.Instance?.State?.Config?.ResolutionTurns ?? 0}";
+            _tideLabel.Text    = Loc.Get("PHASE_RESOLUTION_N", n, GameBridge.Instance?.State?.Config?.ResolutionTurns ?? 0);
             _currentLabel.Text = "";
             _nextLabel.Text    = "";
         };
@@ -69,7 +70,7 @@ public partial class TidePreviewController : VBoxContainer
 
         int current = bridge.State.CurrentTide;
         int total   = bridge.State.Config.TideCount;
-        _tideLabel.Text = $"Tide {current}/{total}";
+        _tideLabel.Text = Loc.Get("PHASE_TIDE_N", current, total);
 
         var card = bridge.State.CurrentActionCard;
         if (card != null)
@@ -80,7 +81,7 @@ public partial class TidePreviewController : VBoxContainer
         }
         else
         {
-            _currentLabel.Text = "(no card yet)";
+            _currentLabel.Text = Loc.Get("LABEL_NO_CARD");
         }
     }
 }

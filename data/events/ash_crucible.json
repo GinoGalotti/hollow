@@ -1,0 +1,20 @@
+{
+    "id": "ash_crucible",
+    "type": "sacrifice",
+    "name_key": "EVENT_ASH_CRUCIBLE",
+    "description_key": "EVENT_ASH_CRUCIBLE_DESC",
+    "warden_filter": "ember",
+    "tags": ["stage_2", "stage_3"],
+    "rarity": "uncommon",
+    "options": [
+        {
+            "label_key": "EVENT_ASH_CRUCIBLE_A",
+            "description_key": "EVENT_ASH_CRUCIBLE_A_DESC",
+            "element_threshold": 8,
+            "element_type": "ash",
+            "effects": [
+                { "type": "upgrade_passive", "target_id": "ember_fury_u1" }
+            ]
+        }
+    ]
+}

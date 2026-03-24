@@ -32,7 +32,7 @@ public static class Loc
             var cols = ParseCsvLine(lines[i]);
             if (cols.Length <= localeIndex) continue;
             var key = cols[0].Trim();
-            var value = cols[localeIndex].Trim();
+            var value = cols[localeIndex].Trim().Replace("\\n", "\n");
             if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
                 _strings[key] = value;
         }

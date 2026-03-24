@@ -1,7 +1,7 @@
 # Hollow Wardens — Simulation Reference
 > Single source of truth for the sim harness, balance knobs, and CLI.
 > Updated by the architecture conversation. Read by the balance conversation.
-> Last updated: 2026-03-22
+> Last updated: 2026-03-22 (Phase 6+ — Progression System added)
 
 ---
 
@@ -43,6 +43,18 @@ dotnet run --project src/HollowWardens.Sim/ -- --seeds 1-500 --warden root --out
 | `--profile` | — | Path to SimProfile JSON file |
 | `--output` | `sim-results/` | Output directory for CSV + summary + logs |
 | `--verbose` | off | Write per-encounter turn-by-turn logs |
+| `--mode` | `single` | Sim mode: `single` (per-encounter) or `chain` (full roguelike run) |
+| `--realm` | `realm_1` | Realm ID to use in chain mode |
+| `--strategy` | `bot` | Decision strategy: `bot` (heuristic) or `telemetry` (profile-driven) |
+| `--strategy-profile` | — | Path to PlayerProfile JSON (required when `--strategy telemetry`) |
+
+**Chain mode example:**
+```bash
+# Full roguelike run sim — 500 seeds through realm_1
+dotnet run --project src/HollowWardens.Sim/ -- --mode chain --realm realm_1 --warden root --seeds 1-500 --output sim-results/root-chain/
+```
+
+Chain mode output appends `chain-runs.csv` alongside the usual output files.
 
 ---
 
@@ -102,6 +114,75 @@ CLI flag: `--encounter <id>`. SimProfile field: `"encounter": "<id>"`. Defaults 
 ```
 
 All fields are optional. Omitted fields use defaults.
+
+### Chain mode additions
+
+```json
+{
+  "mode": "chain",
+  "realm": "realm_1",
+  "chain_overrides": {
+    "starting_max_weave": 18,
+    "starting_tokens": 1,
+    "force_encounters": ["pale_march_standard", "pale_march_scouts", "pale_march_elite"],
+    "disable_events": false,
+    "bot_config": "data/sim/bot_chain_config.json"
+  }
+}
+```
+
+| `chain_overrides` field | Type | Description |
+|-------------------------|------|-------------|
+| `starting_max_weave` | int | Override max weave at run start (default 20) |
+| `starting_tokens` | int | Starting upgrade tokens (default 0) |
+| `force_encounters` | string[] | Override realm encounter sequence |
+| `disable_events` | bool | Skip all event nodes (default false) |
+| `bot_config` | string | Path to BotChainConfig JSON |
+
+---
+
+## Chain Output Format
+
+Chain mode writes `chain-runs.csv` in the output directory. Columns:
+
+| Column | Description |
+|--------|-------------|
+| `seed` | Run seed |
+| `stages_completed` | How many encounters were finished |
+| `encounter_results` | Comma-separated result per stage (clean/weathered/breach) |
+| `final_weave` | Weave at run end |
+| `final_max_weave` | Max weave at run end (can decay via events) |
+| `tokens_earned` | Total upgrade tokens accumulated |
+| `events_resolved` | Number of event nodes resolved |
+| `full_clear` | 1 if all required stages completed, else 0 |
+
+---
+
+## Bot Chain Config (`data/sim/bot_chain_config.json`)
+
+Controls bot decisions between encounters:
+
+```json
+{
+  "draft_priority": ["DamageInvaders", "PlacePresence", "ReduceCorruption", "GenerateFear", "RestoreWeave"],
+  "upgrade_priority": "highest_value_damage_card",
+  "passive_upgrade_over_unlock": true,
+  "event_strategy": "safe",
+  "path_strategy": "balanced",
+  "rest_stop_strategy": {
+    "heal_threshold_percent": 80,
+    "prefer_max_weave_heal_below": 16,
+    "otherwise": "upgrade_card"
+  }
+}
+```
+
+| Field | Values | Description |
+|-------|--------|-------------|
+| `event_strategy` | `"safe"` | Prefer heal options; default option 0 otherwise |
+| `path_strategy` | `"balanced"`, `"first"`, `"last"` | Node selection heuristic |
+| `rest_stop_strategy.heal_threshold_percent` | int | Heal current weave if below this % of max |
+| `rest_stop_strategy.prefer_max_weave_heal_below` | int | Prefer max weave heal if max < this value |
 
 ---
 
@@ -353,6 +434,184 @@ Simulates a campaign's carry-forward state from a prior encounter. Applied after
 | `encounters.csv` | One row per encounter |
 | `per-tide.csv` | One row per tide per encounter |
 | `logs/encounter_{seed}.txt` | Verbose turn-by-turn log |
+| `telemetry.db` | SQLite telemetry database (sim runs; always written) |
+
+---
+
+## Telemetry
+
+### Overview
+
+Every sim run writes a SQLite database (`telemetry.db`) alongside the CSV output. In-game sessions write to `{OS user data dir}/telemetry/hollow_wardens.db`. These can be aggregated into a `PlayerProfile` for replay-accurate bot simulations.
+
+### Aggregate Telemetry
+
+```bash
+# Aggregate a telemetry DB into a PlayerProfile JSON
+dotnet run --project src/HollowWardens.Sim/ -- --aggregate-telemetry sim-results/my-run/telemetry.db --output player_profile.json
+
+# Filter to a specific game version prefix (e.g. "0.8" matches "0.8.0+5")
+dotnet run --project src/HollowWardens.Sim/ -- --aggregate-telemetry hollow_wardens.db --version-filter 0.8 --output player_profile.json
+```
+
+The command exits immediately after writing the JSON. No encounter simulation is run.
+
+### Telemetry-Driven Strategy
+
+```bash
+# Run sim using a telemetry-derived player profile instead of the hardcoded bot
+dotnet run --project src/HollowWardens.Sim/ -- --warden root --strategy telemetry --strategy-profile player_profile.json --seeds 1-500
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--strategy` | `bot` | `bot` = BotStrategy heuristics; `telemetry` = weighted by PlayerProfile |
+| `--strategy-profile` | — | Path to PlayerProfile JSON (required for `--strategy telemetry`) |
+| `--aggregate-telemetry` | — | Path to telemetry DB to aggregate; writes JSON to `--output` then exits |
+| `--version-filter` | — | Version prefix filter applied to aggregated records (e.g. `"0.8"`) |
+
+### Database Schema
+
+Five tables are written. All rows include `game_version`, `balance_hash`, `schema_version`, and `source` columns.
+
+#### `runs`
+| Column | Type | Description |
+|--------|------|-------------|
+| `run_id` | TEXT | UUID for the run |
+| `warden_id` | TEXT | `root` or `ember` |
+| `mode` | TEXT | `single`, `chain_sim`, or `player` |
+| `realm_id` | TEXT | Realm played |
+| `seed` | INTEGER | RNG seed |
+| `result` | TEXT | `complete` or `failed` |
+| `final_weave` | INTEGER | Weave at run end |
+| `final_max_weave` | INTEGER | Max weave at run end |
+| `total_fear` | INTEGER | Cumulative fear generated |
+
+#### `encounters`
+| Column | Type | Description |
+|--------|------|-------------|
+| `run_id` | TEXT | Parent run UUID |
+| `encounter_id` | TEXT | Encounter config ID |
+| `board_layout` | TEXT | Board layout used |
+| `result` | TEXT | `clean`, `weathered`, or `breach` |
+| `final_weave` | INTEGER | Weave at encounter end |
+| `tides_completed` | INTEGER | Tides run |
+| `invaders_killed` | INTEGER | Invaders defeated |
+| `fear_generated` | INTEGER | Fear generated this encounter |
+| `heart_damage_events` | INTEGER | Invaders that reached heart row |
+| `peak_corruption` | INTEGER | Peak corruption across all territories |
+| `sacrifices` | INTEGER | Presence sacrificed |
+| `reward_tier` | TEXT | Reward tier earned (if tracked) |
+| `elements_json` | TEXT | JSON snapshot of element counts at end |
+
+#### `decisions`
+| Column | Type | Description |
+|--------|------|-------------|
+| `run_id` | TEXT | Parent run UUID |
+| `encounter_id` | TEXT | Current encounter |
+| `tide` | INTEGER | Tide number when decision was made |
+| `type` | TEXT | `card_play`, `rest`, `targeting`, `draft`, `upgrade` |
+| `chosen` | TEXT | ID of chosen card or territory |
+| `chosen_detail` | TEXT | Effect type (for targeting decisions) |
+| `card_half` | TEXT | `top` or `bottom` |
+| `target_territory` | TEXT | Territory targeted |
+| `options_json` | TEXT | JSON array of available options |
+| `reason` | TEXT | Bot strategy reason string |
+| `weave_at_decision` | INTEGER | Current weave |
+| `game_version` | TEXT | Game version string |
+
+#### `tide_snapshots`
+| Column | Type | Description |
+|--------|------|-------------|
+| `run_id` | TEXT | Parent run UUID |
+| `encounter_id` | TEXT | Current encounter |
+| `tide` | INTEGER | Tide number |
+| `invaders_arrived` | INTEGER | Invaders that arrived this tide |
+| `invaders_killed` | INTEGER | Invaders killed this tide |
+| `weave_after` | INTEGER | Weave at tide end |
+| `elements_json` | TEXT | Element counts at tide end |
+
+#### `events`
+| Column | Type | Description |
+|--------|------|-------------|
+| `run_id` | TEXT | Parent run UUID |
+| `event_id` | TEXT | Event definition ID |
+| `event_type` | TEXT | `choice`, `rest`, `corruption`, etc. |
+| `option_chosen` | INTEGER | Index of option selected |
+| `effects_json` | TEXT | Effects applied |
+| `weave_before` | INTEGER | Weave before event |
+| `weave_after` | INTEGER | Weave after event |
+| `tokens_before` | INTEGER | Tokens before event |
+| `tokens_after` | INTEGER | Tokens after event |
+
+### Example Queries
+
+```sql
+-- Win rate by warden and encounter
+SELECT e.encounter_id, r.warden_id,
+       COUNT(*) AS total,
+       SUM(CASE WHEN e.result = 'clean' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS clean_pct,
+       SUM(CASE WHEN e.result = 'breach' THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS breach_pct
+FROM encounters e JOIN runs r USING (run_id)
+GROUP BY e.encounter_id, r.warden_id;
+
+-- Most-played cards (top plays only)
+SELECT chosen, COUNT(*) AS plays
+FROM decisions
+WHERE type = 'card_play' AND card_half = 'top'
+GROUP BY chosen ORDER BY plays DESC;
+
+-- Voluntary rest rate (had cards available but rested)
+SELECT
+    SUM(CASE WHEN type = 'rest' AND options_json != '[]' THEN 1 ELSE 0 END) * 1.0
+    / NULLIF(COUNT(*), 0) AS voluntary_rest_rate
+FROM decisions WHERE type IN ('card_play', 'rest');
+
+-- Average weave at which a specific card is played
+SELECT chosen, ROUND(AVG(weave_at_decision), 1) AS avg_weave
+FROM decisions WHERE type = 'card_play'
+GROUP BY chosen ORDER BY avg_weave;
+
+-- Element distribution at encounter end (parse JSON in Python/pandas)
+SELECT encounter_id, elements_json FROM encounters WHERE result = 'breach';
+```
+
+### Player Profile JSON Format
+
+Produced by `--aggregate-telemetry`. Consumed by `--strategy telemetry`.
+
+```json
+{
+  "name": "",
+  "source": "telemetry",
+  "sample_size": 1200,
+  "game_version_filter": "0.8",
+  "card_play_distribution": {
+    "root_001": 0.18,
+    "root_002": 0.12
+  },
+  "targeting_preference": {
+    "DamageInvaders": "most_invaded",
+    "ReduceCorruption": "highest_corruption"
+  },
+  "bottom_play_rate": 0.42,
+  "rest_timing": {
+    "forced_rest_pct": 0.15,
+    "voluntary_rest_pct": 0.08,
+    "avg_cards_in_hand_at_rest": 2.3
+  },
+  "draft_preferences": {
+    "root_015": 0.31,
+    "root_022": 0.24
+  },
+  "upgrade_preferences": {
+    "root_001": 0.45
+  },
+  "event_risk_tolerance": 0.6
+}
+```
+
+All fields are optional when hand-authoring a profile. Missing fields cause the `TelemetryDrivenStrategy` to fall back to `BotStrategy` heuristics.
 
 ---
 
@@ -405,6 +664,130 @@ T1+T2+T3 each firing once = 6 combined damage per turn when all three are active
 
 Thresholds reset at Vigil start. Do NOT reset between Vigil and Dusk.
 Rest turns check thresholds against carryover elements.
+
+---
+
+## Event System
+
+Events fire at `event`, `rest`, `merchant`, and `corruption` nodes in the realm map.
+Event definitions live in `data/events/*.json`. Each event has:
+
+```json
+{
+  "id": "whispering_grove",
+  "type": "choice",
+  "name_key": "EVENT_WHISPERING_GROVE",
+  "description_key": "EVENT_WHISPERING_GROVE_DESC",
+  "warden_filter": null,
+  "tags": ["stage_1", "stage_2"],
+  "rarity": "common",
+  "options": [
+    {
+      "label_key": "EVENT_WHISPERING_GROVE_A",
+      "description_key": "EVENT_WHISPERING_GROVE_A_DESC",
+      "effects": [
+        { "type": "add_corruption", "value": 2 },
+        { "type": "add_tokens", "value": 1 }
+      ]
+    }
+  ]
+}
+```
+
+**Event types:** `choice`, `sacrifice`, `rest`, `corruption`, `merchant`
+
+**Tags used for filtering:**
+- Stage tags: `stage_1`, `stage_2`, `stage_3`, `low_weave`
+- Node tags: `rest`, `merchant`, `corruption`
+- Warden tags: set `warden_filter: "root"` to restrict to one warden
+
+**RunEffect types supported in event options:**
+
+| Effect type | Description |
+|-------------|-------------|
+| `heal_weave` | Restore current weave |
+| `heal_max_weave` | Restore max weave |
+| `reduce_max_weave` | Reduce max weave permanently |
+| `add_tokens` | Add upgrade tokens |
+| `remove_tokens` | Remove upgrade tokens |
+| `add_corruption` | Add corruption carryover to a territory |
+| `cleanse_carryover` | Remove corruption carryover |
+| `dissolve_card` | Permanently remove a card from deck |
+| `add_card` | Add a card to the deck |
+| `recover_card` | Un-remove a dissolved card |
+| `unlock_passive` | Unlock a passive ability |
+| `upgrade_passive` | Apply passive upgrade |
+| `upgrade_card` | Apply card upgrade |
+| `set_elements` | Set starting element counts |
+| `set_balance` | Override a BalanceConfig field |
+| `modify_hand_limit` | Change hand limit by ±N |
+
+---
+
+## Reward Tier Config
+
+Reward tiers are defined in `data/rewards/reward_tiers.json`:
+
+```json
+{
+  "tier1": { "draft_choices": 3, "upgrade_tokens": 1, "can_remove_card": true, "can_choose_heal": false, "draft_pool_tag": "tier1" },
+  "tier2": { "draft_choices": 2, "upgrade_tokens": 1, "can_remove_card": false, "can_choose_heal": false, "draft_pool_tag": "tier2" },
+  "tier3": { "draft_choices": 2, "upgrade_tokens": 0, "can_remove_card": false, "can_choose_heal": true, "draft_pool_tag": "tier3" }
+}
+```
+
+**Tier assignment** (per encounter, per warden — defined in encounter config):
+- **Tier 1 (Clean Victory):** Full clear + weave ≥ threshold %
+- **Tier 2 (Weathered):** Survived, weave below threshold
+- **Tier 3 (Breach):** Invaders reached heart row
+
+---
+
+## Draft Pool Config (`data/rewards/draft_pools.json`)
+
+Controls which cards are offered as draft choices by rarity:
+
+```json
+{
+  "default": {
+    "stage_1": { "tier1": ["uncommon", "common"], "tier2": ["common"], "tier3": ["common"] },
+    "stage_2": { "tier1": ["rare", "uncommon"], "tier2": ["uncommon", "common"], "tier3": ["common"] },
+    "stage_3": { "tier1": ["rare"], "tier2": ["rare", "uncommon"], "tier3": ["uncommon"] }
+  }
+}
+```
+
+Non-starting cards are filtered by their `rarity` field to match the allowed rarities for the current stage and reward tier.
+
+---
+
+## Developer Console Commands
+
+Toggle with backtick (`` ` ``). Available commands:
+
+| Command | Args | Description |
+|---------|------|-------------|
+| `/help` | `[cmd]` | List all commands or help for one |
+| `/encounter` | `<id>` | Start a specific encounter |
+| `/restart` | — | Restart current encounter with same seed |
+| `/set_weave` | `<n>` | Set current weave to n |
+| `/set_max_weave` | `<n>` | Set max weave to n |
+| `/set_corruption` | `<territory> <pts>` | Set corruption on territory |
+| `/add_presence` | `<territory> [n]` | Place n presence tokens (default 1) |
+| `/set_element` | `<element> <count>` | Set element pool |
+| `/set_dread` | `<level>` | Set dread level |
+| `/spawn` | `<type> <territory>` | Spawn an invader |
+| `/kill_all` | — | Remove all invaders |
+| `/add_card` | `<card_id>` | Add card to hand |
+| `/upgrade_card` | `<card_id> <upgrade_id>` | Apply card upgrade |
+| `/unlock_passive` | `<id>` | Force-unlock passive |
+| `/upgrade_passive` | `<id>` | Apply passive upgrade |
+| `/give_tokens` | `<n>` | Add upgrade tokens |
+| `/trigger_event` | `<event_id>` | Trigger a named event |
+| `/export` | — | Print encounter state summary |
+| `/run_info` | — | Print current run state |
+| `/skip_tide` | — | Auto-resolve current tide |
+| `/end_encounter` | `[result]` | Force-end (clean/weathered/breach) |
 
 ---
 

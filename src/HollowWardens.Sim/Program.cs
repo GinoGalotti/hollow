@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using HollowWardens.Core;
+using HollowWardens.Core.Telemetry;
 using HollowWardens.Core.Cards;
 using HollowWardens.Core.Data;
 using HollowWardens.Core.Encounter;
@@ -20,18 +21,45 @@ string? cliOutput   = null;
 string? cliData     = null;
 string? cliEncounter = null;
 string? profilePath  = null;
+string? cliMode     = null;
+string? cliRealm    = null;
+string? aggregateTelemetryPath = null;
+string? versionFilter = null;
+string? cliStrategy = null;
+string? cliStrategyProfile = null;
 bool    verbose      = false;
 
 for (int i = 0; i < args.Length; i++)
 {
-    if      (args[i] == "--seeds"     && i + 1 < args.Length) cliSeeds    = args[++i];
-    else if (args[i] == "--seed"      && i + 1 < args.Length) cliSeeds    = args[++i]; // backward compat: single seed
-    else if (args[i] == "--data"      && i + 1 < args.Length) cliData     = args[++i];
-    else if (args[i] == "--output"    && i + 1 < args.Length) cliOutput   = args[++i];
-    else if (args[i] == "--warden"    && i + 1 < args.Length) cliWarden   = args[++i];
-    else if (args[i] == "--encounter" && i + 1 < args.Length) cliEncounter = args[++i];
-    else if (args[i] == "--profile"   && i + 1 < args.Length) profilePath  = args[++i];
-    else if (args[i] == "--verbose")                           verbose      = true;
+    if      (args[i] == "--seeds"               && i + 1 < args.Length) cliSeeds    = args[++i];
+    else if (args[i] == "--seed"                && i + 1 < args.Length) cliSeeds    = args[++i]; // backward compat: single seed
+    else if (args[i] == "--data"                && i + 1 < args.Length) cliData     = args[++i];
+    else if (args[i] == "--output"              && i + 1 < args.Length) cliOutput   = args[++i];
+    else if (args[i] == "--warden"              && i + 1 < args.Length) cliWarden   = args[++i];
+    else if (args[i] == "--encounter"           && i + 1 < args.Length) cliEncounter = args[++i];
+    else if (args[i] == "--profile"             && i + 1 < args.Length) profilePath  = args[++i];
+    else if (args[i] == "--mode"                && i + 1 < args.Length) cliMode     = args[++i];
+    else if (args[i] == "--realm"               && i + 1 < args.Length) cliRealm    = args[++i];
+    else if (args[i] == "--aggregate-telemetry" && i + 1 < args.Length) aggregateTelemetryPath = args[++i];
+    else if (args[i] == "--version-filter"      && i + 1 < args.Length) versionFilter = args[++i];
+    else if (args[i] == "--strategy"            && i + 1 < args.Length) cliStrategy = args[++i];
+    else if (args[i] == "--strategy-profile"    && i + 1 < args.Length) cliStrategyProfile = args[++i];
+    else if (args[i] == "--verbose")                                     verbose      = true;
+}
+
+// ── Aggregate telemetry mode ──────────────────────────────────────────────────
+if (aggregateTelemetryPath != null)
+{
+    string aggOutput = cliOutput ?? Path.ChangeExtension(aggregateTelemetryPath, ".profile.json");
+    var playerProfile = TelemetryAggregator.Aggregate(aggregateTelemetryPath, versionFilter);
+    playerProfile.Name = Path.GetFileNameWithoutExtension(aggregateTelemetryPath);
+    var json = System.Text.Json.JsonSerializer.Serialize(playerProfile,
+        new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+    Directory.CreateDirectory(Path.GetDirectoryName(aggOutput) ?? ".");
+    File.WriteAllText(aggOutput, json);
+    Console.WriteLine($"Profile written to {Path.GetFullPath(aggOutput)}");
+    Console.WriteLine($"Sample size: {playerProfile.SampleSize} decisions");
+    return 0;
 }
 
 // ── Load profile (if given) ───────────────────────────────────────────────────
@@ -55,6 +83,8 @@ int    runs         = seeds.Count;
 string wardenArg    = cliWarden   ?? profile?.Warden    ?? "root";
 string encounterArg = cliEncounter ?? profile?.Encounter ?? "pale_march_standard";
 string outputDir    = cliOutput   ?? profile?.Output    ?? "sim-results";
+string modeArg      = cliMode     ?? profile?.Mode      ?? "single";
+string realmArg     = cliRealm    ?? profile?.Realm     ?? "realm_1";
 string? dataPath    = cliData;
 
 // ── Build BalanceConfig from profile overrides ────────────────────────────────
@@ -86,8 +116,88 @@ if (!File.Exists(dataPath))
     return 1;
 }
 
-string seedsDisplay = FormatSeedsDisplay(seeds);
+// ── Chain mode dispatch ───────────────────────────────────────────────────────
+if (modeArg == "chain")
+{
+    string seedsDisplay2 = FormatSeedsDisplay(seeds);
+    Console.WriteLine($"=== HOLLOW WARDENS CHAIN SIMULATION — {runs} runs (seeds {seedsDisplay2}) ===");
+    Console.WriteLine($"Game: {GameVersion.Full} | Balance: {balance.GetHash()}");
+    Console.WriteLine($"Warden: {wardenArg} | Realm: {realmArg}");
+    Console.WriteLine();
+
+    Directory.CreateDirectory(outputDir);
+    var chainDbPath = Path.Combine(outputDir, "telemetry.db");
+    using var chainTelSink = new SQLiteSink(chainDbPath);
+    using var chainTelemetry = new TelemetryCollector(chainTelSink, balance.GetHash(), source: "bot");
+
+    var chainResults = new List<ChainRunResult>();
+    foreach (int seed in seeds)
+    {
+        var chainResult = ChainSimulator.RunChain(seed, wardenArg, dataPath!, realmArg,
+            balance.Clone(), BotChainConfig.Default, chainTelemetry);
+        chainResults.Add(chainResult);
+    }
+
+    int totalRuns  = chainResults.Count;
+    int fullClears = chainResults.Count(r => r.FullClear);
+    double chainPct(int n) => totalRuns == 0 ? 0 : Math.Round(n * 100.0 / totalRuns, 1);
+
+    int optionalCount = chainResults.Count(r => r.ReachedOptionalStage);
+
+    Console.WriteLine("RUN OUTCOMES:");
+    Console.WriteLine($"  Full clear: {fullClears} ({chainPct(fullClears)}%)");
+    Console.WriteLine($"  Optional stage reached: {optionalCount} ({chainPct(optionalCount)}%)");
+    for (int s = 1; s <= 4; s++)
+    {
+        int failedAt = chainResults.Count(r => r.StagesCompleted == s - 1 && !r.FullClear);
+        if (failedAt > 0)
+            Console.WriteLine($"  Failed at E{s}: {failedAt} ({chainPct(failedAt)}%)");
+    }
+    Console.WriteLine();
+
+    Console.WriteLine("WEAVE ARC:");
+    int maxHistory = chainResults.Max(r => r.MaxWeaveHistory.Count);
+    for (int s = 0; s < maxHistory; s++)
+    {
+        var weaves = chainResults.Where(r => r.MaxWeaveHistory.Count > s)
+            .Select(r => (double)r.MaxWeaveHistory[s]).ToList();
+        if (weaves.Count > 0)
+            Console.WriteLine($"  Avg max weave after E{s + 1}: {Math.Round(weaves.Average(), 1)}");
+    }
+    Console.WriteLine($"  Avg final weave: {Math.Round(chainResults.Average(r => r.FinalWeave), 1)}");
+    Console.WriteLine();
+
+    Console.WriteLine("PROGRESSION:");
+    Console.WriteLine($"  Avg tokens earned:    {Math.Round(chainResults.Average(r => r.TokensEarned), 2)}");
+    Console.WriteLine($"  Avg events resolved:  {Math.Round(chainResults.Average(r => r.EventsResolved), 2)}");
+    Console.WriteLine();
+
+    // Write chain-runs.csv
+    Directory.CreateDirectory(outputDir);
+    var chainCsv = new StringBuilder();
+    chainCsv.AppendLine("seed,stages_completed,full_clear,final_weave,final_max_weave,tokens_earned,events_resolved,results");
+    foreach (var r in chainResults)
+    {
+        string results = string.Join("|", r.EncounterResults);
+        chainCsv.AppendLine($"{r.Seed},{r.StagesCompleted},{r.FullClear},{r.FinalWeave},{r.FinalMaxWeave},{r.TokensEarned},{r.EventsResolved},{results}");
+    }
+    File.WriteAllText(Path.Combine(outputDir, "chain-runs.csv"), chainCsv.ToString(), System.Text.Encoding.UTF8);
+    Console.WriteLine($"Results written to {Path.GetFullPath(outputDir)}/chain-runs.csv");
+    return 0;
+}
+
+string seedsDisplay  = FormatSeedsDisplay(seeds);
+string balanceHash   = balance.GetHash();
+
+// Create telemetry sink for single-encounter mode
+Directory.CreateDirectory(outputDir);
+var telDbPath = Path.Combine(outputDir, "telemetry.db");
+using var telSink = new SQLiteSink(telDbPath);
+using var telemetry = new TelemetryCollector(telSink, balanceHash, source: "bot");
+telemetry.StartRun(wardenArg, "single", realmArg, seeds.Count > 0 ? seeds[0] : 0);
+
 Console.WriteLine($"=== HOLLOW WARDENS SIMULATION — {runs} encounters (seeds {seedsDisplay}) ===");
+Console.WriteLine($"Game: {GameVersion.Full} | Balance: {balanceHash}");
 Console.WriteLine($"Warden: {wardenArg} | Encounter: {encounterArg}");
 if (profile != null) Console.WriteLine($"Profile: {profile.Name}");
 Console.WriteLine();
@@ -104,7 +214,14 @@ foreach (int seed in seeds)
 
     collector.WireEvents();
 
-    IPlayerStrategy strategy = wardenArg == "ember" ? new EmberBotStrategy() : new BotStrategy();
+    telemetry.StartEncounter(encounterArg, state.Config.BoardLayout, state.Balance.MaxWeave);
+    GameEvents.InvaderDefeated += _ => telemetry.OnInvaderKilled();
+    GameEvents.FearGenerated += amt => telemetry.OnFearGenerated(amt);
+    GameEvents.HeartDamageDealt += _ => telemetry.OnHeartDamage();
+    GameEvents.TideCompleted += t => telemetry.SetTide(t);
+
+    IPlayerStrategy strategy = BuildStrategy(cliStrategy, cliStrategyProfile, wardenArg);
+    IPlayerStrategy wrappedStrategy = new TelemetryBotWrapper(strategy, telemetry);
 
     // --verbose: log first 5 encounters; remaining breaches logged after result
     VerboseLogger? vlog = null;
@@ -116,9 +233,10 @@ foreach (int seed in seeds)
         vlog.WireEvents();
     }
 
-    var result = runner.Run(state, strategy);
+    var result = runner.Run(state, wrappedStrategy);
     collector.Finalize(result);
     collector.UnwireEvents();
+    telemetry.EndEncounter(state, result.ToString().ToLowerInvariant(), null);
 
     // For verbose: also log breach encounters beyond first 5
     if (verbose && !logThisEncounter && result == EncounterResult.Breach)
@@ -166,6 +284,7 @@ double Avg(Func<SimStats, double> f) => total == 0 ? 0 : Math.Round(allStats.Ave
 var summary   = new StringBuilder();
 var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 summary.AppendLine($"=== HOLLOW WARDENS SIMULATION — {runs} encounters (seeds {seedsDisplay}) ===");
+summary.AppendLine($"Game: {GameVersion.Full} | Balance: {balanceHash}");
 summary.AppendLine($"Warden: {wardenArg} | Encounter: {encounterArg}");
 if (profile != null) summary.AppendLine($"Profile: {profile.Name}");
 summary.AppendLine($"Timestamp: {timestamp}");
@@ -232,6 +351,8 @@ var closest = allExports.OrderBy(r => r.stats.FinalWeave).First();
 summary.AppendLine($"[CLOSEST CALL] Encounter with lowest weave ({closest.stats.FinalWeave}) — seed {closest.seed}:");
 summary.AppendLine(closest.export);
 
+telemetry.EndRun(null, breachCount == 0 ? "complete" : "breach");
+
 Console.Write(summary.ToString());
 
 // ── Write output files ─────────────────────────────────────────────────────
@@ -242,7 +363,7 @@ File.WriteAllText(Path.Combine(outputDir, "summary.txt"), summary.ToString(), En
 
 // encounters.csv
 var encountersCsv = new StringBuilder();
-encountersCsv.AppendLine("seed,result,tides_completed,final_weave,max_weave,invaders_killed,natives_killed,heart_damage_events,peak_corruption,total_corruption_at_end,total_presence_at_end,sacrifices,total_fear_generated,dread_level,cards_removed,final_corruption_json,export_string");
+encountersCsv.AppendLine("seed,result,tides_completed,final_weave,max_weave,invaders_killed,natives_killed,heart_damage_events,peak_corruption,total_corruption_at_end,total_presence_at_end,sacrifices,total_fear_generated,dread_level,cards_removed,final_corruption_json,game_version,balance_hash,export_string");
 foreach (var (stats, export, seed) in allExports)
 {
     var escapedExport = "\"" + export.Replace("\"", "\"\"") + "\"";
@@ -259,7 +380,8 @@ foreach (var (stats, export, seed) in allExports)
         $"{seed},{stats.Result},{stats.TidesCompleted},{stats.FinalWeave},20," +
         $"{stats.InvadersKilled},{stats.NativesKilled},{stats.HeartDamageEvents}," +
         $"{stats.PeakCorruption},{corrAtEnd},{presAtEnd}," +
-        $"{stats.SacrificeCount},{stats.TotalFearGenerated},{dreadLevel},{cardsRemoved},{corrJson},{escapedExport}");
+        $"{stats.SacrificeCount},{stats.TotalFearGenerated},{dreadLevel},{cardsRemoved},{corrJson}," +
+        $"{GameVersion.Version},{balanceHash},{escapedExport}");
 }
 File.WriteAllText(Path.Combine(outputDir, "encounters.csv"), encountersCsv.ToString(), Encoding.UTF8);
 
@@ -296,6 +418,19 @@ static IReadOnlyList<int> ParseSeeds(string s)
         return Enumerable.Range(start, end - start + 1).ToList();
     }
     return s.Split(',').Select(x => int.Parse(x.Trim())).ToArray();
+}
+
+static IPlayerStrategy BuildStrategy(string? strategyName, string? profilePath, string wardenId)
+{
+    if (strategyName == "telemetry" && profilePath != null && File.Exists(profilePath))
+    {
+        var json = File.ReadAllText(profilePath);
+        var playerProfile = System.Text.Json.JsonSerializer.Deserialize<PlayerProfile>(json,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            ?? new PlayerProfile();
+        return new TelemetryDrivenStrategy(playerProfile, new Random());
+    }
+    return wardenId == "ember" ? (IPlayerStrategy)new EmberBotStrategy() : new BotStrategy();
 }
 
 static string FormatSeedsDisplay(IReadOnlyList<int> seeds)

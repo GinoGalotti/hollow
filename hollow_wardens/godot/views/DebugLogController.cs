@@ -1,4 +1,5 @@
 using Godot;
+using HollowWardens.Core.Localization;
 using HollowWardens.Core.Models;
 
 /// <summary>
@@ -44,7 +45,7 @@ public partial class DebugLogController : Control
         // Header label (top-right corner)
         var header = new Label
         {
-            Text        = "Debug Log  [D] to close",
+            Text        = Loc.Get("DEBUG_LOG_TITLE"),
             Modulate    = new Color(0.6f, 0.6f, 0.6f),
             MouseFilter = MouseFilterEnum.Ignore
         };
@@ -62,22 +63,22 @@ public partial class DebugLogController : Control
         toolbar.OffsetRight  = 620;
         toolbar.OffsetBottom = 28;
 
-        var copyBtn = new Button { Text = "Copy State" };
+        var copyBtn = new Button { Text = Loc.Get("BTN_COPY_STATE") };
         copyBtn.Pressed += OnCopyState;
         toolbar.AddChild(copyBtn);
 
         _importEdit = new LineEdit
         {
-            PlaceholderText   = "Paste saved state here…",
+            PlaceholderText   = Loc.Get("PASTE_PLACEHOLDER"),
             CustomMinimumSize = new Vector2(220, 0),
         };
         toolbar.AddChild(_importEdit);
 
-        var loadBtn = new Button { Text = "Load" };
+        var loadBtn = new Button { Text = Loc.Get("BTN_LOAD") };
         loadBtn.Pressed += OnLoadState;
         toolbar.AddChild(loadBtn);
 
-        var copyLogBtn = new Button { Text = "Copy Log" };
+        var copyLogBtn = new Button { Text = Loc.Get("BTN_COPY_LOG") };
         copyLogBtn.Pressed += OnCopyLog;
         toolbar.AddChild(copyLogBtn);
 
@@ -120,11 +121,11 @@ public partial class DebugLogController : Control
         var data = GameBridge.Instance?.ExportEncounterState();
         if (data == null || data.Length == 0)
         {
-            _copyStatusLabel.Text = "Nothing to export";
+            _copyStatusLabel.Text = Loc.Get("NOTHING_TO_EXPORT");
             return;
         }
         DisplayServer.ClipboardSet(data);
-        _copyStatusLabel.Text = "Copied!";
+        _copyStatusLabel.Text = Loc.Get("COPIED");
         GetTree().CreateTimer(2.0).Timeout += () => _copyStatusLabel.Text = "";
     }
 
@@ -134,7 +135,7 @@ public partial class DebugLogController : Control
         if (text.Length == 0) return;
         GameBridge.Instance?.ImportAndReplay(text);
         _importEdit.Text      = "";
-        _copyStatusLabel.Text = "State loaded";
+        _copyStatusLabel.Text = Loc.Get("STATE_LOADED");
         GetTree().CreateTimer(2.0).Timeout += () => _copyStatusLabel.Text = "";
     }
 
@@ -147,9 +148,9 @@ public partial class DebugLogController : Control
                 sb.AppendLine(lbl.Text);
         }
         var logText = sb.ToString();
-        if (logText.Length == 0) { _copyStatusLabel.Text = "Log is empty"; return; }
+        if (logText.Length == 0) { _copyStatusLabel.Text = Loc.Get("LOG_EMPTY"); return; }
         DisplayServer.ClipboardSet(logText);
-        _copyStatusLabel.Text = "Log copied!";
+        _copyStatusLabel.Text = Loc.Get("LOG_COPIED");
         GetTree().CreateTimer(2.0).Timeout += () => _copyStatusLabel.Text = "";
     }
 

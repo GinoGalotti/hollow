@@ -1,0 +1,18 @@
+{
+    "id": "eclipse_approaching",
+    "type": "corruption",
+    "name_key": "EVENT_ECLIPSE_APPROACHING",
+    "description_key": "EVENT_ECLIPSE_APPROACHING_DESC",
+    "warden_filter": null,
+    "tags": ["stage_2", "stage_3"],
+    "rarity": "uncommon",
+    "options": [
+        {
+            "label_key": "EVENT_ECLIPSE_APPROACHING_A",
+            "description_key": "EVENT_ECLIPSE_APPROACHING_A_DESC",
+            "effects": [
+                { "type": "set_balance", "key": "eclipse_tides", "value": 1 }
+            ]
+        }
+    ]
+}

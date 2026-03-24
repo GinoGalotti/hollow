@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using HollowWardens.Core.Localization;
 
 /// <summary>
 /// Displays the warden's passive abilities in the bottom-left corner.
@@ -135,9 +136,9 @@ public partial class PassivePanelController : VBoxContainer
 
     private static string GetUnlockCondition(string passiveId) => passiveId switch
     {
-        "rest_growth"          => "Unlocks at: Root T1 (4 Root)",
-        "presence_provocation" => "Unlocks at: Root T2 (7 Root)",
-        "network_slow"         => "Unlocks at: Shadow T1 (4 Shadow)",
+        "rest_growth"          => Loc.Get("PASSIVE_UNLOCK", Loc.Get("ELEMENT_ROOT"),   1, 4),
+        "presence_provocation" => Loc.Get("PASSIVE_UNLOCK", Loc.Get("ELEMENT_ROOT"),   2, 7),
+        "network_slow"         => Loc.Get("PASSIVE_UNLOCK", Loc.Get("ELEMENT_SHADOW"), 1, 4),
         _                      => ""
     };
 

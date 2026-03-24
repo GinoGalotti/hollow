@@ -1,0 +1,28 @@
+{
+    "id": "whispering_grove",
+    "type": "choice",
+    "name_key": "EVENT_WHISPERING_GROVE",
+    "description_key": "EVENT_WHISPERING_GROVE_DESC",
+    "warden_filter": null,
+    "tags": ["stage_1", "stage_2"],
+    "rarity": "common",
+    "options": [
+        {
+            "label_key": "EVENT_WHISPERING_GROVE_A",
+            "description_key": "EVENT_WHISPERING_GROVE_A_DESC",
+            "effects": [
+                { "type": "add_card", "rarity": "ancient", "value": 1 },
+                { "type": "add_corruption", "territories": ["random"], "value": 3 },
+                { "type": "add_corruption", "territories": ["random"], "value": 3 }
+            ]
+        },
+        {
+            "label_key": "EVENT_WHISPERING_GROVE_B",
+            "description_key": "EVENT_WHISPERING_GROVE_B_DESC",
+            "effects": [
+                { "type": "cleanse_carryover" },
+                { "type": "dissolve_card", "value": 1 }
+            ]
+        }
+    ]
+}

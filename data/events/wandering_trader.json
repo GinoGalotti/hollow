@@ -1,0 +1,39 @@
+{
+    "id": "wandering_trader",
+    "type": "merchant",
+    "name_key": "EVENT_WANDERING_TRADER",
+    "description_key": "EVENT_WANDERING_TRADER_DESC",
+    "warden_filter": null,
+    "tags": ["stage_1", "stage_2", "stage_3"],
+    "rarity": "common",
+    "options": [
+        {
+            "label_key": "EVENT_WANDERING_TRADER_A",
+            "description_key": "EVENT_WANDERING_TRADER_A_DESC",
+            "effects": [
+                { "type": "add_card", "value": 1 }
+            ]
+        },
+        {
+            "label_key": "EVENT_WANDERING_TRADER_B",
+            "description_key": "EVENT_WANDERING_TRADER_B_DESC",
+            "effects": [
+                { "type": "add_card", "value": 1 }
+            ]
+        },
+        {
+            "label_key": "EVENT_WANDERING_TRADER_C",
+            "description_key": "EVENT_WANDERING_TRADER_C_DESC",
+            "effects": [
+                { "type": "add_card", "value": 1 }
+            ]
+        },
+        {
+            "label_key": "EVENT_WANDERING_TRADER_D",
+            "description_key": "EVENT_WANDERING_TRADER_D_DESC",
+            "effects": [
+                { "type": "add_card", "value": 1 }
+            ]
+        }
+    ]
+}

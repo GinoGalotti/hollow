@@ -58,6 +58,17 @@ public static class WardenLoader
         Trigger     = p.Trigger,
         Mechanic    = p.Mechanic,
         Params      = p.Params,
+        Upgrade     = p.Upgrade == null ? null : new PassiveUpgradeData
+        {
+            Id             = p.Upgrade.Id,
+            DescriptionKey = p.Upgrade.DescriptionKey,
+            Effects        = p.Upgrade.Effects.Select(e => new PassiveUpgradeEffect
+            {
+                Type  = e.Type,
+                Key   = e.Key,
+                Value = e.Value
+            }).ToList()
+        }
     };
 
     private static Card MapCard(CardJson c, string wardenId) => new()
@@ -70,7 +81,21 @@ public static class WardenLoader
         Elements        = c.Elements.Select(ParseElement).ToArray(),
         TopEffect       = MapEffect(c.Top),
         BottomEffect    = MapEffect(c.Bottom),
-        BottomSecondary = c.Bottom.Secondary != null ? MapEffect(c.Bottom.Secondary) : null
+        BottomSecondary = c.Bottom.Secondary != null ? MapEffect(c.Bottom.Secondary) : null,
+        UpgradeSlots    = c.Upgrades.Select(MapUpgradeSlot).ToList()
+    };
+
+    private static CardUpgradeSlot MapUpgradeSlot(UpgradeSlotJson u) => new()
+    {
+        Id             = u.Id,
+        Slot           = u.Slot,
+        Field          = u.Field,
+        Action         = u.Action,
+        Element        = u.Element,
+        From           = u.From,
+        To             = u.To,
+        Cost           = u.Cost,
+        DescriptionKey = u.DescriptionKey
     };
 
     private static EffectData MapEffect(EffectJson e) => new()
@@ -140,6 +165,24 @@ public static class WardenLoader
         public string Trigger     { get; set; } = string.Empty;
         public string Mechanic    { get; set; } = string.Empty;
         public Dictionary<string, object>? Params { get; set; }
+        public PassiveUpgradeJson? Upgrade { get; set; }
+    }
+
+    private class PassiveUpgradeJson
+    {
+        public string Id { get; set; } = string.Empty;
+
+        [JsonPropertyName("description_key")]
+        public string DescriptionKey { get; set; } = string.Empty;
+
+        public List<PassiveUpgradeEffectJson> Effects { get; set; } = new();
+    }
+
+    private class PassiveUpgradeEffectJson
+    {
+        public string Type { get; set; } = string.Empty;
+        public string? Key { get; set; }
+        public int Value { get; set; }
     }
 
     private class CardJson
@@ -151,6 +194,24 @@ public static class WardenLoader
         public string[] Elements { get; set; } = Array.Empty<string>();
         public EffectJson Top    { get; set; } = new();
         public BottomJson Bottom { get; set; } = new();
+
+        [JsonPropertyName("upgrades")]
+        public List<UpgradeSlotJson> Upgrades { get; set; } = new();
+    }
+
+    private class UpgradeSlotJson
+    {
+        public string Id { get; set; } = "";
+        public string Slot { get; set; } = "";
+        public string? Field { get; set; }
+        public string? Action { get; set; }
+        public string? Element { get; set; }
+        public int From { get; set; }
+        public int To { get; set; }
+        public int Cost { get; set; } = 1;
+
+        [JsonPropertyName("description_key")]
+        public string DescriptionKey { get; set; } = "";
     }
 
     private class EffectJson

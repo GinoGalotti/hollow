@@ -11,6 +11,6 @@ public static class EmberFuryHelper
     {
         if (state.PassiveGating != null && !state.PassiveGating.IsActive("ember_fury"))
             return 0;
-        return state.Territories.Count(t => t.CorruptionLevel >= 1);
+        return state.Territories.Count(t => t.CorruptionLevel >= 2);
     }
 }

@@ -1,4 +1,5 @@
 using Godot;
+using HollowWardens.Core.Localization;
 
 /// <summary>
 /// Shows queued fear action "cards" as face-down rectangles.
@@ -14,7 +15,7 @@ public partial class FearActionQueueController : VBoxContainer
 
     public override void _Ready()
     {
-        AddChild(new Label { Text = "── Fear Queue ──", Modulate = new Color(1, 0.5f, 0) });
+        AddChild(new Label { Text = Loc.Get("LABEL_FEAR_QUEUE"), Modulate = new Color(1, 0.5f, 0) });
 
         _cardRow     = new HBoxContainer();
         _revealLabel = new Label
@@ -25,7 +26,7 @@ public partial class FearActionQueueController : VBoxContainer
 
         AddChild(_cardRow);
         AddChild(new HSeparator());
-        AddChild(new Label { Text = "Revealed:", Modulate = Colors.LightGray });
+        AddChild(new Label { Text = Loc.Get("LABEL_REVEALED"), Modulate = Colors.LightGray });
         AddChild(_revealLabel);
 
         var bridge = GameBridge.Instance;
@@ -106,7 +107,7 @@ public partial class FearActionQueueController : VBoxContainer
 
         if (count == 0)
         {
-            var empty = new Label { Text = "(none)", Modulate = Colors.DarkGray };
+            var empty = new Label { Text = Loc.Get("LABEL_NONE"), Modulate = Colors.DarkGray };
             _cardRow.AddChild(empty);
         }
     }

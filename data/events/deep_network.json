@@ -1,0 +1,18 @@
+{
+    "id": "deep_network",
+    "type": "warden",
+    "name_key": "EVENT_DEEP_NETWORK",
+    "description_key": "EVENT_DEEP_NETWORK_DESC",
+    "warden_filter": "root",
+    "tags": ["stage_2"],
+    "rarity": "rare",
+    "options": [
+        {
+            "label_key": "EVENT_DEEP_NETWORK_A",
+            "description_key": "EVENT_DEEP_NETWORK_A_DESC",
+            "effects": [
+                { "type": "unlock_passive", "target_id": "deep_network_presence" }
+            ]
+        }
+    ]
+}

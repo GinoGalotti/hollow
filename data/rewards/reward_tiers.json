@@ -1,0 +1,23 @@
+{
+    "tier1": {
+        "draft_choices": 3,
+        "upgrade_tokens": 1,
+        "can_remove_card": true,
+        "can_choose_heal": false,
+        "draft_pool_tag": "tier1"
+    },
+    "tier2": {
+        "draft_choices": 2,
+        "upgrade_tokens": 1,
+        "can_remove_card": false,
+        "can_choose_heal": false,
+        "draft_pool_tag": "tier2"
+    },
+    "tier3": {
+        "draft_choices": 2,
+        "upgrade_tokens": 0,
+        "can_remove_card": false,
+        "can_choose_heal": true,
+        "draft_pool_tag": "tier3"
+    }
+}

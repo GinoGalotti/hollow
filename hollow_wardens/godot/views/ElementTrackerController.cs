@@ -1,5 +1,6 @@
 using Godot;
 using HollowWardens.Core.Effects;
+using HollowWardens.Core.Localization;
 using HollowWardens.Core.Models;
 
 /// <summary>
@@ -31,7 +32,7 @@ public partial class ElementTrackerController : VBoxContainer
 
         var cinzel = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
 
-        var header = new Label { Text = "── Elements ──", Modulate = Colors.Yellow };
+        var header = new Label { Text = Loc.Get("LABEL_ELEMENTS"), Modulate = Colors.Yellow };
         if (cinzel != null) header.AddThemeFontOverride("font", cinzel);
         AddChild(header);
 

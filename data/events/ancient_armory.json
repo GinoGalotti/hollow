@@ -1,0 +1,32 @@
+{
+    "id": "ancient_armory",
+    "type": "merchant",
+    "name_key": "EVENT_ANCIENT_ARMORY",
+    "description_key": "EVENT_ANCIENT_ARMORY_DESC",
+    "warden_filter": null,
+    "tags": ["stage_3"],
+    "rarity": "rare",
+    "options": [
+        {
+            "label_key": "EVENT_ANCIENT_ARMORY_A",
+            "description_key": "EVENT_ANCIENT_ARMORY_A_DESC",
+            "effects": [
+                { "type": "add_card", "rarity": "ancient", "value": 1 }
+            ]
+        },
+        {
+            "label_key": "EVENT_ANCIENT_ARMORY_B",
+            "description_key": "EVENT_ANCIENT_ARMORY_B_DESC",
+            "effects": [
+                { "type": "add_card", "rarity": "ancient", "value": 1 }
+            ]
+        },
+        {
+            "label_key": "EVENT_ANCIENT_ARMORY_C",
+            "description_key": "EVENT_ANCIENT_ARMORY_C_DESC",
+            "effects": [
+                { "type": "add_card", "rarity": "ancient", "value": 1 }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,19 @@
+{
+    "id": "phoenix_rebirth",
+    "type": "warden",
+    "name_key": "EVENT_PHOENIX_REBIRTH",
+    "description_key": "EVENT_PHOENIX_REBIRTH_DESC",
+    "warden_filter": "ember",
+    "tags": ["stage_3"],
+    "rarity": "rare",
+    "options": [
+        {
+            "label_key": "EVENT_PHOENIX_REBIRTH_A",
+            "description_key": "EVENT_PHOENIX_REBIRTH_A_DESC",
+            "effects": [
+                { "type": "recover_card", "target_id": null },
+                { "type": "reduce_max_weave", "value": 5 }
+            ]
+        }
+    ]
+}

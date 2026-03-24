@@ -96,4 +96,77 @@ public class LocalizationTests
         Loc.LoadFromDict(new Dictionary<string, string>());
         Assert.False(Loc.Has("NOPE"));
     }
+
+    [Fact]
+    public void Load_EscapeNewline_IsRealNewline()
+    {
+        var csv  = "KEY,en\nMULTI,\"line1\\nline2\"";
+        var path = Path.Combine(Path.GetTempPath(), "hw_loc_nl_test.csv");
+        File.WriteAllText(path, csv);
+        try
+        {
+            Loc.Load(path, "en");
+            var value = Loc.Get("MULTI");
+            Assert.Contains('\n', value);         // real newline, not backslash-n
+            Assert.DoesNotContain("\\n", value);  // no literal \n remaining
+        }
+        finally { File.Delete(path); }
+    }
+
+    // ── New keys added in Phase 6h ────────────────────────────────────────────
+
+    [Theory]
+    [InlineData("PHASE_VIGIL_N")]
+    [InlineData("DECK_COUNTS")]
+    [InlineData("BTN_BACK")]
+    [InlineData("BTN_PLAY_TOP_RES")]
+    [InlineData("BTN_SKIP_DMG")]
+    [InlineData("LABEL_REVEALED")]
+    [InlineData("LABEL_NEXT")]
+    [InlineData("LABEL_NO_CARD")]
+    [InlineData("LABEL_NONE")]
+    [InlineData("CA_NO_DAMAGE")]
+    [InlineData("CA_DMG_N")]
+    [InlineData("FEAR_CONFIRM_BTN")]
+    [InlineData("ENCOUNTER_SELECT_MODE_SINGLE")]
+    [InlineData("ENCOUNTER_SELECT_MODE_CHAIN")]
+    [InlineData("CHAIN_SLOT_E1")]
+    [InlineData("CHAIN_SLOT_E2")]
+    [InlineData("CHAIN_SLOT_CAPSTONE")]
+    [InlineData("BTN_START_CHAIN")]
+    [InlineData("CHAIN_RESULT_TITLE")]
+    [InlineData("CHAIN_CONTINUE")]
+    [InlineData("CHAIN_CARRYOVER")]
+    public void AllNewKeys_PresentInCsvFile(string key)
+    {
+        var csvPath = Path.GetFullPath(Path.Combine(
+            Directory.GetCurrentDirectory(), "..", "..", "..", "..", "..",
+            "data", "localization", "strings.csv"));
+
+        Loc.Load(csvPath, "en");
+        Assert.True(Loc.Has(key), $"Missing key: {key}");
+    }
+
+    [Fact]
+    public void PhaseVigilN_FormatsCorrectly()
+    {
+        Loc.LoadFromDict(new Dictionary<string, string> { ["PHASE_VIGIL_N"] = "VIGIL  (Tide {0}/{1})" });
+        Assert.Equal("VIGIL  (Tide 2/6)", Loc.Get("PHASE_VIGIL_N", 2, 6));
+    }
+
+    [Fact]
+    public void DeckCounts_FormatsCorrectly()
+    {
+        Loc.LoadFromDict(new Dictionary<string, string> { ["DECK_COUNTS"] = "Draw: {0}  Disc: {1}\nDissolved: {2}  Dormant: {3}" });
+        var result = Loc.Get("DECK_COUNTS", 5, 3, 1, 2);
+        Assert.Equal("Draw: 5  Disc: 3\nDissolved: 1  Dormant: 2", result);
+    }
+
+    [Fact]
+    public void CaDmgN_FormatsZeroAndNonZero()
+    {
+        Loc.LoadFromDict(new Dictionary<string, string> { ["CA_DMG_N"] = "{0} dmg" });
+        Assert.Equal("0 dmg", Loc.Get("CA_DMG_N", 0));
+        Assert.Equal("3 dmg", Loc.Get("CA_DMG_N", 3));
+    }
 }

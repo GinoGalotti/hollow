@@ -150,6 +150,13 @@ public class TurnManager
         return _actions.SacrificePresence(territoryId);
     }
 
+    /// <summary>
+    /// D41: Resolve a pending elemental threshold ability. Free action — no play slot consumed.
+    /// Pass <paramref name="targetTerritoryId"/> for effects that require a territory selection.
+    /// </summary>
+    public void UseThreshold(ThresholdResolver resolver, Element element, int tier, string? targetTerritoryId = null)
+        => resolver.Resolve(element, tier, _state, targetTerritoryId);
+
     public void AssignCounterDamage(Territory territory, Dictionary<Invader, int> assignments)
         => _actions.AssignCounterDamage(territory, assignments);
 }

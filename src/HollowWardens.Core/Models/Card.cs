@@ -14,4 +14,7 @@ public class Card
     public EffectData TopEffect { get; set; } = new();
     public EffectData BottomEffect { get; set; } = new();
     public EffectData? BottomSecondary { get; set; }  // nullable, for compound bottoms
+
+    public List<CardUpgradeSlot> UpgradeSlots { get; set; } = new();
+    public List<string> AppliedUpgradeIds { get; set; } = new();
 }

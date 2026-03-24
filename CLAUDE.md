@@ -40,6 +40,7 @@ This project uses a structured memory bank system with specialized context files
 * **CLAUDE-activeContext.md** - Current session state, goals, and progress (if exists)
 * **CLAUDE-patterns.md** - Established code patterns and conventions (if exists)
 * **CLAUDE-decisions.md** - Architecture decisions and rationale (if exists)
+* **CLAUDE-balance.md** - Balance decisions and sim evidence (if exists)
 * **CLAUDE-troubleshooting.md** - Common issues and proven solutions (if exists)
 * **CLAUDE-config-variables.md** - Configuration variables reference (if exists)
 * **CLAUDE-temp.md** - Temporary scratch pad (only read when referenced)
@@ -61,7 +62,7 @@ This repo is the working directory for **Hollow Wardens** — a card roguelike b
 - **Engine:** Godot 4.6.1 (.NET build) — exe at `D:\Downloads\Godot_v4.6.1-stable_mono_win64\Godot_v4.6.1-stable_mono_win64_console.exe`
 - **Language:** C# (primary) — do NOT mix GDScript
 - **Project dir:** `hollow_wardens/` (subdirectory)
-- **Status:** Phase 6+ active development — 312 tests passing, functional prototype playable
+- **Status:** Phase 6+ active development — 432 tests passing, functional prototype playable
 
 ## Project Architecture
 
@@ -105,20 +106,46 @@ cd hollow_wardens && dotnet build HollowWardens.csproj
 | File | Purpose |
 |------|---------|
 | `master.md` | Full game design document — updated through D27 |
-| `CLAUDE-decisions.md` | Architecture decisions D1–D27 with rationale |
+| `CLAUDE-decisions.md` | Architecture decisions D1–D36 with rationale |
+| `CLAUDE-balance.md` | Balance decisions B1+ with sim evidence |
 | `ARCHITECTURE-v2.md` | Pure C# architecture plan and class structure |
 | `BUILD-PLAYBOOK.md` | Agent prompts for parallel development |
 | `data/cards-root.json` | Root warden card definitions v2.1 |
+| `data/localization/strings.csv` | English localization strings (80+ keys, CSV format) |
 
 ## Debug Shortcuts (In-Game)
 
 | Key | Action |
 |-----|--------|
+| `` ` `` | Toggle dev console (type `/help` for command list) |
 | `D` | Toggle debug log overlay |
 | `P` | Print encounter seed + action log to console |
 | `Space` | Advance phase / confirm |
 | `R` | Rest |
 | `Escape` | Cancel targeting |
+
+## Dev Console Commands (`` ` `` to open)
+
+**Actually wired** (work now during playtesting):
+
+| Command | Effect |
+|---------|--------|
+| `/help` | List all commands |
+| `/add_presence <territory> [n]` | Add n presence tokens (default 1). e.g. `/add_presence I1 2` |
+| `/kill_all` | Remove all invaders from the board |
+| `/export` | Print encounter state / action log |
+| `/run_info` | Print mode, warden, weave, tide, run stage |
+| `/set_weave <n>` | Set current weave (via GameBridge) |
+| `/set_corruption <territory> <pts>` | Set corruption on a territory |
+| `/give_tokens <n>` | Add upgrade tokens to the current run |
+| `/end_encounter [clean\|weathered\|breach]` | Force-end the encounter, return to menu |
+
+**Parsed but not yet wired in console UI** (stubs — show "coming soon"):
+`/set_max_weave`, `/set_element`, `/set_dread`, `/spawn`, `/add_card`, `/upgrade_card`,
+`/unlock_passive`, `/upgrade_passive`, `/trigger_event`, `/skip_tide`, `/encounter`, `/restart`
+
+> Territory IDs: `I1`, `M1`, `M2`, `A1`, `A2`, `A3`
+> Element names: `Fire`, `Ash`, `Root`, `Stone`, `Water`, `Wind`
 
 ## Environment Architecture
 

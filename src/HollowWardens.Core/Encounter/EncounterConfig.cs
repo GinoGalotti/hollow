@@ -98,6 +98,28 @@ public class EncounterConfig
     /// <summary>Tides where play structure is inverted (Dusk → Tide → Vigil).</summary>
     public List<int>? EclipseTides { get; set; }
     // TODO: Eclipse phase inversion — requires TurnManager refactor
+
+    // ── Reward Tiers ─────────────────────────────────────────────────────────
+    /// <summary>Per-warden reward tier thresholds for this encounter.</summary>
+    public Dictionary<string, RewardTierConfig>? RewardTiers { get; set; }
+}
+
+/// <summary>
+/// Defines the minimum result/weave thresholds for each reward tier in an encounter.
+/// </summary>
+public class RewardTierConfig
+{
+    /// <summary>Minimum encounter result for Tier 1 (e.g. "clean").</summary>
+    public string Tier1MinResult { get; set; } = "clean";
+
+    /// <summary>Optional minimum weave % required for Tier 1 (0-100). null = no weave requirement.</summary>
+    public int? Tier1MinWeavePercent { get; set; }
+
+    /// <summary>Minimum encounter result for Tier 2 (e.g. "weathered").</summary>
+    public string Tier2MinResult { get; set; } = "weathered";
+
+    /// <summary>Optional minimum weave % required for Tier 2.</summary>
+    public int? Tier2MinWeavePercent { get; set; }
 }
 
 public class CadenceConfig

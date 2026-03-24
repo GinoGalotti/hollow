@@ -1,0 +1,27 @@
+{
+    "id": "burnt_offering",
+    "type": "choice",
+    "name_key": "EVENT_BURNT_OFFERING",
+    "description_key": "EVENT_BURNT_OFFERING_DESC",
+    "warden_filter": null,
+    "tags": ["stage_2", "stage_3"],
+    "rarity": "uncommon",
+    "options": [
+        {
+            "label_key": "EVENT_BURNT_OFFERING_A",
+            "description_key": "EVENT_BURNT_OFFERING_A_DESC",
+            "effects": [
+                { "type": "upgrade_passive", "target_id": null },
+                { "type": "reduce_max_weave", "value": 3 }
+            ]
+        },
+        {
+            "label_key": "EVENT_BURNT_OFFERING_B",
+            "description_key": "EVENT_BURNT_OFFERING_B_DESC",
+            "effects": [
+                { "type": "add_tokens", "value": 2 },
+                { "type": "modify_hand_limit", "value": -1 }
+            ]
+        }
+    ]
+}

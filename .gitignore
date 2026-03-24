@@ -36,3 +36,7 @@ reports/
 Thumbs.db
 
 temp-message.txt
+
+sim-results/
+ui-test-output.txt
+*.ps1

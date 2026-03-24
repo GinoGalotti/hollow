@@ -1,8 +1,8 @@
 # Hollow Wardens — Active Context
 
 ## Current Status
-**Phase 6+ active development** — 478 tests passing, functional prototype playable.
-Both Root and Ember wardens implemented. Two-screen warden/encounter selection. 5 encounter configs live. B1/B2 balance shipped and pushed.
+**Phase 6+ active development** — 646 tests passing, functional prototype playable.
+Both Root and Ember wardens implemented. Single/Chain encounter selection UI. 5 encounter configs live. B1/B2/B4 balance shipped. Full string localization migration complete. SQLite crash + localization bug fixed.
 
 ## Phase Completion
 | Phase | Description | Tests | Status |
@@ -16,6 +16,7 @@ Both Root and Ember wardens implemented. Two-screen warden/encounter selection. 
 | 6e | Localization infrastructure (Loc.cs + CSV) | +10 | ✅ Done |
 | 6f | Encounter variety: 5 configs, 4 board layouts, 22 levers | +63 | ✅ Done |
 | 6g | Balance sim: B1 (Ember nerf) + B2 (Root +1/wave) shipped | 0 new | ✅ Done |
+| 6h | String migration (all controllers → Loc.Get) + chain encounter selection UI | +35 | ✅ Done |
 
 ## Architecture Summary
 | Layer | Path | Notes |
@@ -38,12 +39,13 @@ Both Root and Ember wardens implemented. Two-screen warden/encounter selection. 
 **Confirmed Realm 1 run order:** standard → scouts → siege → elite
 (frontier = optional alternate capstone or post-game challenge)
 
-## Balance Status — B1 + B2 Shipped (commit 6d508ab)
+## Balance Status — B1 + B2 + B4 Shipped
 
 | Change | File | Status |
 |--------|------|--------|
 | B1: Ember Flame Burst + Conflagration top 3→2 | `data/wardens/ember.json` | ✅ Shipped |
 | B2: Root +1 Marcher/wave (`AddB2Marchers`) | `EncounterLoader.cs` | ✅ Shipped |
+| B4: Ember — fear from kills, Fury L2, Flame Out 3× | `DamageInvadersEffect.cs`, `EmberFuryHelper.cs`, `TurnActions.cs` | ✅ Shipped |
 
 **B2 applied to:** standard, scouts, siege, elite. **NOT frontier** (wide board is its own difficulty).
 
@@ -71,6 +73,15 @@ Standard(B2) → Scouts(B2) → Elite(B2) is a coherent difficulty arc:
 
 ## Recently Completed Work
 
+### Session 2026-03-23 — Bug fixes + B4 Ember feel
+- **SQLite crash fix:** `Microsoft.Data.Sqlite` moved from Core to Sim. GameBridge now uses `NullSink` instead of SQLiteSink. This also fixed the cascading localization bug (Loc.Load() never ran because SQLiteSink threw before it could).
+- **B4 shipped:** 3 targeted Ember feel fixes (646 tests passing):
+  1. `DamageInvadersEffect.cs`: kills now generate 1 fear via `Dread.OnFearGenerated` + `FearGenerated` event
+  2. `EmberFuryHelper.cs`: Fury requires L2 (Defiled, 8+ corruption) instead of L1 (Tainted, 3+)
+  3. `TurnActions.cs`: Ember bottoms use 3× element multiplier (Flame Out upside)
+- **Sim evidence:** Clean 18%→26.8%, fear/encounter 27.91→42.27 (+51%). Breach stays 0%.
+- **D41 design confirmed:** Threshold targeting as active ability is the structural fix for Ember dominance. Recorded in CLAUDE-decisions.md.
+
 ### Phase 6g — Balance: B1 + B2
 - **B1 (Ember nerf):** top damage 3→2 on Flame Burst + Conflagration. Prevents Ash Trail + DI×3 one-shotting Outriders (HP 3) before they can act. 15 configs tested across 7,500 encounters.
 - **B2 (Root fix):** `AddB2Marchers()` private helper in `EncounterLoader.cs` adds 1 Marcher to A1 in every `SpawnWaveOption`. Applied to 4 factory methods. One lever fixes Root on all encounter types simultaneously.
@@ -86,19 +97,34 @@ Standard(B2) → Scouts(B2) → Elite(B2) is a coherent difficulty arc:
 - **63 sim profiles** covering baselines, B2 experiments, chain arc simulations.
 - **63 new tests** across EncounterVarietyTests, EncounterLeverTests, BoardLayoutTests, BoardCarryoverTests.
 
+### Phase 6h — String Migration + Chain Encounter Selection UI
+- **String migration complete:** All view controllers now use `Loc.Get()`. Loc.cs updated to process `\n` escape sequences from CSV values.
+- **strings.csv:** 119+ keys (added PHASE_VIGIL_N, DECK_COUNTS, BTN_BACK, BTN_PLAY_TOP_RES, BTN_SKIP_DMG, LABEL_REVEALED, LABEL_NEXT, LABEL_NO_CARD, LABEL_NONE, CA_NO_DAMAGE, CA_DMG_N, FEAR_CONFIRM_BTN, chain UI keys).
+- **WardenSelectController:** Redesigned as playtesting tool with Single mode (pick any encounter) and Chain mode (configure 3 slots: E1/E2/Capstone, each with tab buttons for all 5 encounters, then Start Chain).
+- **GameBridge chain support:** `ChainEncounterIds[]`, `ChainIndex`, `HasNextInChain`, `ContinueChain()`. After each chain encounter ends, `ChainAdvanceReady` signal fires. `ContinueChain()` resets loop state, applies carryover via `EncounterRunner.ApplyCarryover()`, rebuilds encounter.
+- **ChainContinueController** embedded in WardenSelectController: shows result + carryover summary + continue button between chain encounters.
+- **35 new tests** in LocalizationTests.cs (new key coverage, `\n` escape test) + EncounterSelectionTests.cs (all 5 encounter IDs valid, chain slots valid, carryover extract stable).
+
 ### Phase 6e — Localization Infrastructure
-- `src/HollowWardens.Core/Localization/Loc.cs` — `Loc.Get(key)`, `Loc.Get(key, args...)`, fallback to key.
-- `data/localization/strings.csv` — 83+ English keys.
-- `WardenSelectController.cs` — two-screen flow (warden → encounter), all text uses `Loc.Get()`.
+- `src/HollowWardens.Core/Localization/Loc.cs` — `Loc.Get(key)`, `Loc.Get(key, args...)`, fallback to key. `\n` in CSV processed to real newline.
+- `data/localization/strings.csv` — 119+ English keys (all UI strings migrated).
 
 ## Open Work / Next Steps
-1. **Playtest** with B2 live — validate sim predictions against real play. Real players expected to take weave damage where the bot doesn't.
-2. **Ember carryover decision** (defer to post-playtest data):
+
+### High Priority
+1. **D41: Elemental threshold → active targeted ability** — WeaveSystem sets PendingThreshold flag instead of auto-firing; TurnManager exposes `UseThreshold(territoryId)` free action; threshold effects receive TargetInfo; UI shows ready indicator + territory click to activate. T3 broadcasts to all presence (current behavior). See CLAUDE-decisions.md §D41.
+   - This is the root fix for Ember's 0% breach dominance — stat tweaks cannot fix it because the problem is structural (auto-broadcast to all territories).
+
+### Medium Priority
+2. **Playtest** with B4 live — now that kills generate fear and Ember Fury requires L2, does combat feel more deliberate?
+3. **Ember carryover decision** (defer to post-playtest data):
    - Option A: `heart_damage_multiplier: 1.5` on siege/elite — forces Ember weave damage on hard encounters
    - Option B: `starting_invaders` residual mechanic — I1 invaders carry into next encounter
    - Option C: Accept asymmetry — Ember's challenge is board degradation, not weave attrition
-3. **Bulk string migration** — ~165 hardcoded strings in DebugLogController, PhaseIndicatorController, DreadBarController, etc.
-4. **Frontier encounter access** — not in main run arc; needs a clear access point (alternate capstone? post-game?).
+4. **Dev console wiring** — most console commands are parsed but dispatch to "coming soon" stubs in `DevConsole.DispatchCommand`. Wired commands: `/help`, `/add_presence`, `/kill_all`, `/export`, `/run_info` (console UI); plus `/set_weave`, `/set_corruption`, `/give_tokens`, `/end_encounter` (via GameBridge.ExecuteConsoleCommand, called from smoke tests). Remaining stubs: `/set_max_weave`, `/set_element`, `/set_dread`, `/spawn`, `/add_card`, `/upgrade_card`, `/unlock_passive`, `/upgrade_passive`, `/trigger_event`, `/skip_tide`, `/encounter`, `/restart`.
+
+### Pending Tests (needs writing)
+- **WardenSelectController input-blocking regression** — After `LaunchEncounter()` / `StartWithWarden()` is called, `WardenSelectController.Visible` must be `false`. The bug was that the full-screen `overlay` Control (added in `_Ready()` with `FullRect` anchors, `MouseFilter=Stop`) stayed active after the game started, swallowing all card-click events. Can't use xUnit (Godot node). Options: (a) Godot integration test scene that calls `StartWithWarden` and asserts `WardenSelect.Visible == false`; (b) a code-convention check that warns if any `CanvasLayer` child of the `Game` scene root has a FullRect child Control without a `Visible = false` guard in a `LaunchEncounter`-style method.
 
 ## Localization Pattern (for new code)
 ```csharp
@@ -106,5 +132,5 @@ using HollowWardens.Core.Localization;
 label.Text = Loc.Get("SOME_KEY");
 label.Text = Loc.Get("PHASE_TIDE_N", currentTide, totalTides);
 // Add key to data/localization/strings.csv: MY_KEY,"My English string"
+// Use \n in CSV values for embedded newlines (processed by Loc.cs loader)
 ```
-The remaining ~165 hardcoded strings in other view controllers are NOT yet migrated.

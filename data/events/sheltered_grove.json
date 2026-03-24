@@ -1,0 +1,46 @@
+{
+    "id": "sheltered_grove",
+    "type": "rest",
+    "name_key": "EVENT_SHELTERED_GROVE",
+    "description_key": "EVENT_SHELTERED_GROVE_DESC",
+    "warden_filter": null,
+    "tags": ["stage_1", "stage_2", "stage_3"],
+    "rarity": "common",
+    "options": [
+        {
+            "label_key": "EVENT_SHELTERED_GROVE_A",
+            "description_key": "EVENT_SHELTERED_GROVE_A_DESC",
+            "effects": [
+                { "type": "heal_weave", "value": 3 }
+            ]
+        },
+        {
+            "label_key": "EVENT_SHELTERED_GROVE_B",
+            "description_key": "EVENT_SHELTERED_GROVE_B_DESC",
+            "effects": [
+                { "type": "heal_max_weave", "value": 1 }
+            ]
+        },
+        {
+            "label_key": "EVENT_SHELTERED_GROVE_C",
+            "description_key": "EVENT_SHELTERED_GROVE_C_DESC",
+            "effects": [
+                { "type": "upgrade_card", "target_id": null }
+            ]
+        },
+        {
+            "label_key": "EVENT_SHELTERED_GROVE_D",
+            "description_key": "EVENT_SHELTERED_GROVE_D_DESC",
+            "effects": [
+                { "type": "dissolve_card", "value": 1 }
+            ]
+        },
+        {
+            "label_key": "EVENT_SHELTERED_GROVE_E",
+            "description_key": "EVENT_SHELTERED_GROVE_E_DESC",
+            "effects": [
+                { "type": "recover_card", "target_id": null }
+            ]
+        }
+    ]
+}

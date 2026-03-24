@@ -1,0 +1,20 @@
+{
+    "id": "root_gate",
+    "type": "sacrifice",
+    "name_key": "EVENT_ROOT_GATE",
+    "description_key": "EVENT_ROOT_GATE_DESC",
+    "warden_filter": "root",
+    "tags": ["stage_1", "stage_2"],
+    "rarity": "uncommon",
+    "options": [
+        {
+            "label_key": "EVENT_ROOT_GATE_A",
+            "description_key": "EVENT_ROOT_GATE_A_DESC",
+            "element_threshold": 6,
+            "element_type": "root",
+            "effects": [
+                { "type": "unlock_passive", "target_id": "rest_growth" }
+            ]
+        }
+    ]
+}

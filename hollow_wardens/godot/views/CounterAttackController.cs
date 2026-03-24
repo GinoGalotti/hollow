@@ -1,5 +1,6 @@
 using Godot;
 using System.Collections.Generic;
+using HollowWardens.Core.Localization;
 
 /// <summary>
 /// Interactive overlay for player-assigned native counter-attack damage.
@@ -49,9 +50,9 @@ public partial class CounterAttackController : PanelContainer
         var btnRow = new HBoxContainer();
         vbox.AddChild(btnRow);
 
-        _confirmBtn = new Button { Text = "Confirm" };
-        _skipBtn    = new Button { Text = "Skip (0 dmg)" };
-        _resetBtn   = new Button { Text = "Reset" };
+        _confirmBtn = new Button { Text = Loc.Get("BTN_CONFIRM") };
+        _skipBtn    = new Button { Text = Loc.Get("BTN_SKIP_DMG") };
+        _resetBtn   = new Button { Text = Loc.Get("BTN_RESET") };
         _confirmBtn.Pressed += OnConfirm;
         _skipBtn.Pressed    += OnSkip;
         _resetBtn.Pressed   += OnReset;
@@ -73,7 +74,7 @@ public partial class CounterAttackController : PanelContainer
         _totalPool     = pool;
         _poolRemaining = pool;
 
-        _headerLabel.Text = $"── Counter-Attack in {territoryId} ──";
+        _headerLabel.Text = Loc.Get("COUNTER_ATTACK_TITLE", territoryId);
         RefreshPoolLabel(pool);
         BuildInvaderButtons(territoryId, pool);
         Visible = true;
@@ -82,10 +83,10 @@ public partial class CounterAttackController : PanelContainer
     private void RefreshPoolLabel(int total)
     {
         int assigned = total - _poolRemaining;
-        _poolLabel.Text    = $"Pool: {total} damage  |  Assigned: {assigned}  |  Remaining: {_poolRemaining}";
+        _poolLabel.Text    = Loc.Get("COUNTER_ATTACK_POOL", total, assigned, _poolRemaining);
         _assignedLabel.Text = _assignments.Count > 0
             ? "Assignments: " + string.Join(", ", _assignments.Select(kv => $"{kv.Key[..Math.Min(6, kv.Key.Length)]}={kv.Value}"))
-            : "No damage assigned";
+            : Loc.Get("CA_NO_DAMAGE");
     }
 
     private void BuildInvaderButtons(string territoryId, int totalPool)
@@ -114,7 +115,7 @@ public partial class CounterAttackController : PanelContainer
 
             var assignLabel = new Label
             {
-                Text = "0 dmg",
+                Text = Loc.Get("CA_DMG_N", 0),
                 CustomMinimumSize = new Vector2(60, 0)
             };
             row.AddChild(assignLabel);
@@ -127,7 +128,7 @@ public partial class CounterAttackController : PanelContainer
                 if (cur >= invader.Hp) return; // can't over-kill
                 _assignments[id] = cur + 1;
                 _poolRemaining--;
-                assignLabel.Text = $"{_assignments[id]} dmg";
+                assignLabel.Text = Loc.Get("CA_DMG_N", _assignments[id]);
                 RefreshPoolLabel(totalPool);
             };
 
@@ -138,7 +139,7 @@ public partial class CounterAttackController : PanelContainer
                 _assignments[id] = cur - 1;
                 _poolRemaining++;
                 if (_assignments[id] == 0) _assignments.Remove(id);
-                assignLabel.Text = _assignments.TryGetValue(id, out int v) ? $"{v} dmg" : "0 dmg";
+                assignLabel.Text = Loc.Get("CA_DMG_N", _assignments.TryGetValue(id, out int v) ? v : 0);
                 RefreshPoolLabel(totalPool);
             };
 

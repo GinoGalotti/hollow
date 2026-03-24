@@ -151,6 +151,19 @@ public class BalanceConfig
         };
     }
 
+    public string GetHash()
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(this,
+            new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented      = false,
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            });
+        var bytes = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(json));
+        return Convert.ToHexString(bytes)[..12];
+    }
+
     /// <summary>Creates a deep copy for isolation in tests/sim runs.</summary>
     public BalanceConfig Clone()
     {

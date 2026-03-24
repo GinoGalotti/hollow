@@ -139,8 +139,8 @@ public class EmberAbilityTests : IDisposable
     [Fact]
     public void Ember_EmberFury_BonusDamage_PerCorruptedTerritory()
     {
-        // 3 territories at L1+ (CorruptionLevel >= 1 = CorruptionPoints >= 3)
-        var territories = BuildThreeTerritoryState(corruption: new[] { 3, 3, 3 }, presenceAll: false);
+        // B4: Fury requires L2 (Defiled = 8+ pts). Set 3 territories at L2.
+        var territories = BuildThreeTerritoryState(corruption: new[] { 8, 8, 8 }, presenceAll: false);
 
         var gating = new PassiveGating("ember"); // ember_fury unlocks on Ash T1
         // Manually activate ember_fury for this test (by triggering Ash T1)
@@ -156,7 +156,7 @@ public class EmberAbilityTests : IDisposable
 
         int bonus = HollowWardens.Core.Effects.EmberFuryHelper.GetFuryBonus(state);
 
-        // 3 territories at Level 1+ → +3 bonus
+        // 3 territories at Level 2+ → +3 bonus
         Assert.Equal(3, bonus);
     }
 

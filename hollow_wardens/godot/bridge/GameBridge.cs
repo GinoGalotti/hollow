@@ -1,7 +1,9 @@
 using Godot;
 using HollowWardens.Core;
+using HollowWardens.Core.Telemetry;
 using HollowWardens.Core.Cards;
 using HollowWardens.Core.Data;
+using HollowWardens.Core.Debug;
 using HollowWardens.Core.Effects;
 using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Events;
@@ -72,16 +74,45 @@ public partial class GameBridge : Node
     /// <summary>Emitted after BuildEncounter() completes — State is valid, first turn not yet started.</summary>
     [Signal] public delegate void EncounterReadyEventHandler();
 
+    /// <summary>
+    /// Emitted when a chain encounter ends and there is a next encounter to advance to.
+    /// Carries the 1-based index of the next encounter and a carryover summary string.
+    /// </summary>
+    [Signal] public delegate void ChainAdvanceReadyEventHandler(int nextEncounterNumber, string carryoverSummary);
+
     // ── Public State ─────────────────────────────────────────────────────────
     public static GameBridge? Instance { get; private set; }
 
     /// <summary>Set before the encounter starts to select which warden to play.</summary>
     public static string SelectedWardenId { get; set; } = "root";
 
-    /// <summary>Set before the encounter starts to select which encounter to run.</summary>
+    /// <summary>Set before the encounter starts to select which encounter to run (single mode).</summary>
     public static string SelectedEncounterId { get; set; } = "pale_march_standard";
 
+    /// <summary>Ordered list of encounter IDs for a chain run. Empty = single mode.</summary>
+    public static string[] ChainEncounterIds { get; set; } = Array.Empty<string>();
+
+    /// <summary>Current position in the chain (0-based). Only meaningful when ChainEncounterIds.Length > 0.</summary>
+    public static int ChainIndex { get; set; } = 0;
+
+    /// <summary>Play mode: "single", "full_run", or "practice".</summary>
+    public static string SelectedMode { get; set; } = "single";
+
+    /// <summary>Realm ID for Full Run mode.</summary>
+    public static string SelectedRealmId { get; set; } = "realm_1";
+
+    /// <summary>True when running a chain of encounters (vs a single encounter).</summary>
+    public bool IsChainMode => ChainEncounterIds.Length > 0;
+
+    /// <summary>True when the current chain encounter has ended and there is a next encounter to advance to.</summary>
+    public bool HasNextInChain => IsChainMode && ChainIndex < ChainEncounterIds.Length - 1;
+
     public EncounterState State { get; private set; } = null!;
+
+    /// <summary>Active run state when in Full Run mode. Null for single/chain modes.</summary>
+    public RunState?    CurrentRunState    => _currentRunState;
+    /// <summary>Active realm runner when in Full Run mode. Null for single/chain modes.</summary>
+    public RealmRunner? CurrentRealmRunner => _currentRealmRunner;
 
     /// <summary>Current turn phase (from Core TurnManager).</summary>
     public CoreTurnPhase CurrentPhase => _turnManager.CurrentPhase;
@@ -136,6 +167,19 @@ public partial class GameBridge : Node
     private int  _tidesExecuted;
     private bool _inResolution;
     private int  _resolutionTurn;
+    private HollowWardens.Core.Encounter.BoardCarryover? _pendingCarryover;
+
+    // ── Telemetry ─────────────────────────────────────────────────────────────
+    private TelemetryCollector? _telemetry;
+    private int _telTideKills;
+    private int _telTideArrivals;
+
+    // ── Full Run State ────────────────────────────────────────────────────────
+    private RunState?    _currentRunState;
+    private RealmRunner? _currentRealmRunner;
+    private MapNode?     _pendingEventNode;
+    private EventData?   _pendingEvent;
+    private bool         _fullRunRewardActive; // true while reward/event screen is in progress
 
     // ── Interactive Tide Fields ───────────────────────────────────────────────
     private int                    _currentTideNumber;
@@ -187,33 +231,207 @@ public partial class GameBridge : Node
     public override void _Ready()
     {
         Instance = this;
+        GD.Print($"[HollowWardens] {HollowWardens.Core.GameVersion.Full}");
+
+        var balanceHash = new HollowWardens.Core.Encounter.BalanceConfig().GetHash();
+        _telemetry = new TelemetryCollector(new NullSink(), balanceHash, source: "player");
         var resDir  = ProjectSettings.GlobalizePath("res://");
         var csvPath = System.IO.Path.GetFullPath(
             System.IO.Path.Combine(resDir, "..", "data", "localization", "strings.csv"));
         Loc.Load(csvPath, "en");
         GD.Print($"[Loc] Loaded {Loc.Count} strings");
+
+        // Add DevConsole — backtick (`) toggles it; Key.Quoteleft is the correct scancode.
+        AddChild(new DevConsole());
+
+        // OS.GetCmdlineUserArgs() returns only the args passed after "--" (user args).
+        // OS.GetCmdlineArgs() returns Godot's own engine args and does NOT include user args in 4.6.
+        if (OS.GetCmdlineUserArgs().Contains("--run-ui-tests"))
+        {
+            GD.Print("[UISmokeTest] Flag detected");
+            CallDeferred(nameof(AddSmokeTest));
+        }
+
         // BuildEncounter is deferred — WardenSelectController calls StartWithWarden() after selection.
         // If no WardenSelectController is present (e.g. in tests), call StartWithWarden("root") directly.
+    }
+
+    private void AddSmokeTest()
+    {
+        var smokeTest = new UISmokeTest();
+        GetTree().Root.AddChild(smokeTest);
+        GD.Print("[UISmokeTest] Harness loaded");
     }
 
     /// <summary>Called by WardenSelectController after the player chooses a warden.</summary>
     public void StartWithWarden(string wardenId)
     {
         SelectedWardenId = wardenId;
+
+        // Initialize Full Run state on first encounter of a new run
+        bool isNewRun = SelectedMode == "full_run" && _currentRunState == null;
+        if (isNewRun)
+            InitFullRun(wardenId);
+
         BuildEncounter();
+
+        // Telemetry run/encounter lifecycle
+        if (isNewRun)
+            _telemetry?.StartRun(wardenId, SelectedMode, SelectedRealmId, State.Random?.Seed ?? 0);
+        _telemetry?.StartEncounter(SelectedEncounterId, State.Config.BoardLayout, State.Balance.MaxWeave);
+
         SubscribeToGameEvents();
         EmitSignal(SignalName.EncounterReady);
         Callable.From(StartFirstTurn).CallDeferred();
     }
 
+    private void InitFullRun(string wardenId)
+    {
+        var realm           = RealmLoader.Load(SelectedRealmId);
+        _currentRunState    = new RunState { WardenId = wardenId, RealmId = SelectedRealmId };
+        _currentRealmRunner = new RealmRunner(_currentRunState, realm, new System.Random());
+
+        var firstNode = _currentRealmRunner.GetCurrentNode();
+        if (firstNode.EncounterId != null)
+            SelectedEncounterId = firstNode.EncounterId;
+    }
+
     public override void _ExitTree()
     {
+        _telemetry?.Dispose();
+        _telemetry = null;
         UnsubscribeFromGameEvents();
         GameEvents.ClearAll();
         Instance = null;
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Programmatic command executor used by the UI smoke test harness (and any other non-UI caller).
+    /// Accepts a slash-prefixed command string and returns a result string.
+    /// </summary>
+    public string ExecuteConsoleCommand(string cmdText)
+    {
+        var cmd = CommandParser.Parse(cmdText);
+        if (!cmd.IsValid) return $"Error: {cmd.Error}";
+
+        switch (cmd.Name)
+        {
+            case "set_weave":
+            {
+                if (State?.Weave == null) return "Error: no active encounter";
+                if (cmd.Args.Length < 1 || !int.TryParse(cmd.Args[0], out int target))
+                    return "Usage: /set_weave <n>";
+                int delta = target - State.Weave.CurrentWeave;
+                if (delta > 0)       State.Weave.Restore(delta);
+                else if (delta < 0)  State.Weave.DealDamage(-delta);
+                return $"Weave = {State.Weave.CurrentWeave}";
+            }
+
+            case "set_corruption":
+            {
+                if (State == null) return "Error: no active encounter";
+                if (cmd.Args.Length < 2 || !int.TryParse(cmd.Args[1], out int pts))
+                    return "Usage: /set_corruption <territory> <pts>";
+                var t = State.GetTerritory(cmd.Args[0]);
+                if (t == null) return $"Error: unknown territory {cmd.Args[0]}";
+                t.CorruptionPoints = pts;
+                return $"Corruption on {cmd.Args[0]} = {pts}";
+            }
+
+            case "add_presence":
+            {
+                if (State == null) return "Error: no active encounter";
+                if (cmd.Args.Length < 1) return "Usage: /add_presence <territory> [n]";
+                int count = cmd.Args.Length >= 2 && int.TryParse(cmd.Args[1], out int n) ? n : 1;
+                var t = State.GetTerritory(cmd.Args[0]);
+                if (t == null) return $"Error: unknown territory {cmd.Args[0]}";
+                t.PresenceCount += count;
+                return $"+{count} presence on {cmd.Args[0]} (total {t.PresenceCount})";
+            }
+
+            case "kill_all":
+            {
+                if (State == null) return "Error: no active encounter";
+                foreach (var t in State.Territories) t.Invaders.Clear();
+                return "All invaders removed";
+            }
+
+            case "give_tokens":
+            {
+                if (cmd.Args.Length < 1 || !int.TryParse(cmd.Args[0], out int tokens))
+                    return "Usage: /give_tokens <n>";
+                if (_currentRunState != null)
+                    _currentRunState.UpgradeTokens += tokens;
+                return _currentRunState != null
+                    ? $"Tokens = {_currentRunState.UpgradeTokens}"
+                    : "OK (no run active)";
+            }
+
+            case "run_info":
+            {
+                if (State != null)
+                {
+                    string info = $"Mode={SelectedMode} Warden={SelectedWardenId} " +
+                                  $"Weave={State.Weave?.CurrentWeave}/{State.Weave?.MaxWeave} Tide={State.CurrentTide}";
+                    if (_currentRunState != null)
+                        info += $" RunStage={_currentRunState.CurrentNodeIndex} Tokens={_currentRunState.UpgradeTokens}";
+                    return info;
+                }
+                return $"Mode={SelectedMode} Warden={SelectedWardenId} (no encounter)";
+            }
+
+            case "export":
+                return ExportEncounterState();
+
+            case "end_encounter":
+            {
+                UnsubscribeFromGameEvents();
+                GameEvents.ClearAll();
+                ShowWardenSelectScreen();
+                return "Encounter ended";
+            }
+
+            // Triggers the Full Run reward → event → next encounter flow (used by smoke tests).
+            // No-op when a reward/event screen is already active.
+            case "finish_encounter":
+            {
+                if (SelectedMode != "full_run" || State == null
+                    || _currentRunState == null || _currentRealmRunner == null)
+                    return "Not in Full Run mode";
+                if (_fullRunRewardActive)
+                    return "Reward/event already in progress";
+                EndEncounter();
+                return "Encounter finished";
+            }
+
+            default:
+                return $"Unknown command: /{cmd.Name}";
+        }
+    }
+
+    private void ShowWardenSelectScreen()
+    {
+        // Reset Full Run state so the next run starts fresh
+        _currentRunState      = null;
+        _currentRealmRunner   = null;
+        _pendingEventNode     = null;
+        _pendingEvent         = null;
+        _fullRunRewardActive  = false;
+
+        static WardenSelectController? Find(Node n)
+        {
+            if (n is WardenSelectController wsc) return wsc;
+            foreach (Node c in n.GetChildren())
+            {
+                var found = Find(c);
+                if (found != null) return found;
+            }
+            return null;
+        }
+        Find(GetTree().Root)?.ShowWardenScreen();
+    }
 
     /// <summary>Returns a compact string encoding the current seed + all player actions for export/replay.</summary>
     public string ExportEncounterState()
@@ -265,7 +483,7 @@ public partial class GameBridge : Node
             return;
         }
 
-        _thresholdResolver.Resolve(element, tier, State);
+        _turnManager.UseThreshold(_thresholdResolver, element, tier);
         EmitSignal(SignalName.CardPlayFeedback, $"★ {element} T{tier}", "", 3);
     }
 
@@ -287,7 +505,7 @@ public partial class GameBridge : Node
         var tier    = _pendingThresholdTier;
         _isThresholdTargeting = false;
         ExitTargetingMode();
-        _thresholdResolver.Resolve(element, tier, State, territoryId);
+        _turnManager.UseThreshold(_thresholdResolver, element, tier, territoryId);
         EmitSignal(SignalName.CardPlayFeedback, $"★ {element} T{tier}", territoryId, 3);
     }
 
@@ -324,6 +542,8 @@ public partial class GameBridge : Node
             Type       = GameActionType.PlayTop,
             CardId     = card.Id
         });
+        _telemetry?.RecordDecision("card_play", card.Id, null, null, State,
+            cardId: card.Id, cardHalf: "top");
         _turnManager.PlayTop(card); // effects fire here
         EmitSignal(SignalName.HandChanged);
         EmitDeckCounts();
@@ -361,6 +581,8 @@ public partial class GameBridge : Node
             Type       = GameActionType.PlayBottom,
             CardId     = card.Id
         });
+        _telemetry?.RecordDecision("card_play", card.Id, null, null, State,
+            cardId: card.Id, cardHalf: "bottom");
         _turnManager.PlayBottom(card); // effects fire here
         EmitSignal(SignalName.HandChanged);
         EmitDeckCounts();
@@ -444,6 +666,10 @@ public partial class GameBridge : Node
         ExitTargetingMode();
         if (!canPlay) return;
 
+        _telemetry?.RecordDecision("targeting", territoryId, null, null, State,
+            cardId: card.Id, cardHalf: isPendingBot ? "bottom" : "top",
+            targetTerritory: territoryId);
+
         EmitCardPlayFeedback(effect, card.Name, territoryId, isPendingBot ? 1 : (_inResolution ? 2 : 0));
         State.ActionLog.Record(new GameAction
         {
@@ -517,6 +743,7 @@ public partial class GameBridge : Node
             Phase      = _turnManager.CurrentPhase,
             Type       = GameActionType.Rest
         });
+        _telemetry?.RecordDecision("rest", "rest", null, null, State);
         ExecuteRest();
     }
 
@@ -708,6 +935,9 @@ public partial class GameBridge : Node
         _turnManager.EndVigil();
         _currentTideNumber = _tidesExecuted + 1;
         _isFirstTide       = _currentTideNumber == 1;
+        _telemetry?.SetTide(_currentTideNumber);
+        _telTideKills    = 0;
+        _telTideArrivals = 0;
         _currentActionCard = _tideRunner.BeginTide(_currentTideNumber, State);
 
         if (_isFirstTide)
@@ -910,6 +1140,7 @@ public partial class GameBridge : Node
         _tideRunner.RunPreview(_currentTideNumber, State);
 
         _tidesExecuted++;
+        _telemetry?.RecordTideSnapshot(State, _telTideArrivals, _telTideKills);
 
         if (State.Weave?.IsGameOver == true) { EndEncounter(); return; }
         if (_tidesExecuted >= State.Config.TideCount) { BeginResolution(); return; }
@@ -958,7 +1189,297 @@ public partial class GameBridge : Node
     {
         State.Warden?.OnResolution(State);
         var result = RewardCalculator.Calculate(State);
+        _telemetry?.EndEncounter(State, result.ToString().ToLowerInvariant(), null);
+
+        if (SelectedMode == "full_run" && _currentRunState != null && _currentRealmRunner != null)
+        {
+            HandleFullRunEncounterEnd(result);
+            GameEvents.EncounterEnded?.Invoke(result);
+            return;
+        }
+
+        if (HasNextInChain)
+        {
+            _pendingCarryover = State.ExtractCarryover();
+            var summary = Loc.Get("CHAIN_CARRYOVER", _pendingCarryover.FinalWeave, _pendingCarryover.DreadLevel);
+            EmitSignal(SignalName.ChainAdvanceReady, ChainIndex + 2, summary);
+        }
+
         GameEvents.EncounterEnded?.Invoke(result);
+    }
+
+    /// <summary>
+    /// Advances to the next encounter in the chain, applying carryover from the just-completed encounter.
+    /// No-op if not in chain mode or no next encounter exists.
+    /// </summary>
+    public void ContinueChain()
+    {
+        if (!HasNextInChain) return;
+
+        ChainIndex++;
+        SelectedEncounterId = ChainEncounterIds[ChainIndex];
+
+        // Reset loop state
+        _tidesExecuted    = 0;
+        _inResolution     = false;
+        _resolutionTurn   = 0;
+        TideSubPhase      = TideSubPhase.None;
+        IsWaitingForTarget       = false;
+        PendingCard              = null;
+        PendingEffect            = null;
+        IsPendingBottom          = false;
+        IsWaitingForCounterAttack = false;
+        CounterAttackTerritory   = null;
+        CounterAttackPool        = 0;
+        _pendingFearActions      = new();
+        _fearActionIndex         = 0;
+        _counterAttackTargets    = new();
+        _counterAttackTargetIndex = 0;
+
+        var carryover = _pendingCarryover;
+        _pendingCarryover = null;
+
+        UnsubscribeFromGameEvents();
+        GameEvents.ClearAll();
+        BuildEncounter();
+
+        if (carryover != null)
+            HollowWardens.Core.Run.EncounterRunner.ApplyCarryover(State, carryover);
+
+        SubscribeToGameEvents();
+        EmitSignal(SignalName.EncounterReady);
+        Callable.From(StartFirstTurn).CallDeferred();
+    }
+
+    // ── Full Run Flow ─────────────────────────────────────────────────────────
+
+    private void HandleFullRunEncounterEnd(EncounterResult result)
+    {
+        _fullRunRewardActive = true;
+        GD.Print($"[DBG] HandleFullRunEncounterEnd: nodeIndex={_currentRunState?.CurrentNodeIndex}, result={result}");
+
+        // Record result and sync weave into run state
+        _currentRunState!.EncounterResults.Add(result.ToString().ToLowerInvariant());
+        _currentRunState.CurrentWeave = State.Weave?.CurrentWeave ?? _currentRunState.CurrentWeave;
+        _currentRunState.MaxWeave     = State.Weave?.MaxWeave     ?? _currentRunState.MaxWeave;
+
+        // Extract board carryover for the next encounter
+        _pendingCarryover = State.ExtractCarryover();
+
+        // Compute run reward
+        var reward = RunRewardCalculator.Calculate(
+            result,
+            State.Weave?.CurrentWeave ?? 0,
+            State.Weave?.MaxWeave ?? 20,
+            SelectedWardenId,
+            State.Config);
+
+        _currentRunState.UpgradeTokens += reward.UpgradeTokens;
+
+        // Build draft pool
+        var allCards     = State.WardenData?.Cards ?? new List<Card>();
+        int stage        = _currentRunState.CurrentNodeIndex + 1;
+        var draftPool    = DraftPool.GetPool(allCards, SelectedWardenId, reward.DraftPoolTag, stage);
+        var rnd          = new System.Random();
+        var draftChoices = draftPool.OrderBy(_ => rnd.Next()).Take(reward.DraftChoices).ToList();
+        GD.Print($"[DBG] HandleFullRunEncounterEnd: stage={stage}, draftChoices={draftChoices.Count}, reward.DraftChoices={reward.DraftChoices}");
+
+        // Show reward screen
+        var rewardScreen = FindRewardScreen();
+        if (rewardScreen != null)
+        {
+            GD.Print($"[DBG] HandleFullRunEncounterEnd: subscribing and calling Show() on rewardScreen");
+            rewardScreen.DraftCardChosen   += OnFullRunDraftCardChosen;
+            rewardScreen.CardRemovalChosen += OnFullRunCardRemovalChosen;
+            rewardScreen.HealChosen        += OnFullRunHealChosen;
+            rewardScreen.RewardContinued   += OnFullRunRewardContinued;
+            rewardScreen.Show(reward, result, draftChoices, _currentRunState);
+            GD.Print($"[DBG] HandleFullRunEncounterEnd: Show() completed, rewardScreen.Visible={rewardScreen.Visible}");
+        }
+        else
+        {
+            AfterFullRunReward();
+        }
+    }
+
+    private void OnFullRunDraftCardChosen(string cardId) =>
+        _currentRunState?.DeckCardIds.Add(cardId);
+
+    private void OnFullRunCardRemovalChosen(string cardId)
+    {
+        _currentRunState?.PermanentlyRemovedCardIds.Add(cardId);
+        if (_pendingCarryover != null && !_pendingCarryover.PermanentlyRemovedCards.Contains(cardId))
+            _pendingCarryover.PermanentlyRemovedCards.Add(cardId);
+    }
+
+    private void OnFullRunHealChosen()
+    {
+        if (_currentRunState == null) return;
+        _currentRunState.CurrentWeave = Math.Min(_currentRunState.CurrentWeave + 2, _currentRunState.MaxWeave);
+        if (_pendingCarryover != null)
+            _pendingCarryover.FinalWeave = _currentRunState.CurrentWeave;
+    }
+
+    private void OnFullRunRewardContinued()
+    {
+        GD.Print($"[DBG] OnFullRunRewardContinued called");
+        var rewardScreen = FindRewardScreen();
+        if (rewardScreen != null)
+        {
+            rewardScreen.DraftCardChosen   -= OnFullRunDraftCardChosen;
+            rewardScreen.CardRemovalChosen -= OnFullRunCardRemovalChosen;
+            rewardScreen.HealChosen        -= OnFullRunHealChosen;
+            rewardScreen.RewardContinued   -= OnFullRunRewardContinued;
+        }
+        AfterFullRunReward();
+    }
+
+    private void AfterFullRunReward()
+    {
+        GD.Print($"[DBG] AfterFullRunReward called, nodeIndex={_currentRunState?.CurrentNodeIndex}");
+        var nextNodes = _currentRealmRunner?.GetAvailableNextNodes() ?? new List<MapNode>();
+
+        if (nextNodes.Count > 0)
+        {
+            _pendingEventNode = nextNodes[0];
+
+            // Non-rest nodes: try to draw and show an event
+            if (_pendingEventNode.Type != "rest")
+            {
+                _pendingEvent = _currentRealmRunner?.DrawEventForNode(_pendingEventNode);
+                if (_pendingEvent != null)
+                {
+                    var eventScreen = FindEventScreen();
+                    if (eventScreen != null)
+                    {
+                        eventScreen.EventResolved  += OnFullRunEventResolved;
+                        eventScreen.EventDismissed += OnFullRunEventDismissed;
+                        eventScreen.Show(_pendingEvent, _currentRunState!);
+                        return;
+                    }
+                }
+            }
+
+            // Rest node or no event available — advance map immediately
+            _currentRealmRunner?.AdvanceToNode(_pendingEventNode.Id);
+            _pendingEventNode = null;
+        }
+
+        AfterFullRunEvent();
+    }
+
+    private void OnFullRunEventResolved(int optionIndex)
+    {
+        var eventScreen = FindEventScreen();
+        if (eventScreen != null)
+        {
+            eventScreen.EventResolved  -= OnFullRunEventResolved;
+            eventScreen.EventDismissed -= OnFullRunEventDismissed;
+        }
+
+        if (_pendingEvent != null && _currentRunState != null)
+        {
+            int weaveBefore = _currentRunState.CurrentWeave;
+            int tokensBefore = _currentRunState.UpgradeTokens;
+            EventRunner.ResolveOption(
+                _currentRunState, _pendingEvent, optionIndex,
+                new System.Random(),
+                State?.WardenData?.Cards);
+            _telemetry?.RecordEvent(_pendingEvent.Id, _pendingEvent.Type, optionIndex, null,
+                weaveBefore, _currentRunState.CurrentWeave, tokensBefore, _currentRunState.UpgradeTokens);
+        }
+
+        if (_pendingEventNode != null)
+            _currentRealmRunner?.AdvanceToNode(_pendingEventNode.Id);
+        _pendingEventNode = null;
+        _pendingEvent     = null;
+
+        AfterFullRunEvent();
+    }
+
+    private void OnFullRunEventDismissed()
+    {
+        var eventScreen = FindEventScreen();
+        if (eventScreen != null)
+        {
+            eventScreen.EventResolved  -= OnFullRunEventResolved;
+            eventScreen.EventDismissed -= OnFullRunEventDismissed;
+        }
+
+        if (_pendingEventNode != null)
+            _currentRealmRunner?.AdvanceToNode(_pendingEventNode.Id);
+        _pendingEventNode = null;
+        _pendingEvent     = null;
+
+        AfterFullRunEvent();
+    }
+
+    private void AfterFullRunEvent()
+    {
+        GD.Print($"[DBG] AfterFullRunEvent called");
+        _fullRunRewardActive = false;
+
+        if (_currentRealmRunner?.IsRunComplete() == true)
+        {
+            GD.Print(Loc.Get("FULL_RUN_COMPLETE"));
+            GD.Print(Loc.Get("FULL_RUN_SUMMARY",
+                _currentRunState?.EncounterResults.Count ?? 0,
+                _currentRunState?.CurrentWeave ?? 0,
+                _currentRunState?.DreadLevel ?? 1));
+            _telemetry?.EndRun(_currentRunState, "complete");
+            ShowWardenSelectScreen();
+            return;
+        }
+
+        // Advance to next encounter in the run
+        var nextNode = _currentRealmRunner?.GetCurrentNode();
+        if (nextNode?.EncounterId != null)
+            SelectedEncounterId = nextNode.EncounterId;
+
+        // Reset per-encounter loop state (same as ContinueChain)
+        _tidesExecuted            = 0;
+        _inResolution             = false;
+        _resolutionTurn           = 0;
+        TideSubPhase              = TideSubPhase.None;
+        IsWaitingForTarget        = false;
+        PendingCard               = null;
+        PendingEffect             = null;
+        IsPendingBottom           = false;
+        IsWaitingForCounterAttack = false;
+        CounterAttackTerritory    = null;
+        CounterAttackPool         = 0;
+        _pendingFearActions       = new();
+        _fearActionIndex          = 0;
+        _counterAttackTargets     = new();
+        _counterAttackTargetIndex = 0;
+
+        var carryover     = _pendingCarryover;
+        _pendingCarryover = null;
+
+        UnsubscribeFromGameEvents();
+        GameEvents.ClearAll();
+        BuildEncounter();
+
+        if (carryover != null)
+            HollowWardens.Core.Run.EncounterRunner.ApplyCarryover(State, carryover);
+
+        SubscribeToGameEvents();
+        EmitSignal(SignalName.EncounterReady);
+        Callable.From(StartFirstTurn).CallDeferred();
+    }
+
+    private RewardScreenController? FindRewardScreen()
+    {
+        var screen = GetNodeOrNull<RewardScreenController>("/root/Game/RewardScreen");
+        if (screen == null) GD.PrintErr("[GameBridge] RewardScreen not found at /root/Game/RewardScreen");
+        return screen;
+    }
+
+    private EventScreenController? FindEventScreen()
+    {
+        var screen = GetNodeOrNull<EventScreenController>("/root/Game/EventScreen");
+        if (screen == null) GD.PrintErr("[GameBridge] EventScreen not found at /root/Game/EventScreen");
+        return screen;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -1069,7 +1590,7 @@ public partial class GameBridge : Node
         GameEvents.ThresholdExpired  += _hThresholdExpired;
         GameEvents.ThresholdResolved += _hThresholdResolved;
 
-        _hFearGeneratedRelay  = a  => EmitSignal(SignalName.FearGenerated,     a);
+        _hFearGeneratedRelay  = a  => { EmitSignal(SignalName.FearGenerated, a); _telemetry?.OnFearGenerated(a); };
         _hFearActionQueued    = () => EmitSignal(SignalName.FearActionQueued);
         _hFearActionRevealed  = fa => EmitSignal(SignalName.FearActionRevealed, fa.Description);
         _hDreadAdvancedRelay  = l  => EmitSignal(SignalName.DreadAdvanced,     l);
@@ -1085,17 +1606,17 @@ public partial class GameBridge : Node
         GameEvents.ActionCardRevealed  += _hActionCardRevealed;
         GameEvents.NextActionPreviewed += _hNextActionPreviewed;
 
-        _hInvaderArrived  = (i, t)    => EmitSignal(SignalName.InvaderArrived,   i.Id, t.Id, (int)i.UnitType);
-        _hInvaderDefeated = i         => EmitSignal(SignalName.InvaderDefeated,  i.Id);
+        _hInvaderArrived  = (i, t)    => { EmitSignal(SignalName.InvaderArrived,   i.Id, t.Id, (int)i.UnitType); _telTideArrivals++; };
+        _hInvaderDefeated = i         => { EmitSignal(SignalName.InvaderDefeated,  i.Id); _telemetry?.OnInvaderKilled(); _telTideKills++; };
         _hInvaderAdvanced = (i, f, t) => EmitSignal(SignalName.InvaderAdvanced,  i.Id, f, t);
         GameEvents.InvaderArrived  += _hInvaderArrived;
         GameEvents.InvaderDefeated += _hInvaderDefeated;
         GameEvents.InvaderAdvanced += _hInvaderAdvanced;
 
-        _hCorruptionChanged  = (t, p, l) => EmitSignal(SignalName.CorruptionChanged, t.Id, p, l);
+        _hCorruptionChanged  = (t, p, l) => { EmitSignal(SignalName.CorruptionChanged, t.Id, p, l); _telemetry?.UpdatePeakCorruption(State.Territories.Sum(x => x.CorruptionPoints)); };
         _hWeaveChanged       = v         => EmitSignal(SignalName.WeaveChanged,    v);
         _hCounterAttackReady = (t, p)    => EmitSignal(SignalName.CounterAttackReady, t.Id, p);
-        _hHeartDamage        = t         => EmitSignal(SignalName.HeartDamageDealt, t.Id);
+        _hHeartDamage        = t         => { EmitSignal(SignalName.HeartDamageDealt, t.Id); _telemetry?.OnHeartDamage(); };
         GameEvents.CorruptionChanged  += _hCorruptionChanged;
         GameEvents.WeaveChanged       += _hWeaveChanged;
         GameEvents.CounterAttackReady += _hCounterAttackReady;

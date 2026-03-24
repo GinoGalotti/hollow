@@ -17,6 +17,15 @@ public class SimProfile
     public string Encounter { get; set; } = "pale_march_standard";
     public string? Output { get; set; }
 
+    [JsonPropertyName("mode")]
+    public string Mode { get; set; } = "single"; // "single" or "chain"
+
+    [JsonPropertyName("realm")]
+    public string? Realm { get; set; }
+
+    [JsonPropertyName("chain_overrides")]
+    public ChainOverrides? ChainOverrides { get; set; }
+
     [JsonPropertyName("warden_overrides")]
     public WardenOverrides? WardenOverrides { get; set; }
 
@@ -190,4 +199,22 @@ public class EscalationOverride
     public int Tide { get; set; }
     public string Card { get; set; } = "";
     public string Pool { get; set; } = "painful";
+}
+
+public class ChainOverrides
+{
+    [JsonPropertyName("starting_max_weave")]
+    public int? StartingMaxWeave { get; set; }
+
+    [JsonPropertyName("starting_tokens")]
+    public int? StartingTokens { get; set; }
+
+    [JsonPropertyName("force_encounters")]
+    public List<string>? ForceEncounters { get; set; }
+
+    [JsonPropertyName("disable_events")]
+    public bool DisableEvents { get; set; } = false;
+
+    [JsonPropertyName("bot_config")]
+    public string? BotConfigPath { get; set; }
 }
