@@ -78,15 +78,17 @@ public class WardenLoaderTests
     }
 
     [Fact]
-    public void EffectParsing_Root025_TopIsDamageRange1_BottomSecondaryIsSlowInvaders()
+    public void EffectParsing_Root025_TopIsDamageRange1_BottomIsPushInvadersWithReduceCorruption()
     {
+        // B6: card 025 bottom changed from DamageInvaders+SlowInvaders → PushInvaders+ReduceCorruption
         var warden = WardenLoader.Load(_path);
         var card   = warden.Cards.Single(c => c.Id == "root_025");
         Assert.Equal(EffectType.DamageInvaders, card.TopEffect.Type);
         Assert.Equal(2, card.TopEffect.Value);
         Assert.Equal(1, card.TopEffect.Range);
+        Assert.Equal(EffectType.PushInvaders, card.BottomEffect.Type);
         Assert.NotNull(card.BottomSecondary);
-        Assert.Equal(EffectType.SlowInvaders, card.BottomSecondary!.Type);
+        Assert.Equal(EffectType.ReduceCorruption, card.BottomSecondary!.Type);
     }
 
     [Fact]

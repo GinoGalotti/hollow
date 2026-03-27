@@ -1,43 +1,43 @@
 ﻿=== HOLLOW WARDENS SIMULATION — 500 encounters (seeds 1–500) ===
-Game: 0.8.0+24 | Balance: 046591799FD9
-Warden: root | Encounter: pale_march_standard
-Timestamp: 2026-03-23 16:28:42
+Game: 0.8.0+28 | Balance: EBF4EDEE70DC
+Warden: root | Encounter: pale_march_scouts
+Timestamp: 2026-03-25 10:44:22
 Output directory: D:\Workspace\hollow\sim-results
 
 OUTCOMES:
-  Clean:     277 (55.4%)
-  Weathered: 184 (36.8%)
-  Breach:    39 (7.8%)
+  Clean:     0 (0%)
+  Weathered: 447 (89.4%)
+  Breach:    53 (10.6%)
 
 SURVIVAL:
-  Avg tides completed:  5.89
-  Avg final weave:      16.41 / 20
-  Game overs (weave 0): 39
+  Avg tides completed:  5.95
+  Avg final weave:      13.89 / 20
+  Game overs (weave 0): 53
 
 COMBAT:
-  Avg invaders killed:     27.5
-  Avg natives killed:      0.62
-  Avg heart damage events: 1.45
+  Avg invaders killed:     14.66
+  Avg natives killed:      3.46
+  Avg heart damage events: 2.81
 
 CORRUPTION:
-  Avg peak corruption (single territory): 3.78
+  Avg peak corruption (single territory): 5.35
   Desecration events (L3 reached):        0 total across all encounters
-  Avg total corruption at final tide:     0
+  Avg total corruption at final tide:     4.98
 
 PRESENCE & SACRIFICE:
-  Avg total presence at final tide: 10.74
+  Avg total presence at final tide: 8.23
   Avg sacrifices per encounter:     0
 
 FEAR:
-  Avg fear generated per encounter: 50.02
+  Avg fear generated per encounter: 30.08
 
 PER-TIDE AVERAGES (across all encounters):
-  Tide 1: weave=20 invaders=4 presence=2.4 corruption=0
-  Tide 2: weave=20 invaders=7.8 presence=4.4 corruption=0
-  Tide 3: weave=20 invaders=10.5 presence=8.1 corruption=8.1
-  Tide 4: weave=17.2 invaders=11.3 presence=9 corruption=1.3
-  Tide 5: weave=17.8 invaders=11.4 presence=9.9 corruption=0
-  Tide 6: weave=17.2 invaders=11 presence=10.8 corruption=0
+  Tide 1: weave=20 invaders=3 presence=2.2 corruption=0
+  Tide 2: weave=20 invaders=5.6 presence=3.8 corruption=0
+  Tide 3: weave=19.9 invaders=7.8 presence=7.3 corruption=6.7
+  Tide 4: weave=16.8 invaders=8.7 presence=8.2 corruption=0.9
+  Tide 5: weave=15.8 invaders=10.2 presence=8.2 corruption=9.4
+  Tide 6: weave=14.1 invaders=11 presence=8.2 corruption=4.6
 
-[CLOSEST CALL] Encounter with lowest weave (0) — seed 6:
-SEED:6|0:PlayTop:root_009:-|1:SelectTarget:-:M1|2:PlayTop:root_006:-|3:SelectTarget:-:A1|4:PlayBottom:root_025:-|5:SelectTarget:-:A2|6:PlayTop:root_008:-|7:PlayTop:root_005:-|8:PlayBottom:root_002:-|9:SelectTarget:-:M2|10:Rest:-:A1|11:PlayTop:root_004:-|12:PlayTop:root_005:-|13:PlayBottom:root_007:-|14:PlayTop:root_008:-|15:PlayTop:root_003:-|16:SelectTarget:-:A1|17:PlayTop:root_025:-
+[CLOSEST CALL] Encounter with lowest weave (0) — seed 9:
+SEED:9|0:PlayTop:root_004:-|1:PlayTop:root_002:-|2:SelectTarget:-:M1|3:PlayBottom:root_005:-|4:SelectTarget:-:A2|5:PlayTop:root_009:-|6:SelectTarget:-:A1|7:PlayTop:root_025:-|8:SelectTarget:-:A1|9:PlayBottom:root_007:-|10:Rest:-:A1|11:PlayTop:root_006:-|12:SelectTarget:-:A1|13:PlayTop:root_009:-|14:SelectTarget:-:A1|15:PlayBottom:root_003:-|16:SelectTarget:-:A1|17:PlayTop:root_025:-|18:SelectTarget:-:I1|19:PlayTop:root_001:-|20:SelectTarget:-:A2|21:PlayBottom:root_008:-|22:Rest:-:A2|23:PlayTop:root_005:-|24:SelectTarget:-:I1|25:PlayTop:root_004:-|26:PlayBottom:root_006:-|27:PlayTop:root_003:-|28:PlayTop:root_007:-|29:PlayTop:root_025:-

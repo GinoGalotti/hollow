@@ -77,6 +77,7 @@ public class EncounterRunner
         var turnManager = new TurnManager(state, _resolver);
         var tideRunner = new TideRunner(_actionDeck, _cadence, _spawn, _faction, _resolver);
         tideRunner.CounterAttackHandler = strategy.AssignCounterDamage;
+        state.ProvocationSelector = strategy.RankProvocationTerritories;
 
         int tidesExecuted = 0;
 

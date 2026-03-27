@@ -499,6 +499,36 @@ All within or near target range (50–70% Clean, 5–15% Breach). Real players w
 
 ---
 
+### D46: Adaptive bot system — ParameterizedBotStrategy + HillClimber optimizer (2026-03-25)
+**Decision:** Implement a fully parameterized bot strategy (`ParameterizedBotStrategy`) driven by a `StrategyParams` struct (37 tunable parameters), with a momentum-biased hill-climber optimizer (`HillClimber`) that finds near-optimal params for any encounter configuration.
+
+**Architecture:**
+- `StrategyParams` — 37 int/bool parameters (phase transition tide, spread/stack targets, 6 early/late priority ranks, urgency thresholds, bottom weights, nested `TargetingParams`). JSON-serializable, `Clone()` via round-trip, `WithPerturbation()` + `WithShake()` for optimization. `PerturbableParams` static list is the single authority on what's tunable.
+- `TargetingParams` — 15 territory-selection preference flags (kill vs damage, arrival row bias, threshold proximity, warden-specific target heuristics for Ash T1/T2/T3, Root T1/T2, Gale).
+- `StrategyDefaults` — static warden-specific starting points: Root (M-row choke, tall stack bias, late cleanse priority) and Ember (fast engine, wide presence, L3 panic threshold).
+- `ParameterizedBotStrategy` — scores cards as `priority×10 + element_value×3 + target_quality×2 + urgency×20`. Two phases: early (engine-building, tides 1–PhaseTransitionTide) vs late (threat response). Phase determines which priority rank governs each effect type.
+- `HillClimber` — evaluator-delegate pattern (`Func<StrategyParams, double>`). 70% recent-improver / 30% random param selection. Shake every 60 iters (±1–3 on 4 random params). Converges when score doesn't improve ≥0.5 in 40 iters. Score fn: `clean% - 3.0×breach% - 0.5×|weathered%-27.5| + 0.1×avgHeartDmg - 0.2×|avgWeave-16|`.
+
+**Why delegate pattern, not SimRunner.cs:** The spec's §8 file table did not list SimRunner.cs. The HillClimber accepts `Func<StrategyParams, double>` and Program.cs builds the closure. This avoids creating an unnecessary wrapper class while keeping HillClimber fully testable and decoupled from the sim infrastructure.
+
+**CLI flags added:** `--strategy smart` (warden-default StrategyParams), `--strategy optimised --strategy-params <path>` (load saved params), `--optimise`, `--optimise-seeds <range>`, `--optimise-iterations <n>`, `--optimise-output <path>`. `SimProfile.StrategyParamsPath` added for profile-level optimization.
+
+**Per-warden saved defaults (`sim-params/`):** Every `--optimise` run writes its best params to `sim-params/{warden}.params.json`. The next run automatically loads it as the starting point, so optimization is cumulative. Param resolution priority: `--strategy-params` CLI flag > `sim-params/{warden}.params.json` > hardcoded `StrategyDefaults`. Delete the file to restart from hardcoded defaults (use after large mechanic changes that invalidate prior optimization).
+
+**Initial validation (seeds 1–20, standard+B2):**
+- `smart` (Root defaults): **0% breach, 100% weathered**
+- `root_tall` (previous best): 55% breach, 45% weathered
+- Smart outperforms the hand-tuned heuristic by 55pp before any optimization.
+
+**Three-tier measurement model (complete):**
+- `root_wide` — greedy floor: 34% breach
+- `root_tall` — heuristic midpoint: ~55% breach (poor — exposes root_tall limitations)
+- `smart` — parameterized near-ceiling: 0% breach
+
+**Impact:** B6 breach rate interpretation changes. "34% breach" with root_wide may overstate real player difficulty. Smart bot result sets the upper bound for what good play can achieve. Future balance sims should report all three tiers.
+
+---
+
 ### D44: Multi-strategy bot system — named strategy profiles + warden defaults
 **Decision:** Add `RootTallStrategy` as Root's default sim bot. Expose a `"strategy"` field in `SimProfile` so individual profiles can override. Register named strategies: `root_tall`, `root_wide`, `ember_aggressive`. Layer 3 (adaptive hill-climber) specced in `hill-climber-bot-spec.md` for future implementation.
 

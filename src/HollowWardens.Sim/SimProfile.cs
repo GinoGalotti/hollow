@@ -19,11 +19,17 @@ public class SimProfile
 
     /// <summary>
     /// Bot strategy to use. Options: "root_tall" (stack presence, default for root),
-    /// "root_wide" (spread only), "ember" / "ember_aggressive", "telemetry".
+    /// "root_wide" (spread only), "ember" / "ember_aggressive", "telemetry",
+    /// "smart" (ParameterizedBotStrategy with warden defaults),
+    /// "optimised" (ParameterizedBotStrategy loaded from strategy_params_path).
     /// Falls back to warden default when omitted.
     /// </summary>
     [JsonPropertyName("strategy")]
     public string? Strategy { get; set; }
+
+    /// <summary>Path to a saved StrategyParams JSON file (used with strategy="optimised").</summary>
+    [JsonPropertyName("strategy_params_path")]
+    public string? StrategyParamsPath { get; set; }
 
     [JsonPropertyName("mode")]
     public string Mode { get; set; } = "single"; // "single" or "chain"

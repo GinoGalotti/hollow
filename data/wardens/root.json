@@ -341,10 +341,10 @@
         "Shadow"
       ],
       "top": {
-        "type": "GenerateFear",
+        "type": "MoveNatives",
         "value": 2,
-        "range": 0,
-        "desc": "Generate 2 Fear"
+        "range": 1,
+        "desc": "Move up to 2 Natives from one territory to an adjacent territory"
       },
       "bottom": {
         "type": "DamageInvaders",
@@ -393,10 +393,10 @@
         "desc": "Place 1 Presence in range 1"
       },
       "bottom": {
-        "type": "PlacePresence",
+        "type": "SpawnNatives",
         "value": 2,
-        "range": 2,
-        "desc": "Place 2 Presence, each in different territories in range 2"
+        "range": 0,
+        "desc": "Spawn 2 Natives in a Presence territory (card goes Dormant)"
       },
       "upgrades": [
         {
@@ -566,14 +566,14 @@
         "desc": "Roots erupt, dealing 2 damage to all invaders in one territory in range 1"
       },
       "bottom": {
-        "type": "DamageInvaders",
-        "value": 3,
-        "range": 2,
-        "desc": "Roots entangle everything in range 2. Deal 3 damage to all invaders in one territory in range 2. All invaders in that territory have their Advance halved next Tide.",
+        "type": "PushInvaders",
+        "value": 2,
+        "range": 1,
+        "desc": "Push up to 2 invaders back toward spawn. Reduce Corruption by 1 in that territory.",
         "secondary": {
-          "type": "SlowInvaders",
+          "type": "ReduceCorruption",
           "value": 1,
-          "range": 2
+          "range": 0
         }
       },
       "upgrades": [

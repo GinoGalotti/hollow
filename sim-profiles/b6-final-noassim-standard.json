@@ -1,0 +1,16 @@
+{
+  "name": "b6-final — Provocation only (no Assimilation) — standard+B2",
+  "seeds": "1-500",
+  "warden": "root",
+  "encounter": "pale_march_standard",
+  "encounter_overrides": {
+    "extra_invaders_per_wave": 1
+  },
+  "warden_overrides": {
+    "force_passives": ["rest_growth", "network_slow"],
+    "lock_passives": ["assimilation"]
+  },
+  "balance_overrides": {
+    "provocation_territory_limit": 0
+  }
+}

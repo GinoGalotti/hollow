@@ -7,21 +7,30 @@ using HollowWardens.Core.Models;
 using HollowWardens.Core.Systems;
 
 /// <summary>
-/// Warden ability for The Root.
+/// Warden ability for The Root (B6 final redesign).
 /// - Playing a bottom: card goes Dormant (shuffled back into draw pile, unplayable).
 /// - Playing the bottom of an already-Dormant card on Boss: permanently removed.
 /// - Rest-dissolve: card goes Dormant instead of being removed from the encounter.
 /// - Network Fear: 1 Fear per invader in a territory adjacent to ≥3 Presence territories, capped at NetworkFearCap.
-/// - Network Slow: invaders in territories adjacent to ≥3 Presence territories have −1 Advance movement.
-/// - On tide start: Assimilation (B6) — pick ONE presence territory, spawn natives based on presence count
-///   and AssimilationSpawnMode (linear / scaled / half).
-/// - On resolution: Assimilation upgrade (assimilation_u1) — territories with ≥2 Presence + ≥2 Natives + invaders
+/// - Network Slow (pool): invaders in territories adjacent to ≥3 Presence territories have −1 Advance movement.
+/// - Presence Provocation (BASE, B6): at tide start, select which Presence territories have Provocation active.
+///   Bot selects up to ProvocationTerritoryLimit territories (0 = unlimited) by most invaders, tiebreak proximity to Heart.
+///   Natives in selected territories counter-attack on every invader action. Rate-capped at ProvocationNativesPerPresence.
+/// - Assimilation (POOL, B6): at tide start (if pool passive is active), pick ONE presence territory, spawn natives
+///   based on AssimilationSpawnMode (linear / scaled / half).
+/// - Assimilation upgrade (assimilation_u1 — Resolution): territories with ≥2 Presence + ≥2 Natives + invaders
 ///   convert floor(min(presence, natives) / 2) invaders → Natives (weakest first, HP = max(1, invader.MaxHp / 2)).
 /// </summary>
 public class RootAbility : IWardenAbility
 {
     private readonly IPresenceSystem? _presence;
     private readonly BalanceConfig? _config;
+
+    /// <summary>
+    /// Territories with Provocation active this tide. Null = not yet initialised (pre-tide-start fallback:
+    /// ProvokesNatives returns territory.HasPresence for backwards-compat with unit tests).
+    /// </summary>
+    private HashSet<string>? _activeProvocationTerritories;
 
     public RootAbility() { }
 
@@ -47,16 +56,17 @@ public class RootAbility : IWardenAbility
     public BottomResult OnRestDissolve(Card card) => BottomResult.Dormant;
 
     /// <summary>
-    /// Assimilation — base (B6 tide-start spawn):
-    ///   Pick the presence territory with the most adjacent invaders (tie-break: most presence).
-    ///   Spawn natives there based on AssimilationSpawnMode:
-    ///     linear: count = presence
-    ///     scaled:  count = 1 + floor(presence / 2)   [default]
-    ///     half:    count = ceil(presence / 2)
-    ///   Natives spawned at tide start can counter-attack that same tide if Provocation is active.
+    /// B6: Tide start runs two things in order:
+    ///   1. Provocation territory selection (base passive — always active):
+    ///      Bot picks which presence territories have Provocation active this tide.
+    ///      With ProvocationTerritoryLimit=0 (default), all presence territories are selected.
+    ///   2. Assimilation spawn (pool passive — only if active):
+    ///      Pick ONE presence territory (most adj invaders, tiebreak: most presence), spawn natives.
     /// </summary>
     public void OnTideStart(EncounterState state)
     {
+        SelectProvocationTerritories(state);
+
         if (Gating != null && !Gating.IsActive("assimilation")) return;
 
         var territory = ChooseSpawnTerritory(state);
@@ -72,10 +82,47 @@ public class RootAbility : IWardenAbility
             {
                 Hp          = nativeHp,
                 MaxHp       = nativeHp,
-                Damage      = 1,
+                Damage      = _config?.DefaultNativeDamage ?? 1,
                 TerritoryId = territory.Id,
             });
         }
+    }
+
+    /// <summary>
+    /// Selects which Presence territories have Provocation active this tide.
+    /// With ProvocationTerritoryLimit = 0 (default), all presence territories are selected.
+    /// Bot heuristic: most invaders in territory → tiebreak closest to Heart → tiebreak most natives.
+    /// </summary>
+    private void SelectProvocationTerritories(EncounterState state)
+    {
+        _activeProvocationTerritories = new HashSet<string>();
+        if (Gating != null && !Gating.IsActive("presence_provocation")) return;
+
+        int limit = _config?.ProvocationTerritoryLimit ?? 0;
+        var candidates = state.Territories.Where(t => t.HasPresence).ToList();
+
+        IEnumerable<Territory> ranked;
+        var strategyIds = state.ProvocationSelector?.Invoke(candidates, state)?.ToList();
+        if (strategyIds != null && strategyIds.Count > 0)
+        {
+            // Use strategy-provided ordering; filter to valid candidates
+            ranked = strategyIds
+                .Select(id => candidates.FirstOrDefault(t => t.Id == id))
+                .Where(t => t != null)!;
+        }
+        else
+        {
+            // Default heuristic: most invaders → closest to Heart → most natives
+            ranked = candidates
+                .OrderByDescending(t => t.Invaders.Count(i => i.IsAlive))
+                .ThenBy(t => state.Graph != null
+                    ? state.Graph.Distance(t.Id, state.Graph.HeartId)
+                    : 0)
+                .ThenByDescending(t => t.Natives.Count(n => n.IsAlive));
+        }
+
+        foreach (var t in (limit > 0 ? ranked.Take(limit) : ranked))
+            _activeProvocationTerritories.Add(t.Id);
     }
 
     /// <summary>
@@ -165,13 +212,31 @@ public class RootAbility : IWardenAbility
     }
 
     /// <summary>
-    /// Presence Provocation: Natives in Presence territories counter-attack on every invader action.
-    /// Upgrade (presence_provocation_u1) extends to range 1 from Presence territories.
+    /// Presence Provocation (now BASE passive, B6): Natives in Provocation-active territories
+    /// counter-attack on every invader action, not just Ravage.
+    /// Which territories are active is determined each tide by SelectProvocationTerritories().
+    /// Fallback (null cache, e.g. pre-tide-start in unit tests): returns territory.HasPresence.
     /// </summary>
     public bool ProvokesNatives(Territory territory)
     {
         if (Gating != null && !Gating.IsActive("presence_provocation")) return false;
-        return territory.HasPresence;
+        if (_activeProvocationTerritories == null)
+            return territory.HasPresence; // pre-tide-start fallback for unit tests
+        return _activeProvocationTerritories.Contains(territory.Id);
+    }
+
+    /// <summary>
+    /// Per-presence native damage cap: presence × ProvocationNativesPerPresence × DefaultNativeDamage.
+    /// Prevents stacked-presence territories from becoming invulnerable kill zones.
+    /// Returns null (no cap) if config is not available.
+    /// </summary>
+    public int? GetProvocationDamageCap(Territory territory)
+    {
+        if (Gating != null && !Gating.IsActive("presence_provocation")) return null;
+        if (_config == null) return null;
+        return territory.PresenceCount
+            * _config.ProvocationNativesPerPresence
+            * _config.DefaultNativeDamage;
     }
 
     /// <summary>

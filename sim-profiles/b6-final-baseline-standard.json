@@ -1,0 +1,12 @@
+{
+  "name": "b6-final — Baseline (Provocation only, no pool) — standard+B2",
+  "seeds": "1-100",
+  "warden": "root",
+  "encounter": "pale_march_standard",
+  "encounter_overrides": {
+    "extra_invaders_per_wave": 1
+  },
+  "balance_overrides": {
+    "provocation_territory_limit": 0
+  }
+}

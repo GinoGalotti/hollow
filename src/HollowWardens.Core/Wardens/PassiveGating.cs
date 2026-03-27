@@ -31,15 +31,15 @@ public class PassiveGating
 
     private void InitializeRoot()
     {
-        // Always active — base passives
+        // Always active — base passives (B6 redesign: provocation moved from pool to base)
         _activePassives.Add("network_fear");
         _activePassives.Add("dormancy");
-        _activePassives.Add("assimilation");
+        _activePassives.Add("presence_provocation");
         _basePassives.Add("network_fear");
         _basePassives.Add("dormancy");
-        _basePassives.Add("assimilation");
+        _basePassives.Add("presence_provocation");
 
-        // Pool passives: rest_growth, presence_provocation, network_slow
+        // Pool passives: assimilation (moved from base), rest_growth, network_slow
         // These start locked — unlocked via end-of-encounter rewards (or ForceUnlock for sim)
     }
 

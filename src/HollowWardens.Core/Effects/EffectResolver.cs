@@ -15,6 +15,8 @@ public class EffectResolver
         EffectType.BoostNatives     => new BoostNativesEffect(data),
         EffectType.AwakeDormant     => new AwakeDormantEffect(data),
         EffectType.SlowInvaders     => new SlowInvadersEffect(data),  // D29
+        EffectType.SpawnNatives     => new SpawnNativesEffect(data),
+        EffectType.MoveNatives      => new MoveNativesEffect(data),
         _ => throw new NotImplementedException($"Effect type {data.Type} is not implemented.")
     };
 }

@@ -147,6 +147,9 @@ public class TideRunner
                 .ToList())
             {
                 int pool = state.Combat?.CalculateNativeDamagePool(territory) ?? 0;
+                // B6: per-presence rate cap (ProvocationNativesPerPresence × DefaultNativeDamage)
+                int? cap = state.Warden?.GetProvocationDamageCap(territory);
+                if (cap.HasValue) pool = Math.Min(pool, cap.Value);
                 GameEvents.CounterAttackReady?.Invoke(territory, pool);
                 if (pool > 0)
                 {

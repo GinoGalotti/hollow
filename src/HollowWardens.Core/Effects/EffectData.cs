@@ -14,7 +14,7 @@ public enum EffectType
     DamageInvaders, PushInvaders, RoutInvaders, SlowInvaders,
     WeakenInvaders, ExposeInvaders, BrittleInvaders,
     RestoreWeave,
-    ShieldNatives, BoostNatives, HealNatives, DamageNatives,
+    ShieldNatives, BoostNatives, HealNatives, DamageNatives, SpawnNatives, MoveNatives,
     AwakeDormant,
     Conditional, Custom
 }

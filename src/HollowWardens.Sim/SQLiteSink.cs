@@ -22,6 +22,8 @@ public class SQLiteSink : ITelemetrySink
     {
         using var cmd = _conn.CreateCommand();
         cmd.CommandText = """
+            PRAGMA journal_mode=WAL;
+            PRAGMA busy_timeout=5000;
             CREATE TABLE IF NOT EXISTS runs (
                 run_id TEXT PRIMARY KEY,
                 player_id TEXT,

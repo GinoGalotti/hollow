@@ -31,6 +31,14 @@ public class EncounterState
     public PassiveGating? PassiveGating { get; set; }
     public BalanceConfig Balance { get; set; } = new();
 
+    /// <summary>
+    /// Optional strategy hook for ordering Provocation candidate territories.
+    /// Set by EncounterRunner before running tides. Return ordered territory IDs (first = highest
+    /// priority), or null to fall back to RootAbility's default heuristic.
+    /// Func signature avoids a circular dependency between Encounter and Run namespaces.
+    /// </summary>
+    public Func<IReadOnlyList<Territory>, EncounterState, IEnumerable<string>?>? ProvocationSelector { get; set; }
+
     public Territory? GetTerritory(string id) => Territories.FirstOrDefault(t => t.Id == id);
 
     /// <summary>Applies the encounter's FearMultiplier to a base fear amount.</summary>

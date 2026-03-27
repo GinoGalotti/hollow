@@ -7,14 +7,17 @@ using HollowWardens.Core.Models;
 
 public class PushInvadersEffect : IEffect
 {
-    public PushInvadersEffect(EffectData _) { }
+    private readonly int _count;
+
+    public PushInvadersEffect(EffectData data)
+        => _count = data.Value > 0 ? data.Value : int.MaxValue;
 
     public void Resolve(EncounterState state, TargetInfo target)
     {
         var territory = state.GetTerritory(target.TerritoryId);
         if (territory == null) return;
 
-        var invaders = territory.Invaders.Where(i => i.IsAlive).ToList();
+        var invaders = territory.Invaders.Where(i => i.IsAlive).Take(_count).ToList();
         if (invaders.Count == 0) return;
 
         // Push to an adjacent territory that is farther from I1 (or equal distance).

@@ -27,6 +27,11 @@ string? aggregateTelemetryPath = null;
 string? versionFilter = null;
 string? cliStrategy = null;
 string? cliStrategyProfile = null;
+string? cliStrategyParams  = null;   // --strategy-params <path>
+bool    optimise            = false;
+string? optimiseSeeds       = null;
+int     optimiseIterations  = 200;
+string? optimiseOutput      = null;
 bool    verbose      = false;
 
 for (int i = 0; i < args.Length; i++)
@@ -44,6 +49,11 @@ for (int i = 0; i < args.Length; i++)
     else if (args[i] == "--version-filter"      && i + 1 < args.Length) versionFilter = args[++i];
     else if (args[i] == "--strategy"            && i + 1 < args.Length) cliStrategy = args[++i];
     else if (args[i] == "--strategy-profile"    && i + 1 < args.Length) cliStrategyProfile = args[++i];
+    else if (args[i] == "--strategy-params"     && i + 1 < args.Length) cliStrategyParams = args[++i];
+    else if (args[i] == "--optimise")                                    optimise = true;
+    else if (args[i] == "--optimise-seeds"      && i + 1 < args.Length) optimiseSeeds = args[++i];
+    else if (args[i] == "--optimise-iterations" && i + 1 < args.Length) int.TryParse(args[++i], out optimiseIterations);
+    else if (args[i] == "--optimise-output"     && i + 1 < args.Length) optimiseOutput = args[++i];
     else if (args[i] == "--verbose")                                     verbose      = true;
 }
 
@@ -114,6 +124,138 @@ if (!File.Exists(dataPath))
     Console.Error.WriteLine($"[ERROR] Warden JSON not found: {dataPath}");
     Console.Error.WriteLine($"Pass --warden <wardenId> or --data <path/to/{wardenArg}.json> to specify the path.");
     return 1;
+}
+
+// ── Per-warden default params path (sim-params/{warden}.params.json at project root) ──
+string defaultParamsPath;
+{
+    var dir = AppContext.BaseDirectory;
+    while (dir != null && !Directory.Exists(Path.Combine(dir, "data", "wardens")))
+        dir = Path.GetDirectoryName(dir);
+    defaultParamsPath = Path.Combine(dir ?? ".", "sim-params", $"{wardenArg}.params.json");
+}
+
+// ── Optimiser mode ────────────────────────────────────────────────────────────
+if (optimise)
+{
+    var optimSeeds = ParseSeeds(optimiseSeeds ?? "1-100");
+    string outPath = optimiseOutput ?? Path.Combine(outputDir, $"{wardenArg}-{encounterArg}-opt.json");
+
+    // Resolve starting params: --strategy-params > saved per-warden default > hardcoded warden defaults
+    string? seedParamsPath = cliStrategyParams
+        ?? (File.Exists(defaultParamsPath) ? defaultParamsPath : null);
+    var startParams = seedParamsPath != null
+        ? StrategyParams.FromJson(seedParamsPath)
+        : (wardenArg == "ember" ? StrategyDefaults.Ember : StrategyDefaults.Root);
+
+    Console.WriteLine($"=== HOLLOW WARDENS OPTIMISER ===");
+    Console.WriteLine($"Warden: {wardenArg} | Encounter: {encounterArg}");
+    Console.WriteLine($"Seeds: {optimiseSeeds ?? "1-100"} ({optimSeeds.Count} seeds) | Max iterations: {optimiseIterations}");
+    Console.WriteLine($"Starting params: {(seedParamsPath != null ? Path.GetFullPath(seedParamsPath) : "warden defaults")}");
+    Console.WriteLine($"Output: {Path.GetFullPath(outPath)}");
+    Console.WriteLine();
+
+    Func<StrategyParams, double> fastEvaluator = evalParams =>
+    {
+        var allStats2 = new List<SimStats>();
+        foreach (int seed in optimSeeds)
+        {
+            var (state2, runner2, stats2, collector2) = BuildEncounter(seed, dataPath!, balance.Clone(), wardenArg, encounterArg, profile);
+            collector2.WireEvents();
+            var strategy2 = new ParameterizedBotStrategy(evalParams);
+            var result2 = runner2.Run(state2, strategy2);
+            collector2.Finalize(result2);
+            collector2.UnwireEvents();
+            GameEvents.ClearAll();
+            allStats2.Add(stats2);
+        }
+
+        int n = allStats2.Count;
+        if (n == 0) return 0;
+        double cleanPct     = allStats2.Count(s => s.Result == EncounterResult.Clean)     * 100.0 / n;
+        double weatheredPct = allStats2.Count(s => s.Result == EncounterResult.Weathered) * 100.0 / n;
+        double breachPct    = allStats2.Count(s => s.Result == EncounterResult.Breach)    * 100.0 / n;
+        double avgHeart     = allStats2.Average(s => (double)s.HeartDamageEvents);
+        double avgWeave     = allStats2.Average(s => (double)s.FinalWeave);
+        return HillClimber.ComputeScore(cleanPct, weatheredPct, breachPct, avgHeart, avgWeave);
+    };
+
+    var (bestParams, bestScore, history) = HillClimber.Optimise(
+        startParams,
+        fastEvaluator,
+        maxIterations: optimiseIterations,
+        onProgress: (iter, score, param) =>
+        {
+            if (iter == 0 || iter % 10 == 0 || iter == optimiseIterations)
+                Console.WriteLine($"  Iter {iter,4}: best score = {score:F2}" +
+                    (param == "SHAKE" ? " [SHAKE]" : param != null ? $" (changed: {param})" : ""));
+        });
+
+    Console.WriteLine();
+    Console.WriteLine($"Optimisation complete. Best score: {bestScore:F2}");
+
+    // Run best params on the optimise seeds to get final stats
+    var finalStats = new List<SimStats>();
+    foreach (int seed in optimSeeds)
+    {
+        var (state3, runner3, stats3, collector3) = BuildEncounter(seed, dataPath!, balance.Clone(), wardenArg, encounterArg, profile);
+        collector3.WireEvents();
+        var result3 = runner3.Run(state3, new ParameterizedBotStrategy(bestParams));
+        collector3.Finalize(result3);
+        collector3.UnwireEvents();
+        GameEvents.ClearAll();
+        finalStats.Add(stats3);
+    }
+
+    int fn = finalStats.Count;
+    double fClean    = finalStats.Count(s => s.Result == EncounterResult.Clean)     * 100.0 / fn;
+    double fWeathered = finalStats.Count(s => s.Result == EncounterResult.Weathered) * 100.0 / fn;
+    double fBreach   = finalStats.Count(s => s.Result == EncounterResult.Breach)    * 100.0 / fn;
+    double fWeave    = finalStats.Average(s => (double)s.FinalWeave);
+    double fHeart    = finalStats.Average(s => (double)s.HeartDamageEvents);
+
+    Console.WriteLine($"  Clean: {fClean:F1}% | Weathered: {fWeathered:F1}% | Breach: {fBreach:F1}%");
+    Console.WriteLine($"  Avg weave: {fWeave:F1} | Avg heart damage: {fHeart:F2}");
+    Console.WriteLine();
+
+    // Build output JSON
+    var optimOutput = new
+    {
+        warden      = wardenArg,
+        encounter   = encounterArg,
+        iterations  = history.Count - 1,
+        seeds       = optimiseSeeds ?? "1-100",
+        final_score = Math.Round(bestScore, 3),
+        results     = new
+        {
+            clean_pct      = Math.Round(fClean,     1),
+            weathered_pct  = Math.Round(fWeathered, 1),
+            breach_pct     = Math.Round(fBreach,    1),
+            avg_weave      = Math.Round(fWeave,     2),
+            avg_heart_damage = Math.Round(fHeart,   2)
+        },
+        @params = bestParams,
+        history = history.Select(h => new { iteration = h.Iteration, score = Math.Round(h.Score, 3), param_changed = h.ParamChanged })
+    };
+
+    Directory.CreateDirectory(Path.GetDirectoryName(outPath) ?? ".");
+    var jsonStr = System.Text.Json.JsonSerializer.Serialize(optimOutput,
+        new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+    File.WriteAllText(outPath, jsonStr, System.Text.Encoding.UTF8);
+
+    // Also save best params as a loadable StrategyParams file
+    var paramsOnlyPath = Path.ChangeExtension(outPath, ".params.json");
+    bestParams.ToJson(paramsOnlyPath);
+
+    Console.WriteLine($"Optimisation output written to: {Path.GetFullPath(outPath)}");
+    Console.WriteLine($"Params file (use with --strategy-params): {Path.GetFullPath(paramsOnlyPath)}");
+
+    // Save as new per-warden default (auto-seed for next run)
+    Directory.CreateDirectory(Path.GetDirectoryName(defaultParamsPath)!);
+    bestParams.ToJson(defaultParamsPath);
+    Console.WriteLine($"Default params updated: {Path.GetFullPath(defaultParamsPath)}");
+    Console.WriteLine($"  (delete this file to restart from warden defaults)");
+    return 0;
 }
 
 // ── Chain mode dispatch ───────────────────────────────────────────────────────
@@ -220,7 +362,8 @@ foreach (int seed in seeds)
     GameEvents.HeartDamageDealt += _ => telemetry.OnHeartDamage();
     GameEvents.TideCompleted += t => telemetry.SetTide(t);
 
-    IPlayerStrategy strategy = BuildStrategy(cliStrategy ?? profile?.Strategy, cliStrategyProfile, wardenArg);
+    IPlayerStrategy strategy = BuildStrategy(cliStrategy ?? profile?.Strategy, cliStrategyProfile, wardenArg,
+        cliStrategyParams ?? profile?.StrategyParamsPath);
     IPlayerStrategy wrappedStrategy = new TelemetryBotWrapper(strategy, telemetry);
 
     // --verbose: log first 5 encounters; remaining breaches logged after result
@@ -420,7 +563,7 @@ static IReadOnlyList<int> ParseSeeds(string s)
     return s.Split(',').Select(x => int.Parse(x.Trim())).ToArray();
 }
 
-static IPlayerStrategy BuildStrategy(string? strategyName, string? profilePath, string wardenId)
+static IPlayerStrategy BuildStrategy(string? strategyName, string? profilePath, string wardenId, string? strategyParamsPath = null)
 {
     if (strategyName == "telemetry" && profilePath != null && File.Exists(profilePath))
     {
@@ -430,6 +573,19 @@ static IPlayerStrategy BuildStrategy(string? strategyName, string? profilePath, 
             ?? new PlayerProfile();
         return new TelemetryDrivenStrategy(playerProfile, new Random());
     }
+
+    if (strategyName == "smart")
+        return new ParameterizedBotStrategy(wardenId == "ember" ? StrategyDefaults.Ember : StrategyDefaults.Root);
+
+    if (strategyName == "optimised")
+    {
+        var paramsPath = strategyParamsPath;
+        if (paramsPath != null && File.Exists(paramsPath))
+            return new ParameterizedBotStrategy(StrategyParams.FromJson(paramsPath));
+        Console.Error.WriteLine("[WARN] --strategy optimised requires --strategy-params <path>; falling back to smart defaults.");
+        return new ParameterizedBotStrategy(wardenId == "ember" ? StrategyDefaults.Ember : StrategyDefaults.Root);
+    }
+
     return strategyName switch
     {
         "root_tall"                    => new RootTallStrategy(),

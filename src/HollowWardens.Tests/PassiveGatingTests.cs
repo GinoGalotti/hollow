@@ -23,11 +23,12 @@ public class PassiveGatingTests : IDisposable
     [Fact]
     public void Root_StartsWithThreeActivePassives()
     {
+        // B6 redesign: presence_provocation is now base; assimilation moved to pool
         var gating = new PassiveGating("root");
         Assert.Equal(3, gating.ActivePassives.Count);
         Assert.True(gating.IsActive("network_fear"));
         Assert.True(gating.IsActive("dormancy"));
-        Assert.True(gating.IsActive("assimilation"));
+        Assert.True(gating.IsActive("presence_provocation"));
     }
 
     [Fact]
@@ -38,10 +39,19 @@ public class PassiveGatingTests : IDisposable
     }
 
     [Fact]
-    public void Root_ProvocationInactive_AtStart()
+    public void Root_ProvocationActive_AtStart()
     {
+        // B6 redesign: presence_provocation is now a base passive (always active)
         var gating = new PassiveGating("root");
-        Assert.False(gating.IsActive("presence_provocation"));
+        Assert.True(gating.IsActive("presence_provocation"));
+    }
+
+    [Fact]
+    public void Root_AssimilationInactive_AtStart()
+    {
+        // B6 redesign: assimilation moved from base to pool — starts locked
+        var gating = new PassiveGating("root");
+        Assert.False(gating.IsActive("assimilation"));
     }
 
     [Fact]
@@ -125,13 +135,15 @@ public class PassiveGatingTests : IDisposable
     }
 
     [Fact]
-    public void Root_ProvokesNatives_ReturnsFalse_WhenLocked()
+    public void Root_ProvokesNatives_ReturnsFalse_WhenForceLocked()
     {
+        // B6: presence_provocation is now base (active by default).
+        // If someone force-locks it (e.g. for debug), ProvokesNatives must return false.
         var gating = new PassiveGating("root");
+        gating.ForceLock("presence_provocation");
         var root = new RootAbility { Gating = gating };
         var territory = new Territory { Id = "M1", Row = TerritoryRow.Middle, PresenceCount = 1 };
 
-        // presence_provocation locked → false
         Assert.False(root.ProvokesNatives(territory));
     }
 
@@ -175,10 +187,11 @@ public class PassiveGatingTests : IDisposable
 
         Assert.False(gating.IsActive("rest_growth"));
         Assert.False(gating.IsActive("network_slow"));
-        // Base 3 still active
+        // B6 base 3 still active after reset
         Assert.True(gating.IsActive("network_fear"));
         Assert.True(gating.IsActive("dormancy"));
-        Assert.True(gating.IsActive("assimilation"));
+        Assert.True(gating.IsActive("presence_provocation"));
+        Assert.False(gating.IsActive("assimilation")); // assimilation is pool, not base
     }
 
     // ── Network Fear mechanic ─────────────────────────────────────────────────

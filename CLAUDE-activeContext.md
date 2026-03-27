@@ -1,8 +1,8 @@
 # Hollow Wardens — Active Context
 
 ## Current Status
-**Phase 6+ active development** — 689 tests passing, functional prototype playable.
-Both Root and Ember wardens implemented. Single/Chain encounter selection UI. 5 encounter configs live. B1/B2/B4/B5/D41/D42/D44 shipped. Full string localization migration complete. SQLite crash + localization bug fixed.
+**Phase 6+ active development** — 690 tests passing, functional prototype playable.
+Both Root and Ember wardens implemented. Single/Chain encounter selection UI. 5 encounter configs live. B1/B2/B4/B5/D41/D42/D44/D46 shipped. Full string localization migration complete. SQLite crash + localization bug fixed. Adaptive bot system (ParameterizedBotStrategy + HillClimber optimizer) shipped.
 
 **⚠️ BALANCE PENDING — B6 v2 implemented, sims run, design decision needed.** Root Assimilation redesigned to tide-start native spawn (3 formula modes: linear/scaled/half). 12 sim profiles created. Current numbers (root_wide, standard+B2): **0% clean / 66% weathered / 34% breach**. "Clean" is now structurally 0% — old Resolution clear is gone; "Weathered" is the new success state. 34% breach is above the 5–15% target. Design question: is native spawn alone enough, or is tuning needed? See §B6-v2 in CLAUDE-balance.md.
 
@@ -104,6 +104,17 @@ Standard(B2) → Scouts(B2) → Elite(B2) is a coherent difficulty arc:
 
 ## Recently Completed Work
 
+### Session 2026-03-25 — Adaptive bot system: ParameterizedBotStrategy + HillClimber optimizer (D46)
+- **Five new files shipped:**
+  - `src/HollowWardens.Core/Run/TargetingParams.cs` — territory selection preferences (15 bool/int flags, JSON-serializable)
+  - `src/HollowWardens.Core/Run/StrategyParams.cs` — 37 hill-climber-optimizable parameters; `Clone()` via JSON round-trip, `WithPerturbation(paramName, rng)`, `WithShake(rng, paramCount)`, `ToJson/FromJson`, static `PerturbableParams` list
+  - `src/HollowWardens.Core/Run/StrategyDefaults.cs` — warden-specific starting params: `Root` (PhaseTransitionTide=3, M-row choke, tall stack bias) and `Ember` (PhaseTransitionTide=2, wide presence, CleanseUrgency=12)
+  - `src/HollowWardens.Core/Run/ParameterizedBotStrategy.cs` — full `IPlayerStrategy` implementation; two-phase scoring: `priority×10 + element_value×3 + target_quality×2 + urgency×20`; phase-aware priorities; all targeting booleans wired
+  - `src/HollowWardens.Sim/HillClimber.cs` — momentum-biased hill-climber; 70% recent-improver / 30% random; shake every 60 iters; convergence when score doesn't improve ≥0.5 in 40 iters; score fn: `clean% - 3.0×breach% - 0.5×|weathered%-27.5| + 0.1×avgHeartDmg - 0.2×|avgWeave-16|`
+- **Program.cs + SimProfile.cs updated:** `--strategy smart/optimised`, `--strategy-params <path>`, `--optimise`, `--optimise-seeds`, `--optimise-iterations`, `--optimise-output` CLI flags. `SimProfile.StrategyParamsPath` added.
+- **Initial results (seeds 1–20, standard+B2):** `smart` bot (ParameterizedBotStrategy + Root defaults) = **0% breach, 100% weathered** vs. `root_tall` = **55% breach, 45% weathered**. Smart bot dramatically outperforms hand-tuned heuristic before any optimization.
+- **690 tests passing.** No SimRunner.cs created — delegate pattern used instead (HillClimber accepts `Func<StrategyParams, double>`).
+
 ### Session 2026-03-24 — B6 v2 redesign: tide-start native spawn (D45)
 - **B6 v2 implemented:** `RootAbility.OnTideStart` — picks best presence territory (most adj invaders), spawns natives per formula. `RootAbility.OnResolution` now only handles the `assimilation_u1` upgrade. `BalanceConfig.AssimilationSpawnThreshold` removed; replaced with `AssimilationSpawnMode` string (`"linear"/"scaled"/"half"`). `SimProfileApplier.ApplyBalanceOverrides` gained string-type handling.
 - **12 sim profiles created:** `sim-profiles/b6-{linear,scaled,half}-{standard,scouts,siege,elite}.json`
@@ -173,13 +184,11 @@ Standard(B2) → Scouts(B2) → Elite(B2) is a coherent difficulty arc:
 ## Open Work / Next Steps
 
 ### High Priority (Blocking)
-1. **B6: Design decision on breach rate** — B6 v2 (tide-start spawn, 3 formula modes) is implemented (689 tests). Sims show **34% breach** with root_wide on standard+B2, with natives spawning but only counter-attacking on Ravage/Corrupt action cards (Provocation is a pool passive). This is above the 5–15% target. Key question: is native spawn without Provocation sufficient, or does the encounter need re-tuning? Options:
+1. **B6: Design decision on breach rate** — B6 v2 (tide-start spawn, 3 formula modes) is implemented (690 tests). Sims show **34% breach** with root_wide on standard+B2. The `smart` bot (ParameterizedBotStrategy) achieves **0% breach** on the same seeds — this is likely near the ceiling. Gap between smart and root_wide reveals that Root's breach rate is highly skill-dependent. Key question: should target breach % be measured against root_wide or smart? Options:
    - Reduce invader pressure (remove B2 on standard since old Resolution clear is gone)
    - Tune formula to spawn more natives (but with wide play all formulas give same = 1/tide)
    - Accept 34% breach as a new harder baseline (Weathered=66% is survivable)
    - See §B6-v2 in CLAUDE-balance.md
-
-2. **Bot strategy system (L3 pending Opus)** — Layer 1+2 shipped: `RootTallStrategy`, `"strategy"` field in SimProfile. Layer 3 (hill-climber adaptive bot) specced in `hill-climber-bot-spec.md` — hand this to Opus for design + implementation.
 
 ### High Priority
 2. **D42: Hide locked passives in encounter UI** — `PassivePanelController` currently shows all passives, dimming locked ones at 50% opacity. D42 requires *hiding* run-level locked passives entirely. Currently all passives are threshold-gated (no run-level locked passives exist yet) so no visible change until run-level progression is added. Design confirmed in CLAUDE-decisions.md §D42.
@@ -195,6 +204,81 @@ Standard(B2) → Scouts(B2) → Elite(B2) is a coherent difficulty arc:
 
 ### Pending Tests (needs writing)
 - **WardenSelectController input-blocking regression** — After `LaunchEncounter()` / `StartWithWarden()` is called, `WardenSelectController.Visible` must be `false`. The bug was that the full-screen `overlay` Control (added in `_Ready()` with `FullRect` anchors, `MouseFilter=Stop`) stayed active after the game started, swallowing all card-click events. Can't use xUnit (Godot node). Options: (a) Godot integration test scene that calls `StartWithWarden` and asserts `WardenSelect.Visible == false`; (b) a code-convention check that warns if any `CanvasLayer` child of the `Game` scene root has a FullRect child Control without a `Visible = false` guard in a `LaunchEncounter`-style method.
+
+## Sim Optimizer Usage Guide
+
+The hill-climber optimizer finds near-optimal `StrategyParams` for a given warden + encounter. It auto-saves the best result as a **per-warden default** that seeds the next run.
+
+### Files
+| Path | Purpose |
+|------|---------|
+| `sim-params/root.params.json` | Root warden saved default — auto-updated after every optimize run |
+| `sim-params/ember.params.json` | Ember warden saved default |
+| `src/HollowWardens.Sim/HillClimber.cs` | Optimizer algorithm |
+| `src/HollowWardens.Core/Run/StrategyParams.cs` | 37-parameter struct (JSON-serializable) |
+| `src/HollowWardens.Core/Run/StrategyDefaults.cs` | Hardcoded warden starting points (fallback when no saved default) |
+
+### Param resolution priority (highest first)
+1. `--strategy-params <path>` — explicit one-off override
+2. `sim-params/{warden}.params.json` — saved default from last optimizer run
+3. `StrategyDefaults.Root` / `StrategyDefaults.Ember` — hardcoded fallback
+
+### CLI usage
+
+```bash
+# Run optimizer (picks up saved default automatically, or starts from warden defaults if none)
+dotnet run --project src/HollowWardens.Sim -- \
+  --warden root --encounter pale_march_standard \
+  --optimise --optimise-seeds 1-100 --optimise-iterations 200
+
+# Run more iterations on the same default (just run again — it loads sim-params/root.params.json)
+dotnet run --project src/HollowWardens.Sim -- \
+  --warden root --encounter pale_march_standard \
+  --optimise --optimise-seeds 1-200 --optimise-iterations 300
+
+# Override with a specific params file (e.g. test a saved checkpoint)
+dotnet run --project src/HollowWardens.Sim -- \
+  --warden root --encounter pale_march_standard \
+  --optimise --strategy-params sim-results/run1-opt.params.json
+
+# Start completely fresh (delete the saved default)
+rm sim-params/root.params.json
+
+# Play back the optimized params (verify final results on larger seed set)
+dotnet run --project src/HollowWardens.Sim -- \
+  --warden root --encounter pale_march_standard \
+  --strategy optimised --strategy-params sim-params/root.params.json \
+  --seeds 1-500
+```
+
+### Optimizer output per run
+- `sim-results/{warden}-{encounter}-opt.json` — full history + final results + params (audit trail)
+- `sim-results/{warden}-{encounter}-opt.params.json` — params only (loadable via `--strategy-params`)
+- `sim-params/{warden}.params.json` — **updated default** (seeds next run automatically)
+
+### When to delete the saved default
+Delete `sim-params/{warden}.params.json` if:
+- A game mechanic change fundamentally alters how the warden plays (e.g. B6 Assimilation redesign)
+- You want to test whether the optimizer finds a different basin from scratch
+- The saved params are from an old balance config that no longer applies
+
+For small tuning changes (invader counts, threshold values), keep the saved default — the optimizer will re-converge quickly from the nearby solution.
+
+### Score function (§5.1 of adaptive-bot-design.md)
+```
+score = clean% - 3.0×breach% - 0.5×|weathered%-27.5| + 0.1×avgHeartDamage - 0.2×|avgWeave-16|
+```
+Target ~50–60 for a well-balanced encounter. `smart` bot on standard+B2 achieves ~70+ (near-ceiling).
+
+### Three-tier measurement model
+| Strategy | What it measures | standard+B2 breach% |
+|----------|-----------------|---------------------|
+| `root_wide` | Greedy floor — worst-case player | ~34% |
+| `root_tall` | Heuristic midpoint | ~55% (poor — exposes limitations) |
+| `smart` | Parameterized near-ceiling | ~0% |
+| `optimised` | Hill-climber upper bound | TBD after full optimization run |
+
+---
 
 ## Localization Pattern (for new code)
 ```csharp

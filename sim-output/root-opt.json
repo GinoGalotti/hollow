@@ -1,0 +1,568 @@
+﻿{
+  "warden": "root",
+  "encounter": "pale_march_standard",
+  "iterations": 100,
+  "seeds": "1-100",
+  "final_score": -43.616,
+  "results": {
+    "clean_pct": 0,
+    "weathered_pct": 97,
+    "breach_pct": 3,
+    "avg_weave": 16.12,
+    "avg_heart_damage": 1.58
+  },
+  "params": {
+    "phase_transition_tide": 3,
+    "spread_target": 3,
+    "stack_target": 3,
+    "prefer_tall_over_wide": true,
+    "early_presence_priority": 1,
+    "early_damage_priority": 4,
+    "early_cleanse_priority": 5,
+    "early_fear_priority": 1,
+    "early_weave_priority": 6,
+    "early_passive_unlock_priority": 1,
+    "late_damage_priority": 2,
+    "late_cleanse_priority": 1,
+    "late_presence_priority": 4,
+    "late_fear_priority": 3,
+    "late_weave_priority": 5,
+    "late_passive_unlock_priority": 5,
+    "damage_urgency_invader_count": 4,
+    "cleanse_urgency_corruption": 5,
+    "weave_urgency_threshold": 12,
+    "heart_threat_tide": 4,
+    "bottom_damage_weight": 110,
+    "bottom_fear_weight": 40,
+    "bottom_cleanse_weight": 100,
+    "bottom_presence_weight": 50,
+    "bottom_weave_weight": 40,
+    "targeting": {
+      "prefer_kills_over_damage": false,
+      "prefer_arrival_row": false,
+      "threat_row_weight": 2,
+      "target_weakest_first": true,
+      "presence_prefer_stack": true,
+      "presence_prefer_threshold": true,
+      "presence_prefer_adj_invader": false,
+      "cleanse_prefer_highest": false,
+      "cleanse_prefer_near_threshold": true,
+      "cleanse_prefer_presence": true,
+      "ash_t1_prefer_most_invaders": true,
+      "ash_t2_prefer_high_corruption": false,
+      "ash_t3_prefer_high_presence": true,
+      "root_t1_prefer_near_threshold": false,
+      "root_t2_prefer_frontline": false,
+      "gale_t1_push_toward_spawn": true
+    },
+    "voluntary_rest_min_elements": 8,
+    "voluntary_rest_max_hand_size": 2
+  },
+  "history": [
+    {
+      "iteration": 0,
+      "score": -56.16,
+      "param_changed": null
+    },
+    {
+      "iteration": 1,
+      "score": -56.16,
+      "param_changed": "Targeting.RootT2PreferFrontline"
+    },
+    {
+      "iteration": 2,
+      "score": -56.16,
+      "param_changed": "PhaseTransitionTide"
+    },
+    {
+      "iteration": 3,
+      "score": -56.16,
+      "param_changed": "StackTarget"
+    },
+    {
+      "iteration": 4,
+      "score": -56.16,
+      "param_changed": "Targeting.RootT2PreferFrontline"
+    },
+    {
+      "iteration": 5,
+      "score": -56.16,
+      "param_changed": "Targeting.RootT2PreferFrontline"
+    },
+    {
+      "iteration": 6,
+      "score": -56.16,
+      "param_changed": "Targeting.RootT2PreferFrontline"
+    },
+    {
+      "iteration": 7,
+      "score": -56.16,
+      "param_changed": "Targeting.RootT2PreferFrontline"
+    },
+    {
+      "iteration": 8,
+      "score": -56.16,
+      "param_changed": "Targeting.RootT2PreferFrontline"
+    },
+    {
+      "iteration": 9,
+      "score": -56.16,
+      "param_changed": "EarlyCleansePriority"
+    },
+    {
+      "iteration": 10,
+      "score": -56.16,
+      "param_changed": "Targeting.RootT2PreferFrontline"
+    },
+    {
+      "iteration": 11,
+      "score": -56.16,
+      "param_changed": "Targeting.RootT2PreferFrontline"
+    },
+    {
+      "iteration": 12,
+      "score": -56.16,
+      "param_changed": "Targeting.RootT2PreferFrontline"
+    },
+    {
+      "iteration": 13,
+      "score": -56.16,
+      "param_changed": "EarlyCleansePriority"
+    },
+    {
+      "iteration": 14,
+      "score": -56.16,
+      "param_changed": "Targeting.RootT2PreferFrontline"
+    },
+    {
+      "iteration": 15,
+      "score": -56.16,
+      "param_changed": "EarlyCleansePriority"
+    },
+    {
+      "iteration": 16,
+      "score": -46.131,
+      "param_changed": "BottomCleanseWeight"
+    },
+    {
+      "iteration": 17,
+      "score": -46.131,
+      "param_changed": "Targeting.RootT2PreferFrontline"
+    },
+    {
+      "iteration": 18,
+      "score": -46.131,
+      "param_changed": "BottomCleanseWeight"
+    },
+    {
+      "iteration": 19,
+      "score": -46.131,
+      "param_changed": "EarlyCleansePriority"
+    },
+    {
+      "iteration": 20,
+      "score": -46.131,
+      "param_changed": "BottomCleanseWeight"
+    },
+    {
+      "iteration": 21,
+      "score": -46.131,
+      "param_changed": "Targeting.RootT2PreferFrontline"
+    },
+    {
+      "iteration": 22,
+      "score": -46.131,
+      "param_changed": "Targeting.RootT1PreferNearThreshold"
+    },
+    {
+      "iteration": 23,
+      "score": -46.131,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 24,
+      "score": -46.131,
+      "param_changed": "Targeting.RootT2PreferFrontline"
+    },
+    {
+      "iteration": 25,
+      "score": -46.131,
+      "param_changed": "Targeting.RootT1PreferNearThreshold"
+    },
+    {
+      "iteration": 26,
+      "score": -46.131,
+      "param_changed": "Targeting.RootT1PreferNearThreshold"
+    },
+    {
+      "iteration": 27,
+      "score": -46.131,
+      "param_changed": "Targeting.RootT1PreferNearThreshold"
+    },
+    {
+      "iteration": 28,
+      "score": -46.131,
+      "param_changed": "EarlyFearPriority"
+    },
+    {
+      "iteration": 29,
+      "score": -46.131,
+      "param_changed": "StackTarget"
+    },
+    {
+      "iteration": 30,
+      "score": -46.131,
+      "param_changed": "DamageUrgencyInvaderCount"
+    },
+    {
+      "iteration": 31,
+      "score": -46.131,
+      "param_changed": "PhaseTransitionTide"
+    },
+    {
+      "iteration": 32,
+      "score": -46.131,
+      "param_changed": "EarlyFearPriority"
+    },
+    {
+      "iteration": 33,
+      "score": -46.131,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 34,
+      "score": -46.131,
+      "param_changed": "EarlyCleansePriority"
+    },
+    {
+      "iteration": 35,
+      "score": -46.131,
+      "param_changed": "DamageUrgencyInvaderCount"
+    },
+    {
+      "iteration": 36,
+      "score": -46.131,
+      "param_changed": "EarlyFearPriority"
+    },
+    {
+      "iteration": 37,
+      "score": -46.131,
+      "param_changed": "EarlyCleansePriority"
+    },
+    {
+      "iteration": 38,
+      "score": -46.131,
+      "param_changed": "Targeting.PreferKillsOverDamage"
+    },
+    {
+      "iteration": 39,
+      "score": -46.131,
+      "param_changed": "Targeting.RootT1PreferNearThreshold"
+    },
+    {
+      "iteration": 40,
+      "score": -46.131,
+      "param_changed": "StackTarget"
+    },
+    {
+      "iteration": 41,
+      "score": -46.131,
+      "param_changed": "EarlyCleansePriority"
+    },
+    {
+      "iteration": 42,
+      "score": -46.123,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 43,
+      "score": -46.123,
+      "param_changed": "DamageUrgencyInvaderCount"
+    },
+    {
+      "iteration": 44,
+      "score": -46.123,
+      "param_changed": "EarlyFearPriority"
+    },
+    {
+      "iteration": 45,
+      "score": -46.123,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 46,
+      "score": -46.123,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 47,
+      "score": -46.123,
+      "param_changed": "EarlyFearPriority"
+    },
+    {
+      "iteration": 48,
+      "score": -46.123,
+      "param_changed": "EarlyFearPriority"
+    },
+    {
+      "iteration": 49,
+      "score": -46.123,
+      "param_changed": "Targeting.PreferArrivalRow"
+    },
+    {
+      "iteration": 50,
+      "score": -46.123,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 51,
+      "score": -46.123,
+      "param_changed": "Targeting.RootT1PreferNearThreshold"
+    },
+    {
+      "iteration": 52,
+      "score": -46.123,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 53,
+      "score": -46.123,
+      "param_changed": "DamageUrgencyInvaderCount"
+    },
+    {
+      "iteration": 54,
+      "score": -46.123,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 55,
+      "score": -46.123,
+      "param_changed": "Targeting.PreferKillsOverDamage"
+    },
+    {
+      "iteration": 56,
+      "score": -46.123,
+      "param_changed": "EarlyFearPriority"
+    },
+    {
+      "iteration": 57,
+      "score": -46.123,
+      "param_changed": "EarlyCleansePriority"
+    },
+    {
+      "iteration": 58,
+      "score": -46.123,
+      "param_changed": "Targeting.CleansePreferNearThreshold"
+    },
+    {
+      "iteration": 59,
+      "score": -46.123,
+      "param_changed": "Targeting.CleansePreferNearThreshold"
+    },
+    {
+      "iteration": 60,
+      "score": -43.654,
+      "param_changed": "SHAKE"
+    },
+    {
+      "iteration": 61,
+      "score": -43.654,
+      "param_changed": "Targeting.ThreatRowWeight"
+    },
+    {
+      "iteration": 62,
+      "score": -43.654,
+      "param_changed": "Targeting.RootT1PreferNearThreshold"
+    },
+    {
+      "iteration": 63,
+      "score": -43.654,
+      "param_changed": "Targeting.RootT1PreferNearThreshold"
+    },
+    {
+      "iteration": 64,
+      "score": -43.654,
+      "param_changed": "EarlyCleansePriority"
+    },
+    {
+      "iteration": 65,
+      "score": -43.654,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 66,
+      "score": -43.654,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 67,
+      "score": -43.654,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 68,
+      "score": -43.654,
+      "param_changed": "DamageUrgencyInvaderCount"
+    },
+    {
+      "iteration": 69,
+      "score": -43.654,
+      "param_changed": "PhaseTransitionTide"
+    },
+    {
+      "iteration": 70,
+      "score": -43.654,
+      "param_changed": "DamageUrgencyInvaderCount"
+    },
+    {
+      "iteration": 71,
+      "score": -43.654,
+      "param_changed": "Targeting.CleansePreferNearThreshold"
+    },
+    {
+      "iteration": 72,
+      "score": -43.654,
+      "param_changed": "DamageUrgencyInvaderCount"
+    },
+    {
+      "iteration": 73,
+      "score": -43.654,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 74,
+      "score": -43.654,
+      "param_changed": "EarlyCleansePriority"
+    },
+    {
+      "iteration": 75,
+      "score": -43.654,
+      "param_changed": "SpreadTarget"
+    },
+    {
+      "iteration": 76,
+      "score": -43.654,
+      "param_changed": "DamageUrgencyInvaderCount"
+    },
+    {
+      "iteration": 77,
+      "score": -43.646,
+      "param_changed": "BottomDamageWeight"
+    },
+    {
+      "iteration": 78,
+      "score": -43.646,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 79,
+      "score": -43.646,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 80,
+      "score": -43.646,
+      "param_changed": "Targeting.CleansePreferNearThreshold"
+    },
+    {
+      "iteration": 81,
+      "score": -43.63,
+      "param_changed": "Targeting.PreferKillsOverDamage"
+    },
+    {
+      "iteration": 82,
+      "score": -43.622,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 83,
+      "score": -43.616,
+      "param_changed": "LatePassiveUnlockPriority"
+    },
+    {
+      "iteration": 84,
+      "score": -43.616,
+      "param_changed": "Targeting.PreferKillsOverDamage"
+    },
+    {
+      "iteration": 85,
+      "score": -43.616,
+      "param_changed": "Targeting.PresencePreferThreshold"
+    },
+    {
+      "iteration": 86,
+      "score": -43.616,
+      "param_changed": "LatePassiveUnlockPriority"
+    },
+    {
+      "iteration": 87,
+      "score": -43.616,
+      "param_changed": "Targeting.CleansePreferNearThreshold"
+    },
+    {
+      "iteration": 88,
+      "score": -43.616,
+      "param_changed": "DamageUrgencyInvaderCount"
+    },
+    {
+      "iteration": 89,
+      "score": -43.616,
+      "param_changed": "BottomFearWeight"
+    },
+    {
+      "iteration": 90,
+      "score": -43.616,
+      "param_changed": "Targeting.PresencePreferThreshold"
+    },
+    {
+      "iteration": 91,
+      "score": -43.616,
+      "param_changed": "EarlyCleansePriority"
+    },
+    {
+      "iteration": 92,
+      "score": -43.616,
+      "param_changed": "Targeting.PreferKillsOverDamage"
+    },
+    {
+      "iteration": 93,
+      "score": -43.616,
+      "param_changed": "Targeting.CleansePreferNearThreshold"
+    },
+    {
+      "iteration": 94,
+      "score": -43.616,
+      "param_changed": "EarlyCleansePriority"
+    },
+    {
+      "iteration": 95,
+      "score": -43.616,
+      "param_changed": "BottomCleanseWeight"
+    },
+    {
+      "iteration": 96,
+      "score": -43.616,
+      "param_changed": "BottomDamageWeight"
+    },
+    {
+      "iteration": 97,
+      "score": -43.616,
+      "param_changed": "EarlyFearPriority"
+    },
+    {
+      "iteration": 98,
+      "score": -43.616,
+      "param_changed": "Targeting.PreferKillsOverDamage"
+    },
+    {
+      "iteration": 99,
+      "score": -43.616,
+      "param_changed": "Targeting.PreferKillsOverDamage"
+    },
+    {
+      "iteration": 100,
+      "score": -43.616,
+      "param_changed": "EarlyFearPriority"
+    }
+  ]
+}

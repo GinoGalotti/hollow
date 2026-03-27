@@ -7,7 +7,9 @@ using HollowWardens.Core.Models;
 
 /// <summary>
 /// Bot strategy for Root. Prioritizes stacking presence in fewer territories
-/// over wide spread, enabling Assimilation (presence ≥ stackTarget → spawn native).
+/// over wide spread, enabling Assimilation (pool passive — native spawn each tide).
+/// Native-aware: values SpawnNatives and MoveNatives when Provocation is active,
+/// and PushInvaders when invaders threaten the Heart (M-row).
 ///
 /// Phase 1 (spread): expand to spreadTarget territories.
 /// Phase 2 (stack): once spread is met, stack toward stackTarget presence per territory
@@ -43,12 +45,16 @@ public class RootTallStrategy : IPlayerStrategy
         }
 
         int presenceTerritories = state.Territories.Count(t => t.HasPresence);
+        bool invadersPresent = state.Territories.Any(t => t.Invaders.Any(i => i.IsAlive));
 
         // Priority 1: spread to spreadTarget territories first
+        // When invaders are present, don't burn SpawnNatives-bottom cards as tops — save them for Dusk
         if (presenceTerritories < _spreadTarget)
         {
-            var presenceCard = hand.FirstOrDefault(c =>
-                !c.IsDormant && c.TopEffect.Type == EffectType.PlacePresence);
+            var presenceCard = hand
+                .Where(c => !c.IsDormant && c.TopEffect.Type == EffectType.PlacePresence
+                    && !(invadersPresent && c.BottomEffect.Type == EffectType.SpawnNatives))
+                .FirstOrDefault();
             if (presenceCard != null)
             {
                 LastDecisionReason = $"PRIORITY: presence_expansion — {presenceTerritories}/{_spreadTarget} spread territories";
@@ -75,14 +81,28 @@ public class RootTallStrategy : IPlayerStrategy
                 t.HasPresence && t.PresenceCount < _stackTarget && t.CorruptionLevel < 2);
             if (needsStacking)
             {
-                var presenceCard = hand.FirstOrDefault(c =>
-                    !c.IsDormant && c.TopEffect.Type == EffectType.PlacePresence);
+                var presenceCard = hand
+                    .Where(c => !c.IsDormant && c.TopEffect.Type == EffectType.PlacePresence
+                        && !(invadersPresent && c.BottomEffect.Type == EffectType.SpawnNatives))
+                    .FirstOrDefault();
                 if (presenceCard != null)
                 {
                     var target = ChooseStackTarget(state) ?? "?";
                     LastDecisionReason = $"PRIORITY: stack_presence — building toward {_stackTarget} in {target}";
                     _topsPlayedThisTurn++; return presenceCard;
                 }
+            }
+        }
+
+        // Priority 1.9: MoveNatives when natives can be repositioned toward incoming invaders
+        if (HasNativesNearInvaders(state))
+        {
+            var moveCard = hand.FirstOrDefault(c =>
+                !c.IsDormant && c.TopEffect.Type == EffectType.MoveNatives);
+            if (moveCard != null)
+            {
+                LastDecisionReason = "PRIORITY: move_natives — repositioning natives toward invaders";
+                _topsPlayedThisTurn++; return moveCard;
             }
         }
 
@@ -172,6 +192,16 @@ public class RootTallStrategy : IPlayerStrategy
 
             EffectType.PlacePresence => ChooseStackTarget(state) ?? ChooseSpreadTarget(state),
 
+            EffectType.MoveNatives => ChooseMoveNativesSource(state),
+
+            EffectType.SpawnNatives => ChooseSpawnNativesTarget(state),
+
+            EffectType.PushInvaders => state.Territories
+                .Where(t => t.Invaders.Any(i => i.IsAlive))
+                .OrderBy(t => state.Graph?.Distance(t.Id, state.Graph.HeartId) ?? int.MaxValue)
+                .ThenByDescending(t => t.Invaders.Count(i => i.IsAlive))
+                .FirstOrDefault()?.Id,
+
             _ => state.Territories.FirstOrDefault(t => t.HasPresence)?.Id
                 ?? state.Territories.FirstOrDefault()?.Id
         };
@@ -207,11 +237,75 @@ public class RootTallStrategy : IPlayerStrategy
         {
             EffectType.DamageInvaders when state.Territories.Any(t => t.Invaders.Any(i => i.IsAlive)) => 100,
             EffectType.ReduceCorruption when state.Territories.Any(t => t.CorruptionPoints >= 8) => 90,
+            // PushInvaders: very valuable when M-row invaders threaten Heart
+            EffectType.PushInvaders when HasNearHeartInvaders(state) => 85,
+            EffectType.RestoreWeave when (state.Weave?.CurrentWeave ?? 20) < 10 => 80,
+            // SpawnNatives: core B6 mechanic — highest priority, beats direct damage
+            EffectType.SpawnNatives when state.Territories.Any(t => t.Invaders.Any(i => i.IsAlive)) => 105,
             EffectType.GenerateFear => 60,
             EffectType.PlacePresence => 50,
-            EffectType.RestoreWeave when (state.Weave?.CurrentWeave ?? 20) < 10 => 80,
+            EffectType.SpawnNatives => 35,
             EffectType.AwakeDormant => 40,
             _ => 10
         };
     }
+
+    /// <summary>True when invaders exist within 1 step of Heart (M-row or Heart itself).</summary>
+    private static bool HasNearHeartInvaders(EncounterState state) =>
+        state.Graph != null && state.Territories.Any(t =>
+            t.Invaders.Any(i => i.IsAlive) &&
+            state.Graph.Distance(t.Id, state.Graph.HeartId) <= 1);
+
+    /// <summary>
+    /// Native repositioning source: territory with most natives that has an adjacent territory
+    /// with invaders (so moved natives can counter-attack next tide).
+    /// </summary>
+    private static string? ChooseMoveNativesSource(EncounterState state)
+    {
+        // Prefer natives near invaders
+        var withAdjacentInvaders = state.Territories
+            .Where(t => t.Natives.Any(n => n.IsAlive) && state.Graph != null &&
+                state.Graph.GetNeighbors(t.Id).Any(n =>
+                    state.GetTerritory(n)?.Invaders.Any(i => i.IsAlive) ?? false))
+            .OrderByDescending(t => t.Natives.Count(n => n.IsAlive))
+            .FirstOrDefault();
+        if (withAdjacentInvaders != null) return withAdjacentInvaders.Id;
+
+        // Fallback: any territory with natives
+        return state.Territories
+            .Where(t => t.Natives.Any(n => n.IsAlive))
+            .OrderByDescending(t => t.Natives.Count(n => n.IsAlive))
+            .FirstOrDefault()?.Id;
+    }
+
+    /// <summary>
+    /// SpawnNatives target: presence territory with the most adjacent invaders
+    /// (spawned natives will Provoke against those invaders next tide).
+    /// </summary>
+    private static string? ChooseSpawnNativesTarget(EncounterState state)
+    {
+        // First: presence territory that already has invaders (immediate Provocation trigger)
+        var withInvaders = state.Territories
+            .Where(t => t.HasPresence && t.Invaders.Any(i => i.IsAlive))
+            .OrderByDescending(t => t.Invaders.Count(i => i.IsAlive))
+            .ThenByDescending(t => t.PresenceCount)
+            .FirstOrDefault();
+        if (withInvaders != null) return withInvaders.Id;
+
+        // Fallback: presence territory closest to incoming invaders (most adjacent invaders)
+        return state.Territories
+            .Where(t => t.HasPresence)
+            .OrderByDescending(t =>
+                (state.Graph?.GetNeighbors(t.Id) ?? Enumerable.Empty<string>())
+                    .Sum(n => state.GetTerritory(n)?.Invaders.Count(i => i.IsAlive) ?? 0))
+            .ThenByDescending(t => t.PresenceCount)
+            .FirstOrDefault()?.Id;
+    }
+
+    /// <summary>True when a territory with natives exists whose neighbor has invaders.</summary>
+    private static bool HasNativesNearInvaders(EncounterState state) =>
+        state.Graph != null && state.Territories.Any(t =>
+            t.Natives.Any(n => n.IsAlive) &&
+            state.Graph.GetNeighbors(t.Id).Any(n =>
+                state.GetTerritory(n)?.Invaders.Any(i => i.IsAlive) ?? false));
 }

@@ -79,6 +79,10 @@ public class BalanceConfig
     public int DefaultNativeDamage { get; set; } = 3;
     /// <summary>Formula for native spawn count at tide start. Options: "linear" (=presence), "scaled" (=1+floor(presence/2)), "half" (=ceil(presence/2)).</summary>
     public string AssimilationSpawnMode { get; set; } = "scaled";
+    /// <summary>Max Presence territories that have Provocation active per tide. 0 = unlimited (all Presence territories).</summary>
+    public int ProvocationTerritoryLimit { get; set; } = 0;
+    /// <summary>Max natives that counter-attack per invader action per Presence token in the territory.</summary>
+    public int ProvocationNativesPerPresence { get; set; } = 1;
 
     // ── Cards ────────────────────────────────────────────
     public int VigilPlayLimit { get; set; } = 2;

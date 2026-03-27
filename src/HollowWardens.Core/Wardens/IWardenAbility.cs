@@ -17,6 +17,10 @@ public interface IWardenAbility
     // D29: Presence Provocation — do natives in this territory counter-attack on all actions?
     bool ProvokesNatives(Territory territory) => false;
 
+    // B6: Cap on native damage pool per provoked territory (presence × per-presence rate × native damage).
+    // Null = no cap (default for non-Root wardens).
+    int? GetProvocationDamageCap(Territory territory) => null;
+
     // D29: Warden-specific rest behavior (e.g., Root places free presence)
     void OnRest(EncounterState state, string? targetTerritoryId) { }
 

@@ -1,0 +1,16 @@
+{
+  "name": "b6-final — Provocation (unlimited) + Assimilation — standard+B2",
+  "seeds": "1-500",
+  "warden": "root",
+  "encounter": "pale_march_standard",
+  "encounter_overrides": {
+    "extra_invaders_per_wave": 1
+  },
+  "warden_overrides": {
+    "force_passives": ["assimilation"]
+  },
+  "balance_overrides": {
+    "assimilation_spawn_mode": "scaled",
+    "provocation_territory_limit": 0
+  }
+}

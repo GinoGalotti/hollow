@@ -31,4 +31,12 @@ public interface IPlayerStrategy
     /// </summary>
     void ResolvePendingThresholds(ThresholdResolver resolver, EncounterState state)
         => resolver.AutoResolveAll(state);
+
+    /// <summary>
+    /// Rank presence territories for Provocation selection (highest priority first).
+    /// Called by RootAbility when ProvocationTerritoryLimit > 0 to pick which territories
+    /// have active Provocation this tide.
+    /// Return null to use RootAbility's default heuristic (most invaders → closest to Heart → most natives).
+    /// </summary>
+    IEnumerable<string>? RankProvocationTerritories(IReadOnlyList<Territory> candidates, EncounterState state) => null;
 }
