@@ -40,7 +40,7 @@
       "name": "Tangled Earth",
       "icon": "hexagon",
       "flavor": "The ground itself resists. Every step is a struggle through grasping soil.",
-      "description": "Invaders in a territory adjacent to 3+ Presence territories have −1 Advance movement.",
+      "description": "Invaders in a territory adjacent to 3+ Presence territories have -1 Advance movement.",
       "trigger": "on_advance",
       "mechanic": "network_slow",
       "params": {
@@ -193,7 +193,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_001_U2"
         }
-      ]
+      ],
+      "top_timing": "fast"
     },
     {
       "num": "002",
@@ -239,7 +240,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_002_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "003",
@@ -286,7 +288,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_003_U2"
         }
-      ]
+      ],
+      "top_timing": "fast"
     },
     {
       "num": "004",
@@ -328,7 +331,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_004_U2"
         }
-      ]
+      ],
+      "top_timing": "fast"
     },
     {
       "num": "005",
@@ -374,7 +378,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_005_U2"
         }
-      ]
+      ],
+      "top_timing": "fast"
     },
     {
       "num": "006",
@@ -416,7 +421,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_006_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "007",
@@ -463,7 +469,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_007_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "008",
@@ -500,7 +507,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_008_U1"
         }
-      ]
+      ],
+      "top_timing": "fast"
     },
     {
       "num": "009",
@@ -547,7 +555,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_009_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "025",
@@ -594,7 +603,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_025_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "010",
@@ -644,7 +654,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_010_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "011",
@@ -691,7 +702,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_011_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "012",
@@ -729,7 +741,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_012_U1"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "013",
@@ -771,7 +784,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_013_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "014",
@@ -818,7 +832,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_014_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "015",
@@ -856,7 +871,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_015_U1"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "016",
@@ -898,7 +914,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_016_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "017",
@@ -945,7 +962,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_017_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "018",
@@ -992,7 +1010,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_018_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "019",
@@ -1038,7 +1057,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_019_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "020",
@@ -1081,7 +1101,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_020_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "021",
@@ -1115,7 +1136,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_021_U1"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "022",
@@ -1149,7 +1171,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_022_U1"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "023",
@@ -1192,7 +1215,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_023_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "024",
@@ -1226,7 +1250,8 @@
           "cost": 1,
           "description_key": "UPGRADE_ROOT_024_U1"
         }
-      ]
+      ],
+      "top_timing": "slow"
     }
   ]
 }

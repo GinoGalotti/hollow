@@ -18,6 +18,7 @@ using HollowWardens.Core.Wardens;
 // Aliases to avoid ambiguity with the legacy scripts/core/TurnManager.cs
 using CoreTurnManager = HollowWardens.Core.Turn.TurnManager;
 using CoreTurnPhase   = HollowWardens.Core.Models.TurnPhase;
+using CardPair        = HollowWardens.Core.Turn.CardPair;
 
 /// <summary>
 /// Autoload singleton. Owns all Core objects, subscribes to GameEvents and
@@ -172,6 +173,18 @@ public partial class GameBridge : Node
     /// <summary>True while waiting for the player to assign counter-attack damage.</summary>
     public bool IsWaitingForCounterAttack { get; private set; }
 
+    // ── Pairing Properties ───────────────────────────────────────────────────
+    /// <summary>True while the player is selecting a top/bottom card pair.</summary>
+    public bool IsPairingSelection => _isPairingSelection;
+    /// <summary>Card currently selected as the TOP of the pending pair.</summary>
+    public Card? PairTop    => _pairTop;
+    /// <summary>Card currently selected as the BOTTOM of the pending pair.</summary>
+    public Card? PairBottom => _pairBottom;
+    /// <summary>True when both top and bottom are selected and the pair can be confirmed.</summary>
+    public bool CanConfirmPair => _pairTop != null && _pairBottom != null && _pairTop != _pairBottom;
+    /// <summary>True when the hand has fewer than 2 playable cards and the player must rest.</summary>
+    public bool MustPairingRest => !_turnManager.CanSubmitPair();
+
     // ── Private Core Objects ─────────────────────────────────────────────────
     private CoreTurnManager   _turnManager        = null!;
     private TideRunner        _tideRunner         = null!;
@@ -211,6 +224,17 @@ public partial class GameBridge : Node
     private int                    _pendingThresholdTier;
     private List<Territory>        _counterAttackTargets = new();
     private int                    _counterAttackTargetIndex;
+
+    // ── Pairing State ────────────────────────────────────────────────────────
+    private enum PairTargetStep { None, WaitingTop, WaitingBottom }
+    private bool          _isPairingSelection;
+    private Card?         _pairTop;
+    private Card?         _pairBottom;
+    private TargetInfo?   _pairTopTarget;
+    private TargetInfo?   _pairBottomTarget;
+    private PairTargetStep _pairTargetStep;
+    private bool          _pairingTurnActive; // pair confirmed, tide running, awaiting post-tide phases
+    private bool          _pairingRestActive; // rest triggered, tide running, awaiting post-rest cleanup
 
     // ── Event Handler Fields ──────────────────────────────────────────────────
     private Action<Element, int, string>?      _hThresholdPending;
@@ -374,6 +398,19 @@ public partial class GameBridge : Node
                 if (State == null) return "Error: no active encounter";
                 foreach (var t in State.Territories) t.Invaders.Clear();
                 return "All invaders removed";
+            }
+
+            case "set_terrain":
+            {
+                if (State == null) return "Error: no active encounter";
+                if (cmd.Args.Length < 2) return "Usage: /set_terrain <territory> <TerrainType>";
+                var t = State.GetTerritory(cmd.Args[0]);
+                if (t == null) return $"Error: unknown territory {cmd.Args[0]}";
+                if (!Enum.TryParse<HollowWardens.Core.Models.TerrainType>(cmd.Args[1], ignoreCase: true, out var terrain))
+                    return $"Error: unknown terrain '{cmd.Args[1]}'. Valid: Plains Forest Mountain Wetland Sacred Scorched Blighted Ruins Fertile";
+                t.Terrain = terrain;
+                EmitSignal(SignalName.TerrainChanged, cmd.Args[0], (int)terrain);
+                return $"{cmd.Args[0]} terrain = {terrain}";
             }
 
             case "give_tokens":
@@ -670,6 +707,26 @@ public partial class GameBridge : Node
             return;
         }
 
+        // Pairing pair-targeting: top target step
+        if (_pairTargetStep == PairTargetStep.WaitingTop)
+        {
+            _pairTopTarget  = new TargetInfo { TerritoryId = territoryId };
+            _pairTargetStep = PairTargetStep.None;
+            ExitTargetingMode();
+            CheckAndEnterBottomTargeting();
+            return;
+        }
+
+        // Pairing pair-targeting: bottom target step
+        if (_pairTargetStep == PairTargetStep.WaitingBottom)
+        {
+            _pairBottomTarget = new TargetInfo { TerritoryId = territoryId };
+            _pairTargetStep   = PairTargetStep.None;
+            ExitTargetingMode();
+            ExecuteConfirmedPair();
+            return;
+        }
+
         if (PendingCard == null || PendingEffect == null) return;
 
         var card           = PendingCard;
@@ -730,12 +787,29 @@ public partial class GameBridge : Node
                 EmitSignal(SignalName.FearActionPending, CurrentFearAction.Description, true);
             return;
         }
+        if (_pairTargetStep != PairTargetStep.None)
+        {
+            // Return to pair selection so player can choose differently
+            _pairTargetStep = PairTargetStep.None;
+            _isPairingSelection = true;
+            ExitTargetingMode();
+            EmitSignal(SignalName.PairingSelectionChanged, _pairTop?.Id ?? "", _pairBottom?.Id ?? "");
+            EmitSignal(SignalName.HandChanged);
+            return;
+        }
         ExitTargetingMode();
     }
 
     public void EndCurrentPhase()
     {
         if (_inResolution) { AdvanceResolutionTurn(); return; }
+
+        // Pairing mode: Space confirms the selected pair (if ready)
+        if (_isPairingSelection)
+        {
+            if (CanConfirmPair) ConfirmPair();
+            return;
+        }
 
         State.ActionLog.Record(new GameAction
         {
@@ -754,6 +828,12 @@ public partial class GameBridge : Node
 
     public void TriggerRest()
     {
+        // Pairing mode: player can rest voluntarily during pair selection
+        if (_isPairingSelection)
+        {
+            TriggerPairingRest();
+            return;
+        }
         if (!_turnManager.IsRestTurn) return;
         State.ActionLog.Record(new GameAction
         {
@@ -821,6 +901,7 @@ public partial class GameBridge : Node
 
         var startingCards = wardenData.Cards.Where(c => c.IsStarting).ToList();
         State.Deck        = new DeckManager(warden, startingCards, random, shuffle: true);
+        State.Deck.DealAllToHand(); // Pairing mode: all cards start in hand (no draw pile concept)
         State.WardenData  = wardenData;
 
         _resolver   = new EffectResolver();
@@ -943,9 +1024,169 @@ public partial class GameBridge : Node
     private void BeginNextTurn()
     {
         State.CurrentTide = _tidesExecuted + 1;
-        _turnManager.StartVigil();
+
+        // Pairing mode: if hand can't form a pair, force rest immediately
+        if (!_turnManager.CanSubmitPair())
+        {
+            ExecutePairingRestTurn();
+            return;
+        }
+
+        _isPairingSelection = true;
+        _pairTop         = null;
+        _pairBottom      = null;
+        _pairTopTarget   = null;
+        _pairBottomTarget = null;
+        _pairTargetStep  = PairTargetStep.None;
+        EmitSignal(SignalName.PairingSelectionChanged, "", "");
         EmitSignal(SignalName.HandChanged);
         EmitDeckCounts();
+    }
+
+    // ── Pairing Public API ────────────────────────────────────────────────────
+
+    /// <summary>Selects a card as the TOP of the pending pair. Clears any existing top selection.</summary>
+    public void SelectAsTop(Card card)
+    {
+        if (!_isPairingSelection || card.IsDormant) return;
+        if (_pairBottom == card) _pairBottom = null; // can't be in both slots
+        _pairTop = card;
+        EmitSignal(SignalName.PairingSelectionChanged, card.Id, _pairBottom?.Id ?? "");
+        EmitSignal(SignalName.HandChanged); // refresh card button states
+    }
+
+    /// <summary>Selects a card as the BOTTOM of the pending pair. Clears any existing bottom selection.</summary>
+    public void SelectAsBottom(Card card)
+    {
+        if (!_isPairingSelection || card.IsDormant) return;
+        if (_pairTop == card) _pairTop = null; // can't be in both slots
+        _pairBottom = card;
+        EmitSignal(SignalName.PairingSelectionChanged, _pairTop?.Id ?? "", card.Id);
+        EmitSignal(SignalName.HandChanged);
+    }
+
+    /// <summary>
+    /// Confirms the current pair selection. Handles targeting for cards that need a territory,
+    /// then submits the pair, executes the fast phase, and starts the interactive tide.
+    /// No-op if both top and bottom are not yet selected.
+    /// </summary>
+    public void ConfirmPair()
+    {
+        if (!CanConfirmPair) return;
+        _isPairingSelection = false;
+
+        // Check if top needs a target
+        if (TargetValidator.NeedsTarget(_pairTop!.TopEffect))
+        {
+            var validTargets = TargetValidator.GetValidTargets(State, _pairTop.TopEffect.Range, _pairTop.TopEffect.Type);
+            if (validTargets.Count == 1)
+            {
+                _pairTopTarget = new TargetInfo { TerritoryId = validTargets[0] };
+            }
+            else if (validTargets.Count > 1)
+            {
+                _pairTargetStep = PairTargetStep.WaitingTop;
+                IsWaitingForTarget = true;
+                PendingEffect = _pairTop.TopEffect;
+                EmitSignal(SignalName.TargetingModeChanged, true);
+                return;
+            }
+            // else 0 valid targets — leave _pairTopTarget null (effect fires without target)
+        }
+
+        CheckAndEnterBottomTargeting();
+    }
+
+    private void CheckAndEnterBottomTargeting()
+    {
+        if (_pairBottom == null) return;
+        if (TargetValidator.NeedsTarget(_pairBottom.BottomEffect))
+        {
+            var validTargets = TargetValidator.GetValidTargets(State, _pairBottom.BottomEffect.Range, _pairBottom.BottomEffect.Type);
+            if (validTargets.Count == 1)
+            {
+                _pairBottomTarget = new TargetInfo { TerritoryId = validTargets[0] };
+            }
+            else if (validTargets.Count > 1)
+            {
+                _pairTargetStep = PairTargetStep.WaitingBottom;
+                IsWaitingForTarget = true;
+                PendingEffect = _pairBottom.BottomEffect;
+                EmitSignal(SignalName.TargetingModeChanged, true);
+                return;
+            }
+        }
+
+        ExecuteConfirmedPair();
+    }
+
+    private void ExecuteConfirmedPair()
+    {
+        if (_pairTop == null || _pairBottom == null) return;
+
+        var pair = new CardPair(_pairTop, _pairBottom);
+        if (!_turnManager.SubmitPair(pair)) return;
+
+        State.ActionLog.Record(new GameAction { TurnNumber = State.CurrentTide, Phase = CoreTurnPhase.Plan, Type = GameActionType.PlayTop, CardId = _pairTop.Id });
+        if (_pairTopTarget != null)
+            State.ActionLog.Record(new GameAction { TurnNumber = State.CurrentTide, Phase = CoreTurnPhase.Plan, Type = GameActionType.SelectTarget, TargetTerritoryId = _pairTopTarget.TerritoryId });
+        State.ActionLog.Record(new GameAction { TurnNumber = State.CurrentTide, Phase = CoreTurnPhase.Dusk, Type = GameActionType.PlayBottom, CardId = _pairBottom.Id });
+        if (_pairBottomTarget != null)
+            State.ActionLog.Record(new GameAction { TurnNumber = State.CurrentTide, Phase = CoreTurnPhase.Dusk, Type = GameActionType.SelectTarget, TargetTerritoryId = _pairBottomTarget.TerritoryId });
+
+        _turnManager.ExecuteFastPhase(_pairTopTarget);
+        _thresholdResolver.ClearUnresolved();
+
+        EmitSignal(SignalName.HandChanged);
+        EmitDeckCounts();
+
+        _pairingTurnActive = true;
+        StartInteractiveTideForPairing();
+    }
+
+    /// <summary>
+    /// Triggers a voluntary rest in pairing mode (or is called automatically when hand has fewer than 2 cards).
+    /// Starts the tide (tide still fires during rest), then executes post-rest recovery.
+    /// </summary>
+    public void TriggerPairingRest()
+    {
+        if (!_isPairingSelection && _turnManager.CanSubmitPair()) return; // only valid during selection or forced
+        ExecutePairingRestTurn();
+    }
+
+    private void ExecutePairingRestTurn()
+    {
+        _isPairingSelection = false;
+        _pairingRestActive  = true;
+        _turnManager.BeginRestTurn();
+        EmitSignal(SignalName.HandChanged);
+        EmitDeckCounts();
+        StartInteractiveTideForPairing();
+    }
+
+    /// <summary>
+    /// Starts the interactive tide sequence without calling EndVigil (used by pairing mode).
+    /// </summary>
+    private void StartInteractiveTideForPairing()
+    {
+        _currentTideNumber = _tidesExecuted + 1;
+        _isFirstTide       = _currentTideNumber == 1;
+        _telemetry?.SetTide(_currentTideNumber);
+        _telTideKills    = 0;
+        _telTideArrivals = 0;
+        _currentActionCard = _tideRunner.BeginTide(_currentTideNumber, State);
+
+        if (_isFirstTide)
+        {
+            RunTideAdvanceArrive();
+        }
+        else
+        {
+            _tideRunner.ApplyPassiveFear(State);
+            _pendingFearActions = _tideRunner.DrainFearActions(State);
+            _fearActionIndex    = 0;
+            AdvanceFearQueue();
+        }
     }
 
     // ── Interactive Tide State Machine ────────────────────────────────────────
@@ -1165,6 +1406,53 @@ public partial class GameBridge : Node
         if (State.Weave?.IsGameOver == true) { EndEncounter(); return; }
         if (_tidesExecuted >= State.Config.TideCount) { BeginResolution(); return; }
 
+        // ── Pairing: post-tide phases ─────────────────────────────────────────
+        if (_pairingTurnActive)
+        {
+            _pairingTurnActive = false;
+            TideSubPhase = TideSubPhase.None;
+
+            _turnManager.ExecuteSlowPhase(_pairTopTarget);
+            _thresholdResolver.ClearUnresolved();
+            _turnManager.ExecutePairingDusk(_pairBottomTarget);
+            _thresholdResolver.ClearUnresolved();
+            _turnManager.ExecuteElements();
+            _thresholdResolver.ClearUnresolved();
+            _turnManager.ExecuteCleanup();
+
+            _pairTop      = null;
+            _pairBottom   = null;
+            _pairTopTarget    = null;
+            _pairBottomTarget = null;
+
+            EmitSignal(SignalName.HandChanged);
+            EmitDeckCounts();
+            if (_tidesExecuted >= State.Config.TideCount) { BeginResolution(); return; }
+            BeginNextTurn();
+            return;
+        }
+
+        if (_pairingRestActive)
+        {
+            _pairingRestActive = false;
+            TideSubPhase = TideSubPhase.None;
+
+            var restTarget = State.Territories
+                .Where(t => t.HasPresence && t.CorruptionLevel < 2)
+                .OrderByDescending(t => t.PresenceCount)
+                .FirstOrDefault()?.Id;
+
+            _turnManager.ExecutePairingRest(restTarget);
+            _turnManager.CompleteRestWithPairing();
+            _turnManager.ExecuteCleanup();
+
+            EmitSignal(SignalName.HandChanged);
+            EmitDeckCounts();
+            if (_tidesExecuted >= State.Config.TideCount) { BeginResolution(); return; }
+            BeginNextTurn();
+            return;
+        }
+
         TideSubPhase = TideSubPhase.WaitAfterCombat;
         // Player presses Space (EndCurrentPhase → OnTideSpacePressed) to enter Dusk
     }
@@ -1255,6 +1543,14 @@ public partial class GameBridge : Node
         _fearActionIndex         = 0;
         _counterAttackTargets    = new();
         _counterAttackTargetIndex = 0;
+        _isPairingSelection  = false;
+        _pairTop             = null;
+        _pairBottom          = null;
+        _pairTopTarget       = null;
+        _pairBottomTarget    = null;
+        _pairTargetStep      = PairTargetStep.None;
+        _pairingTurnActive   = false;
+        _pairingRestActive   = false;
 
         var carryover = _pendingCarryover;
         _pendingCarryover = null;
@@ -1595,7 +1891,6 @@ public partial class GameBridge : Node
         _hThresholdAutoResolve = (e, t) =>
         {
             _thresholdResolver.OnThresholdTriggered(e, t, State);
-            State.PassiveGating?.OnThresholdTriggered(e, t);
         };
         _hElementsDecayed      = ()     => EmitSignal(SignalName.ElementsDecayed);
         GameEvents.ElementChanged     += _hElementChanged;
@@ -1690,5 +1985,77 @@ public partial class GameBridge : Node
         GameEvents.HeartDamageDealt   -= _hHeartDamage;
 
         GameEvents.ResolutionTurnStarted -= _hResolutionTurnStarted;
+    }
+
+    // ── Pairing System (Task 9) ───────────────────────────────────────────────
+
+    [Signal] public delegate void PairingSelectionChangedEventHandler(string topCardId, string bottomCardId);
+    [Signal] public delegate void RestDissolvedEventHandler(string cardId1, string cardId2);
+    [Signal] public delegate void TerrainChangedEventHandler(string territoryId, int terrainType);
+
+    /// <summary>
+    /// Submit a card pair for the current turn (Plan phase → Fast/Slow execution).
+    /// topCardId: card to play as top (resolves before tide if FAST, after if SLOW).
+    /// bottomCardId: card to play as bottom (goes to bottom-discard at-risk pile).
+    /// </summary>
+    public void SubmitPair(string topCardId, string bottomCardId)
+    {
+        if (State?.Deck == null) return;
+        var hand   = State.Deck.Hand;
+        var top    = hand.FirstOrDefault(c => c.Id == topCardId);
+        var bottom = hand.FirstOrDefault(c => c.Id == bottomCardId);
+        if (top == null || bottom == null || top == bottom) return;
+
+        var pair = new HollowWardens.Core.Turn.CardPair(top, bottom);
+        _turnManager.SubmitPair(pair);
+        EmitSignal(SignalName.HandChanged);
+    }
+
+    /// <summary>
+    /// Use Root's Elemental Offering passive: discard card from hand to top-discard,
+    /// add its elements ×1 to the pool. Once per rest cycle.
+    /// </summary>
+    public void UseElementalOffering(string cardId)
+    {
+        if (State?.Deck == null || State.Warden == null) return;
+        var card = State.Deck.Hand.FirstOrDefault(c => c.Id == cardId);
+        if (card == null) return;
+
+        var rootAbility = State.Warden as HollowWardens.Core.Wardens.RootAbility;
+        rootAbility?.UseElementalOffering(card, State);
+        EmitSignal(SignalName.HandChanged);
+    }
+
+    /// <summary>
+    /// Soak incoming heart damage: discard a card from hand to top-discard (safe).
+    /// Returns true if the soak succeeded.
+    /// </summary>
+    public bool SoakWithCard(string cardId)
+    {
+        if (State?.Deck == null) return false;
+        var card = State.Deck.Hand.FirstOrDefault(c => c.Id == cardId);
+        if (card == null) return false;
+        State.Deck.SoakDamage(card);
+        EmitSignal(SignalName.HandChanged);
+        EmitDeckCounts();
+        return true;
+    }
+
+    /// <summary>
+    /// Reroll a dissolved card during rest: pay 2 weave to swap it for a random survivor.
+    /// </summary>
+    public bool RerollDissolve(string cardId)
+    {
+        if (State?.Deck == null || State.Weave == null) return false;
+        if (State.Weave.CurrentWeave < 2) return false;
+        var dissolved = State.Deck.DissolvedCards.FirstOrDefault(c => c.Id == cardId);
+        if (dissolved == null) return false;
+
+        State.Weave.DealDamage(2);
+        State.Deck.RerollDissolve(dissolved);
+        EmitSignal(SignalName.HandChanged);
+        EmitDeckCounts();
+        EmitSignal(SignalName.WeaveChanged, State.Weave.CurrentWeave);
+        return true;
     }
 }

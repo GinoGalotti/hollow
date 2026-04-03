@@ -4,7 +4,6 @@ using HollowWardens.Core.Models;
 /// <summary>
 /// Horizontal strip of CardViewControllers representing the player's hand.
 /// Subscribes to GameBridge.HandChanged and rebuilds card views on each update.
-/// Width is constrained at runtime so the Tide Preview panel always has 300 px.
 /// </summary>
 public partial class HandDisplayController : HBoxContainer
 {
@@ -22,22 +21,20 @@ public partial class HandDisplayController : HBoxContainer
         // Prevent cards from visually overflowing
         ClipChildren = ClipChildrenMode.Only;
 
-        // Constrain right edge to leave 300 px for TidePreview
-        Callable.From(UpdateWidth).CallDeferred();
-        GetViewport().SizeChanged += UpdateWidth;
-
         Rebuild();
-    }
-
-    private void UpdateWidth()
-    {
-        float maxRight = GetViewportRect().Size.X - 300f;
-        if (maxRight > OffsetLeft)
-            OffsetRight = maxRight;
     }
 
     private void Rebuild()
     {
+        // During pairing selection the hand doesn't change — PairingSelectionChanged
+        // already triggers Refresh() on each card. Skip the full rebuild to avoid
+        // destroying and recreating cards on every TOP/BOT button click.
+        if (GameBridge.Instance?.IsPairingSelection == true)
+        {
+            RefreshButtons();
+            return;
+        }
+
         // Remove existing card views
         foreach (Node child in GetChildren())
             child.QueueFree();
@@ -51,6 +48,16 @@ public partial class HandDisplayController : HBoxContainer
             AddChild(cv);
             cv.Setup(card);
         }
+
+        // Compress cards horizontally when hand is large
+        int count   = hand.Count;
+        int overlap = count switch
+        {
+            <= 5 => 0,
+            <= 8 => -15,
+            _    => -25,
+        };
+        AddThemeConstantOverride("separation", overlap);
     }
 
     private void RefreshButtons()

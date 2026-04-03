@@ -39,8 +39,8 @@ public partial class PassivePanelController : VBoxContainer
         _built = true;
         Visible = true;
 
-        var cinzel = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
-        var imFell = GD.Load<Font>("res://godot/assets/fonts/IMFellEnglish-Regular.ttf");
+        var cinzel = FontCache.CinzelBold;
+        var imFell = FontCache.IMFell;
 
         // Header — warden name
         var wardenName = bridge?.State?.WardenData?.Name ?? "Warden";
@@ -50,6 +50,12 @@ public partial class PassivePanelController : VBoxContainer
         AddChild(header);
 
         var gating = bridge?.State?.PassiveGating;
+
+        // Two-column grid for compact display in BottomDock
+        var grid = new GridContainer { Columns = 2 };
+        grid.AddThemeConstantOverride("h_separation", 8);
+        grid.AddThemeConstantOverride("v_separation", 4);
+        AddChild(grid);
 
         // One entry per passive: VBoxContainer(HBoxContainer(icon+name) + description label)
         // D42: only show base passives + pool passives selected for this run
@@ -124,7 +130,7 @@ public partial class PassivePanelController : VBoxContainer
             }
 
             _passiveRows[passive.Id] = entry;
-            AddChild(entry);
+            grid.AddChild(entry);
         }
 
         // Subscribe to passive unlock signal to un-dim when unlocked

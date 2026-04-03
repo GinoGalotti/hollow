@@ -1,0 +1,64 @@
+{
+  "presets": [
+    {
+      "id": "all_plains",
+      "description": "Blank canvas — terrain emerges from play",
+      "territories": {
+        "I1": "plains",
+        "M1": "plains",
+        "M2": "plains",
+        "A1": "plains",
+        "A2": "plains",
+        "A3": "plains"
+      }
+    },
+    {
+      "id": "standard_mixed",
+      "description": "Baseline variety — 2 Forest, 1 Mountain, rest Plains",
+      "territories": {
+        "I1": "plains",
+        "M1": "forest",
+        "M2": "mountain",
+        "A1": "plains",
+        "A2": "forest",
+        "A3": "plains"
+      }
+    },
+    {
+      "id": "frontier_wild",
+      "description": "Lush and fragile — 2 Forest, 1 Wetland, 1 Sacred heart",
+      "territories": {
+        "I1": "sacred",
+        "M1": "forest",
+        "M2": "wetland",
+        "A1": "forest",
+        "A2": "plains",
+        "A3": "plains"
+      }
+    },
+    {
+      "id": "blighted_land",
+      "description": "Post-corruption — hard start with 2 Blighted, 1 Scorched",
+      "territories": {
+        "I1": "plains",
+        "M1": "blighted",
+        "M2": "scorched",
+        "A1": "blighted",
+        "A2": "plains",
+        "A3": "plains"
+      }
+    },
+    {
+      "id": "sacred_grove",
+      "description": "Easy but fragile if desecrated — 2 Sacred, 2 Forest",
+      "territories": {
+        "I1": "sacred",
+        "M1": "forest",
+        "M2": "sacred",
+        "A1": "forest",
+        "A2": "plains",
+        "A3": "plains"
+      }
+    }
+  ]
+}

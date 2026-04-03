@@ -44,8 +44,8 @@ public partial class WardenSelectController : CanvasLayer
         if (board != null) board.Visible = false;
         if (ui    != null) ui.Visible    = false;
 
-        _cinzel = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
-        _imFell = GD.Load<Font>("res://godot/assets/fonts/IMFellEnglish-Regular.ttf");
+        _cinzel = FontCache.CinzelBold;
+        _imFell = FontCache.IMFell;
 
         var overlay = new Control();
         overlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);

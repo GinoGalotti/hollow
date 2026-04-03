@@ -40,7 +40,7 @@
       "name": "Nothing Burns Forever",
       "icon": "card_remove",
       "flavor": "Every flame consumes itself in the end. There is no coming back from the Ember's fire.",
-      "description": "Playing a bottom removes the card permanently (no Dormancy), and its elements count ×3 instead of ×2 toward thresholds.",
+      "description": "Playing a bottom removes the card permanently (no Dormancy), and its elements count Ã—3 instead of Ã—2 toward thresholds.",
       "trigger": "on_bottom_played",
       "mechanic": "flame_out",
       "upgrade": {
@@ -206,7 +206,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_001_U2"
         }
-      ]
+      ],
+      "top_timing": "fast"
     },
     {
       "num": "002",
@@ -253,7 +254,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_002_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "003",
@@ -275,10 +277,11 @@
         "type": "DamageInvaders",
         "value": 4,
         "range": 0,
-        "desc": "Deal 4 damage to all invaders in any territory, then generate 3 Fear",
+        "desc": "Deal 4 damage to all invaders in any territory, then add 2 Corruption to that territory",
         "secondary": {
-          "type": "GenerateFear",
-          "value": 3
+          "type": "AddCorruption",
+          "value": 2,
+          "range": 0
         }
       },
       "upgrades": [
@@ -299,7 +302,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_003_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "004",
@@ -341,7 +345,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_004_U2"
         }
-      ]
+      ],
+      "top_timing": "fast"
     },
     {
       "num": "005",
@@ -388,7 +393,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_005_U2"
         }
-      ]
+      ],
+      "top_timing": "fast"
     },
     {
       "num": "006",
@@ -410,7 +416,12 @@
         "type": "PlacePresence",
         "value": 2,
         "range": 2,
-        "desc": "Place 2 Presence in range 2 (can split across territories)"
+        "desc": "Place 2 Presence in range 2 (can split), then add 1 Corruption to each territory where Presence was placed",
+        "secondary": {
+          "type": "AddCorruption",
+          "value": 1,
+          "range": 0
+        }
       },
       "upgrades": [
         {
@@ -430,7 +441,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_006_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "007",
@@ -476,7 +488,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_007_U2"
         }
-      ]
+      ],
+      "top_timing": "fast"
     },
     {
       "num": "008",
@@ -524,7 +537,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_008_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "009",
@@ -566,7 +580,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_009_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "010",
@@ -613,7 +628,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_010_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "011",
@@ -655,7 +671,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_011_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "012",
@@ -697,7 +714,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_012_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "013",
@@ -744,7 +762,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_013_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "014",
@@ -792,7 +811,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_014_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "015",
@@ -839,7 +859,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_015_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "016",
@@ -886,7 +907,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_016_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "017",
@@ -929,7 +951,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_017_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     },
     {
       "num": "018",
@@ -976,7 +999,8 @@
           "cost": 1,
           "description_key": "UPGRADE_EMBER_018_U2"
         }
-      ]
+      ],
+      "top_timing": "slow"
     }
   ]
 }

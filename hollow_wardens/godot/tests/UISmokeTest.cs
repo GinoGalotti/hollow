@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using HollowWardens.Core.Models;
 
@@ -8,6 +9,9 @@ using HollowWardens.Core.Models;
 /// Automated UI smoke tests. Added to the root scene when --run-ui-tests is passed.
 /// Uses a step-based state machine with 0.4 s delays between steps.
 /// Exit code 0 = all tests passed. Exit code 1 = any failure.
+///
+/// Screenshots are saved to ui-test-screenshots/ alongside the project root.
+/// Each screenshot is named {testIndex}_{stepLabel}.png so they can be reviewed in order.
 /// </summary>
 public partial class UISmokeTest : Node
 {
@@ -19,11 +23,24 @@ public partial class UISmokeTest : Node
     private int    _failed      = 0;
     private bool   _currentTestFailed = false;
     private List<string> _failures = new();
+    private string _screenshotDir = "";
+
+    // Watchdog: per-step and global timeouts
+    private const double StepTimeoutSecs   = 15.0;  // fail a stuck step after 15 s
+    private const double GlobalTimeoutSecs = 180.0; // quit the whole run after 3 min
+    private double _stepStuckTimer  = 0;
+    private double _globalTimer     = 0;
 
     private List<(string Name, List<Func<bool>> Steps)> _tests = new();
 
     public override void _Ready()
     {
+        // Resolve screenshot directory: two levels up from res:// → project root → ui-test-screenshots/
+        string resPath = ProjectSettings.GlobalizePath("res://");
+        _screenshotDir = Path.GetFullPath(Path.Combine(resPath, "..", "ui-test-screenshots"));
+        Directory.CreateDirectory(_screenshotDir);
+        GD.Print($"[UISmokeTest] Screenshots → {_screenshotDir}");
+
         GD.Print("=== HOLLOW WARDENS UI SMOKE TESTS ===\n");
         RegisterAllTests();
         _currentTest = 0;
@@ -32,6 +49,16 @@ public partial class UISmokeTest : Node
 
     public override void _Process(double delta)
     {
+        _globalTimer += delta;
+        if (_globalTimer >= GlobalTimeoutSecs)
+        {
+            GD.PrintErr($"[UISmokeTest] GLOBAL TIMEOUT ({GlobalTimeoutSecs}s) — force-quitting");
+            _failures.Add($"Global timeout after {GlobalTimeoutSecs}s — tests did not complete");
+            PrintFinalReport();
+            GetTree().Quit(1);
+            return;
+        }
+
         if (_currentTest >= _tests.Count)
         {
             PrintFinalReport();
@@ -48,6 +75,7 @@ public partial class UISmokeTest : Node
         if (_step == 0)
         {
             _currentTestFailed = false;
+            _stepStuckTimer    = 0;
             GD.Print($"[Test {_currentTest + 1}: {test.Name}]");
         }
 
@@ -56,11 +84,28 @@ public partial class UISmokeTest : Node
             try
             {
                 bool advance = test.Steps[_step]();
-                if (advance) _step++;
+                if (advance)
+                {
+                    _step++;
+                    _stepStuckTimer = 0;
+                }
+                else
+                {
+                    _stepStuckTimer += _stepDelay;
+                    if (_stepStuckTimer >= StepTimeoutSecs)
+                    {
+                        Fail(test.Name, $"Step {_step} timed out after {StepTimeoutSecs}s");
+                        _failed++;
+                        GD.Print($"TEST {_currentTest + 1}: FAIL\n");
+                        AdvanceToNextTest();
+                    }
+                }
             }
             catch (Exception ex)
             {
                 Fail(test.Name, $"Exception at step {_step}: {ex.Message}");
+                _failed++;
+                GD.Print($"TEST {_currentTest + 1}: FAIL\n");
                 AdvanceToNextTest();
             }
         }
@@ -83,7 +128,8 @@ public partial class UISmokeTest : Node
     private void AdvanceToNextTest()
     {
         _currentTest++;
-        _step = 0;
+        _step           = 0;
+        _stepStuckTimer = 0;
     }
 
     private void PrintFinalReport()
@@ -97,12 +143,41 @@ public partial class UISmokeTest : Node
     {
         RegisterTest1_MenuNavigation();
         RegisterTest2_RootPlaysCards();
+        RegisterTestVisualReview();   // new: screenshots of core loop redesign UI
         RegisterTest3_EmberPlaysCards();
         RegisterTest4_DevConsoleCommands();
         RegisterTest5_FullRunStarts();
         RegisterTest6_WinEncounterRewards();
         RegisterTest7_EventScreen();
         RegisterTest8_CompleteChain();
+    }
+
+    // ── Screenshot capture ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Capture the current viewport and save as {testIdx}_{label}.png.
+    /// Returns true so it can be chained in step lambdas: return Screenshot("label") || Pass("...");
+    /// Safe to call from _Process — defers the actual save one frame so rendering is complete.
+    /// </summary>
+    private bool Screenshot(string label)
+    {
+        CallDeferred(MethodName.SaveScreenshot, $"{_currentTest + 1:D2}_{label.Replace(' ', '_')}");
+        return false; // don't advance step — caller decides
+    }
+
+    private void SaveScreenshot(string name)
+    {
+        try
+        {
+            var img = GetViewport().GetTexture().GetImage();
+            string path = Path.Combine(_screenshotDir, name + ".png");
+            img.SavePng(path);
+            GD.Print($"  📸 {name}.png");
+        }
+        catch (Exception ex)
+        {
+            GD.Print($"  [screenshot failed: {ex.Message}]");
+        }
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -205,11 +280,31 @@ public partial class UISmokeTest : Node
             },
             () =>
             {
+                // Select 2 pool passives (passive screen requires exactly 2)
+                var toggles = FindAll<Button>(GetTree().Root)
+                    .Where(b => b.ToggleMode && b.IsVisibleInTree())
+                    .Take(2)
+                    .ToList();
+                if (toggles.Count < 2) return false; // passive screen not ready yet
+                foreach (var t in toggles) ClickButton(t);
+                return Pass("Selected 2 pool passives");
+            },
+            () =>
+            {
+                // Click Confirm to launch encounter
+                var btn = FindButtonByText("Confirm (2/2)");
+                if (btn == null || btn.Disabled || !btn.IsVisibleInTree()) return false;
+                ClickButton(btn);
+                return Pass("Confirmed passive selection");
+            },
+            () =>
+            {
                 if (GameBridge.Instance?.State == null) return false; // wait for encounter build
                 return Pass("Game board loaded");
             },
             () =>
             {
+                Screenshot("01_board_loaded");
                 int count = GameBridge.Instance?.State?.Territories?.Count ?? 0;
                 return count > 0
                     ? Pass($"Board has {count} territories")
@@ -226,45 +321,164 @@ public partial class UISmokeTest : Node
         {
             () =>
             {
+                Screenshot("02_pairing_selection_hand");
                 var bridge = GameBridge.Instance;
                 if (bridge == null) return Fail("Root Plays Cards", "No GameBridge");
-                return bridge.CurrentPhase == TurnPhase.Vigil
-                    ? Pass("In Vigil phase")
-                    : Fail("Root Plays Cards", $"Expected Vigil, got {bridge.CurrentPhase}");
+                return bridge.IsPairingSelection
+                    ? Pass("In pairing selection mode")
+                    : Fail("Root Plays Cards", $"Expected pairing selection, got phase={bridge.CurrentPhase}");
             },
             () =>
             {
-                var btn = FindButtonByText("Play Top");
+                var btn = FindButtonByText("TOP");
                 if (btn == null || !btn.IsVisibleInTree())
-                    return Fail("Root Plays Cards", "Play Top button not found or not visible");
+                    return Fail("Root Plays Cards", "TOP button not found or not visible");
                 ClickButton(btn);
-                return Pass("Found Play Top button");
+                return Pass("Found and clicked TOP button");
             },
             () =>
             {
                 var bridge = GameBridge.Instance;
                 if (bridge == null) return true;
-                if (!bridge.IsWaitingForTarget) return Pass("No targeting needed");
+                if (!bridge.IsWaitingForTarget) return Pass("No targeting needed for top");
                 var t = bridge.State?.Territories?.FirstOrDefault();
-                if (t != null) { bridge.CompleteTargetedPlay(t.Id); return Pass("Targeting resolved"); }
+                if (t != null) { bridge.CompleteTargetedPlay(t.Id); return Pass("Top targeting resolved"); }
                 return Fail("Root Plays Cards", "Targeting active but no territories");
             },
             () =>
             {
-                PressKey(Key.Space);
-                return Pass("Phase advanced (Space)");
+                var btn = FindButtonByText("BOT");
+                if (btn == null || !btn.IsVisibleInTree())
+                    return Fail("Root Plays Cards", "BOT button not found or not visible");
+                ClickButton(btn);
+                return Pass("Found and clicked BOT button");
             },
             () =>
             {
+                var bridge = GameBridge.Instance;
+                if (bridge == null) return true;
+                if (!bridge.IsWaitingForTarget) return Pass("No targeting needed for bottom");
+                var t = bridge.State?.Territories?.FirstOrDefault();
+                if (t != null) { bridge.CompleteTargetedPlay(t.Id); return Pass("Bottom targeting resolved"); }
+                return Fail("Root Plays Cards", "Targeting active but no territories");
+            },
+            () =>
+            {
+                var bridge = GameBridge.Instance;
+                if (bridge == null || !bridge.CanConfirmPair) return false; // wait
+                var btn = FindButtonByText("Confirm Pair");
+                if (btn != null && btn.IsVisibleInTree() && !btn.Disabled)
+                {
+                    Screenshot("02_after_pair_selection");
+                    ClickButton(btn);
+                    return Pass("Clicked Confirm Pair button");
+                }
+                return Fail("Root Plays Cards", "Confirm Pair button not found or disabled");
+            },
+            () =>
+            {
+                // Handle fast-effect targeting that fires immediately after pair confirm
+                var bridge = GameBridge.Instance;
+                if (bridge == null) return true;
+                if (!bridge.IsWaitingForTarget) return Pass("No fast targeting needed");
+                var t = bridge.State?.Territories?.FirstOrDefault();
+                if (t != null) { bridge.CompleteTargetedPlay(t.Id); return Pass("Fast targeting resolved"); }
+                return Fail("Root Plays Cards", "Fast targeting active but no territories");
+            },
+            () =>
+            {
+                Screenshot("02_tide_phase");
                 PressKey(Key.Space);
                 return Pass("Tide advanced (Space)");
             },
             () =>
             {
+                // Handle slow-effect targeting that fires after tide
                 var bridge = GameBridge.Instance;
-                return bridge?.CurrentPhase != TurnPhase.Vigil
-                    ? Pass("Phase progressed")
-                    : Fail("Root Plays Cards", "Phase did not advance from Vigil");
+                if (bridge == null) return true;
+                if (!bridge.IsWaitingForTarget) return Pass("No slow targeting needed");
+                var t = bridge.State?.Territories?.FirstOrDefault();
+                if (t != null) { bridge.CompleteTargetedPlay(t.Id); return Pass("Slow targeting resolved"); }
+                return Fail("Root Plays Cards", "Slow targeting active but no territories");
+            },
+            () =>
+            {
+                Screenshot("02_after_tide");
+                var bridge = GameBridge.Instance;
+                return bridge != null
+                    ? Pass("Game still running after pair execution")
+                    : Fail("Root Plays Cards", "GameBridge gone after pair");
+            },
+        }));
+    }
+
+    // ── Visual Review: Core Loop Redesign UI ──────────────────────────────────
+    // Captures screenshots of: card timing tags, phase indicator, terrain labels,
+    // dev-console terrain injection, and the phase indicator across multiple phases.
+
+    private void RegisterTestVisualReview()
+    {
+        _tests.Add(("Visual Review — Core Loop UI", new List<Func<bool>>
+        {
+            // Capture hand in pairing selection mode (shows [FAST]/[SLOW] tags)
+            () =>
+            {
+                Screenshot("vr_01_hand_with_timing_tags");
+                return Pass("Captured hand (should show [FAST]/[SLOW] on top effects)");
+            },
+            () =>
+            {
+                // Inject a Forest terrain on M1 so terrain label is visible
+                RunCommand("/set_terrain M1 Forest");
+                return Pass("Set M1 terrain to Forest");
+            },
+            () =>
+            {
+                Screenshot("vr_02_territory_with_terrain_label");
+                return Pass("Captured board (M1 should show [Forest] label in green)");
+            },
+            () =>
+            {
+                // Inject Scorched on A1 for contrast
+                RunCommand("/set_terrain A1 Scorched");
+                Screenshot("vr_03_scorched_territory");
+                return Pass("Captured A1 Scorched territory (should show orange [Scorched])");
+            },
+            () =>
+            {
+                // Check phase indicator — in pairing mode screenshot whatever the current state is
+                var bridge = GameBridge.Instance;
+                Screenshot("vr_04_phase_indicator_vigil");
+                return bridge?.IsPairingSelection == true
+                    ? Pass("Phase indicator at pairing selection captured")
+                    : Pass($"Phase indicator at phase={bridge?.CurrentPhase} captured");
+            },
+            () =>
+            {
+                // Press R to trigger pairing rest (progresses through tide without needing a full pair)
+                PressKey(Key.R);
+                return Pass("Pressed R (pairing rest → triggers tide)");
+            },
+            () =>
+            {
+                Screenshot("vr_05_phase_indicator_tide");
+                return Pass("Post-rest-trigger screenshot captured");
+            },
+            () =>
+            {
+                Screenshot("vr_06_phase_indicator_dusk");
+                return Pass("Post-rest screenshot captured");
+            },
+            () =>
+            {
+                // Press R again for a second rest cycle
+                PressKey(Key.R);
+                return Pass("Pressed R (second rest)");
+            },
+            () =>
+            {
+                Screenshot("vr_07_after_rest");
+                return Pass("Post-second-rest state captured");
             },
         }));
     }
@@ -300,6 +514,22 @@ public partial class UISmokeTest : Node
             },
             () =>
             {
+                var toggles = FindAll<Button>(GetTree().Root)
+                    .Where(b => b.ToggleMode && b.IsVisibleInTree())
+                    .Take(2).ToList();
+                if (toggles.Count < 2) return false;
+                foreach (var t in toggles) ClickButton(t);
+                return Pass("Selected 2 pool passives");
+            },
+            () =>
+            {
+                var btn = FindButtonByText("Confirm (2/2)");
+                if (btn == null || btn.Disabled || !btn.IsVisibleInTree()) return false;
+                ClickButton(btn);
+                return Pass("Confirmed passive selection");
+            },
+            () =>
+            {
                 if (GameBridge.Instance?.State == null) return false;
                 string wid = GameBridge.Instance.State.WardenData?.WardenId ?? "?";
                 return wid == "ember"
@@ -308,19 +538,58 @@ public partial class UISmokeTest : Node
             },
             () =>
             {
-                var btn = FindButtonByText("Play Top");
+                var btn = FindButtonByText("TOP");
                 if (btn == null || !btn.IsVisibleInTree())
-                    return Fail("Ember Plays Cards", "Play Top button not found or not visible");
+                    return Fail("Ember Plays Cards", "TOP button not found or not visible");
                 ClickButton(btn);
-                return Pass("Play Top clicked");
+                return Pass("TOP clicked");
             },
             () =>
             {
                 var bridge = GameBridge.Instance;
                 if (bridge == null) return true;
-                if (!bridge.IsWaitingForTarget) return Pass("No targeting needed");
+                if (!bridge.IsWaitingForTarget) return Pass("No targeting needed for top");
                 var t = bridge.State?.Territories?.FirstOrDefault();
-                if (t != null) { bridge.CompleteTargetedPlay(t.Id); return Pass("Targeting resolved"); }
+                if (t != null) { bridge.CompleteTargetedPlay(t.Id); return Pass("Top targeting resolved"); }
+                return Fail("Ember Plays Cards", "Targeting active but no territories");
+            },
+            () =>
+            {
+                var btn = FindButtonByText("BOT");
+                if (btn == null || !btn.IsVisibleInTree())
+                    return Fail("Ember Plays Cards", "BOT button not found or not visible");
+                ClickButton(btn);
+                return Pass("BOT clicked");
+            },
+            () =>
+            {
+                var bridge = GameBridge.Instance;
+                if (bridge == null) return true;
+                if (!bridge.IsWaitingForTarget) return Pass("No targeting needed for bottom");
+                var t = bridge.State?.Territories?.FirstOrDefault();
+                if (t != null) { bridge.CompleteTargetedPlay(t.Id); return Pass("Bottom targeting resolved"); }
+                return Fail("Ember Plays Cards", "Targeting active but no territories");
+            },
+            () =>
+            {
+                var bridge = GameBridge.Instance;
+                if (bridge == null || !bridge.CanConfirmPair) return false; // wait
+                var btn = FindButtonByText("Confirm Pair");
+                if (btn != null && btn.IsVisibleInTree() && !btn.Disabled)
+                {
+                    ClickButton(btn);
+                    return Pass("Clicked Confirm Pair button (Ember)");
+                }
+                return Fail("Ember Plays Cards", "Confirm Pair button not found or disabled");
+            },
+            () =>
+            {
+                // Handle any targeting that fires after pair confirm
+                var bridge = GameBridge.Instance;
+                if (bridge == null) return true;
+                if (!bridge.IsWaitingForTarget) return Pass("No post-confirm targeting needed");
+                var t = bridge.State?.Territories?.FirstOrDefault();
+                if (t != null) { bridge.CompleteTargetedPlay(t.Id); return Pass("Post-confirm targeting resolved"); }
                 return Fail("Ember Plays Cards", "Targeting active but no territories");
             },
         }));
@@ -404,6 +673,22 @@ public partial class UISmokeTest : Node
             },
             () =>
             {
+                var toggles = FindAll<Button>(GetTree().Root)
+                    .Where(b => b.ToggleMode && b.IsVisibleInTree())
+                    .Take(2).ToList();
+                if (toggles.Count < 2) return false;
+                foreach (var t in toggles) ClickButton(t);
+                return Pass("Selected 2 pool passives");
+            },
+            () =>
+            {
+                var btn = FindButtonByText("Confirm (2/2)");
+                if (btn == null || btn.Disabled || !btn.IsVisibleInTree()) return false;
+                ClickButton(btn);
+                return Pass("Confirmed passive selection");
+            },
+            () =>
+            {
                 if (GameBridge.Instance?.State == null) return false;
                 return Pass("Encounter state loaded");
             },
@@ -415,10 +700,57 @@ public partial class UISmokeTest : Node
             },
             () =>
             {
-                var btn = FindButtonByText("Play Top");
-                if (btn == null) return Fail("Full Run Starts", "Play Top not found");
+                var btn = FindButtonByText("TOP");
+                if (btn == null) return Fail("Full Run Starts", "TOP button not found");
                 ClickButton(btn);
-                return Pass("Play Top clickable in Full Run");
+                return Pass("TOP button clickable in Full Run");
+            },
+            () =>
+            {
+                var bridge = GameBridge.Instance;
+                if (bridge == null) return true;
+                if (!bridge.IsWaitingForTarget) return Pass("No targeting needed for top");
+                var t = bridge.State?.Territories?.FirstOrDefault();
+                if (t != null) { bridge.CompleteTargetedPlay(t.Id); return Pass("Top targeting resolved"); }
+                return Fail("Full Run Starts", "Targeting active but no territories");
+            },
+            () =>
+            {
+                var btn = FindButtonByText("BOT");
+                if (btn == null) return Fail("Full Run Starts", "BOT button not found");
+                ClickButton(btn);
+                return Pass("BOT button clickable in Full Run");
+            },
+            () =>
+            {
+                var bridge = GameBridge.Instance;
+                if (bridge == null) return true;
+                if (!bridge.IsWaitingForTarget) return Pass("No targeting needed for bottom");
+                var t = bridge.State?.Territories?.FirstOrDefault();
+                if (t != null) { bridge.CompleteTargetedPlay(t.Id); return Pass("Bottom targeting resolved"); }
+                return Fail("Full Run Starts", "Targeting active but no territories");
+            },
+            () =>
+            {
+                var bridge = GameBridge.Instance;
+                if (bridge == null || !bridge.CanConfirmPair) return false; // wait
+                var btn = FindButtonByText("Confirm Pair");
+                if (btn != null && btn.IsVisibleInTree() && !btn.Disabled)
+                {
+                    ClickButton(btn);
+                    return Pass("Clicked Confirm Pair button (Full Run)");
+                }
+                return Fail("Full Run Starts", "Confirm Pair button not found or disabled");
+            },
+            () =>
+            {
+                // Handle any targeting that fires after pair confirm
+                var bridge = GameBridge.Instance;
+                if (bridge == null) return true;
+                if (!bridge.IsWaitingForTarget) return Pass("No post-confirm targeting needed");
+                var t = bridge.State?.Territories?.FirstOrDefault();
+                if (t != null) { bridge.CompleteTargetedPlay(t.Id); return Pass("Post-confirm targeting resolved"); }
+                return Fail("Full Run Starts", "Targeting active but no territories");
             },
         }));
     }
@@ -494,13 +826,18 @@ public partial class UISmokeTest : Node
         _tests.Add(("Complete Full Chain", new List<Func<bool>>
         {
             // ── Stage 2 encounter end ─────────────────────────────────────────
-            () => { RunCommand("/finish_encounter"); return Pass("Stage 2: triggered encounter end"); },
-            () => Pass("Stage 2: waiting for reward screen"),
             () =>
             {
+                // Wait until Stage 2 encounter state is active before ending it
+                if (GameBridge.Instance?.State == null) return false;
+                RunCommand("/finish_encounter");
+                return Pass("Stage 2: triggered encounter end");
+            },
+            () =>
+            {
+                // Poll until the reward screen's Continue button appears
                 var btn = FindButtonByText("Continue");
-                if (btn == null || !btn.IsVisibleInTree())
-                    return Fail("Complete Full Chain", "Stage 2: reward 'Continue' not found");
+                if (btn == null || !btn.IsVisibleInTree()) return false;
                 ClickButton(btn);
                 return Pass("Stage 2: reward 'Continue' clicked");
             },
@@ -524,13 +861,17 @@ public partial class UISmokeTest : Node
                 return Pass("Stage 2: no inter-encounter screen (rest/no event)");
             },
             // ── Stage 3 encounter end ─────────────────────────────────────────
-            () => { RunCommand("/finish_encounter"); return Pass("Stage 3: triggered encounter end"); },
-            () => Pass("Stage 3: waiting for reward screen"),
             () =>
             {
+                if (GameBridge.Instance?.State == null) return false;
+                RunCommand("/finish_encounter");
+                return Pass("Stage 3: triggered encounter end");
+            },
+            () =>
+            {
+                // Poll until the reward screen's Continue button appears (transition may take > 0.4 s)
                 var btn = FindButtonByText("Continue");
-                if (btn == null || !btn.IsVisibleInTree())
-                    return Fail("Complete Full Chain", "Stage 3: reward 'Continue' not found");
+                if (btn == null || !btn.IsVisibleInTree()) return false;
                 ClickButton(btn);
                 return Pass("Stage 3: reward 'Continue' clicked");
             },

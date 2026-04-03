@@ -1,5 +1,6 @@
 using Godot;
 using HollowWardens.Core.Effects;
+using HollowWardens.Core.Localization;
 using HollowWardens.Core.Models;
 
 /// <summary>
@@ -31,12 +32,29 @@ public partial class TerritoryViewController : Node2D
     // Cached invader rects for click hit-testing (populated in _Draw)
     private readonly List<(Rect2 rect, string invaderId)> _invaderRects = new();
 
+    // Background color for smooth corruption lerp
+    private Color _bgColor       = new(0.15f, 0.40f, 0.15f);
+    private Color _bgColorTarget = new(0.15f, 0.40f, 0.15f);
+    private bool  _isLerpingBg;
+
     // Fonts — loaded in _Ready()
     private Font? _cinzelFont;
     private Font? _imFellFont;
 
+    // Terrain icons — loaded in _Ready()
+    private readonly Dictionary<TerrainType, Texture2D?> _terrainIcons = new();
+
     public override void _Ready()
     {
+        // Upper rows must render on top of lower rows so unit squares below the tile
+        // are not hidden behind adjacent territory boxes in the next row.
+        ZIndex = Name.ToString() switch
+        {
+            "I1"         => 2,
+            "M1" or "M2" => 1,
+            _            => 0,  // A1, A2, A3
+        };
+
         var bridge = GameBridge.Instance;
         if (bridge == null) return;
 
@@ -44,22 +62,58 @@ public partial class TerritoryViewController : Node2D
             _territory = bridge.State.GetTerritory(Name);
 
         bridge.EncounterReady            += OnEncounterReady;
-        bridge.CorruptionChanged         += (id, _, _) => { if (id == Name) QueueRedraw(); };
+        bridge.CorruptionChanged         += (id, _, _) =>
+        {
+            if (id != Name) return;
+            _territory = GameBridge.Instance?.State?.GetTerritory(Name);
+            if (_territory != null)
+            {
+                _bgColorTarget = CorruptionColor(_territory.CorruptionLevel);
+                _isLerpingBg   = true;
+                SetProcess(true);
+            }
+            QueueRedraw();
+        };
         bridge.InvaderArrived            += (_, id, _) => { if (id == Name) QueueRedraw(); };
         bridge.InvaderDefeated           += _           => QueueRedraw();
         bridge.InvaderAdvanced           += (_, f, t)   => { if (f == Name || t == Name) QueueRedraw(); };
         bridge.TargetingModeChanged      += _           => QueueRedraw();
         bridge.CounterAttackPendingGodot += (tid, _)   => { if (tid == Name || Name == CounterAttackTerritory) QueueRedraw(); };
         bridge.CardPlayFeedback          += OnCardPlayFeedback;
+        bridge.TerrainChanged            += (id, _) => { if (id == Name) QueueRedraw(); };
 
-        _cinzelFont = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
-        _imFellFont = GD.Load<Font>("res://godot/assets/fonts/IMFellEnglish-Regular.ttf");
+        _cinzelFont = FontCache.CinzelBold;
+        _imFellFont = FontCache.IMFell;
+
+        // Load terrain icons from Kenney board-game-icons pack
+        const string iconBase = "res://godot/assets/art/kenney_board-game-icons/PNG/Default (64px)/";
+        var iconMap = new Dictionary<TerrainType, string>
+        {
+            { TerrainType.Forest,   "resource_wood.png"    },
+            { TerrainType.Mountain, "hexagon_outline.png"  },
+            { TerrainType.Wetland,  "flask_half.png"       },
+            { TerrainType.Sacred,   "award.png"            },
+            { TerrainType.Scorched, "fire.png"             },
+            { TerrainType.Blighted, "skull.png"            },
+            { TerrainType.Ruins,    "hexagon_question.png" },
+            { TerrainType.Fertile,  "resource_wheat.png"   },
+        };
+        foreach (var kvp in iconMap)
+        {
+            string path = iconBase + kvp.Value;
+            _terrainIcons[kvp.Key] = ResourceLoader.Exists(path)
+                ? ResourceLoader.Load<Texture2D>(path)
+                : null;
+        }
+
         SetProcess(false);
     }
 
     private void OnEncounterReady()
     {
         _territory = GameBridge.Instance?.State?.GetTerritory(Name);
+        if (_territory != null)
+            _bgColor = _bgColorTarget = CorruptionColor(_territory.CorruptionLevel);
         QueueRedraw();
     }
 
@@ -89,15 +143,32 @@ public partial class TerritoryViewController : Node2D
 
     public override void _Process(double delta)
     {
-        _feedbackAlpha -= (float)(delta / 1.5);
-        _feedbackY     -= (float)(delta * 18.0);
-        QueueRedraw();
+        bool needsProcess = false;
 
-        if (_feedbackAlpha <= 0f)
+        if (_feedbackAlpha > 0f)
         {
-            _feedbackAlpha = 0f;
-            SetProcess(false);
+            _feedbackAlpha -= (float)(delta / 1.5);
+            _feedbackY     -= (float)(delta * 18.0);
+            if (_feedbackAlpha <= 0f) _feedbackAlpha = 0f;
+            else needsProcess = true;
         }
+
+        if (_isLerpingBg)
+        {
+            _bgColor = _bgColor.Lerp(_bgColorTarget, (float)(delta * 2.0));
+            float dist = Math.Abs(_bgColor.R - _bgColorTarget.R)
+                       + Math.Abs(_bgColor.G - _bgColorTarget.G)
+                       + Math.Abs(_bgColor.B - _bgColorTarget.B);
+            if (dist < 0.005f)
+            {
+                _bgColor     = _bgColorTarget;
+                _isLerpingBg = false;
+            }
+            else needsProcess = true;
+        }
+
+        QueueRedraw();
+        if (!needsProcess) SetProcess(false);
     }
 
     // ── Click handling ─────────────────────────────────────────────────────────
@@ -146,8 +217,8 @@ public partial class TerritoryViewController : Node2D
         var t = _territory;
         if (t == null) return;
 
-        // Territory background
-        DrawRect(TerritoryRect, CorruptionColor(t.CorruptionLevel));
+        // Territory background (smooth-lerps to target corruption color)
+        DrawRect(TerritoryRect, _bgColor);
 
         // Targeting / counter-attack overlay on territory box
         var bridge = GameBridge.Instance;
@@ -167,6 +238,23 @@ public partial class TerritoryViewController : Node2D
             DrawRect(TerritoryRect, Colors.White, filled: false, width: 2f);
         }
 
+        // Corruption progress bar (bottom 8px of tile) — only shown when corruption exists
+        if (t.CorruptionPoints > 0 || t.CorruptionLevel > 0)
+        {
+            float barWidth = 124f;
+            float barX     = -62f;
+            float barY     = 34f;
+            DrawRect(new Rect2(barX, barY, barWidth, 8f), new Color(0.08f, 0.06f, 0.05f));
+            float fill = Math.Clamp(t.CorruptionPoints / 4f, 0f, 1f);
+            var fillColor = t.CorruptionLevel switch
+            {
+                0 => new Color(0.9f, 0.7f, 0.1f),
+                1 => new Color(0.9f, 0.4f, 0.1f),
+                _ => new Color(0.8f, 0.1f, 0.1f),
+            };
+            DrawRect(new Rect2(barX, barY, barWidth * fill, 8f), fillColor);
+        }
+
         // Territory text
         var titleFont = _cinzelFont ?? ThemeDB.FallbackFont;
         var font      = _imFellFont ?? ThemeDB.FallbackFont;
@@ -177,7 +265,20 @@ public partial class TerritoryViewController : Node2D
         DrawStatRow(-10f, $"{t.PresenceCount} pres", font, fs, Colors.Cyan);
         DrawStatRow(  4f, $"{t.Invaders.Count(i => i.IsAlive)} inv", font, fs, new Color(1, 0.5f, 0.5f));
         DrawStatRow( 18f, BuildNativeText(t),         font, fs, new Color(0.5f, 1, 0.5f));
-        DrawStatRow( 32f, $"{t.CorruptionPoints}pt L{t.CorruptionLevel}", font, fs, new Color(1, 0.8f, 0.2f));
+
+        // Terrain type label
+        if (t.Terrain != TerrainType.Plains)
+        {
+            string terrainKey   = "TERRAIN_" + t.Terrain.ToString().ToUpperInvariant();
+            string terrainLabel = Loc.Has(terrainKey) ? Loc.Get(terrainKey) : t.Terrain.ToString();
+            DrawStatRow(30f, $"[{terrainLabel}]", font, fs, TerrainColor(t.Terrain));
+        }
+
+        // Terrain icon in top-right corner
+        if (t.Terrain != TerrainType.Plains && _terrainIcons.TryGetValue(t.Terrain, out var ticon) && ticon != null)
+        {
+            DrawTextureRect(ticon, new Rect2(40f, -41f, 20f, 20f), false);
+        }
 
         // Unit squares below territory box
         bool isCounterTarget = bridge?.IsWaitingForCounterAttack == true
@@ -342,4 +443,17 @@ public partial class TerritoryViewController : Node2D
         DrawString(font, new Vector2(-58, textY), text,
             HorizontalAlignment.Left, 120, fontSize, color);
     }
+
+    private static Color TerrainColor(TerrainType terrain) => terrain switch
+    {
+        TerrainType.Forest   => new Color(0.20f, 0.55f, 0.20f),
+        TerrainType.Mountain => new Color(0.60f, 0.60f, 0.70f),
+        TerrainType.Wetland  => new Color(0.20f, 0.55f, 0.65f),
+        TerrainType.Sacred   => new Color(0.90f, 0.85f, 0.40f),
+        TerrainType.Scorched => new Color(0.75f, 0.35f, 0.10f),
+        TerrainType.Blighted => new Color(0.40f, 0.10f, 0.45f),
+        TerrainType.Ruins    => new Color(0.55f, 0.50f, 0.45f),
+        TerrainType.Fertile  => new Color(0.30f, 0.70f, 0.30f),
+        _                    => Colors.White
+    };
 }

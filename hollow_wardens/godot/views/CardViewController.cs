@@ -10,27 +10,31 @@ using HollowWardens.Core.Models;
 public partial class CardViewController : PanelContainer
 {
     private Card _card = null!;
-    private Label         _nameLabel = null!;
-    private HBoxContainer _elemRow   = null!;  // element icon row
-    private Label         _topLabel  = null!;
-    private Label         _botLabel  = null!;
-    private Button        _playBtn   = null!;
+    private Label         _nameLabel     = null!;
+    private HBoxContainer _elemRow       = null!;  // element icon row
+    private Label         _timingBadge   = null!;
+    private Label         _topLabel      = null!;
+    private Label         _botLabel      = null!;
+    private Button        _playBtn       = null!;
+    private Button        _selectTopBtn  = null!;
+    private Button        _selectBotBtn  = null!;
 
     // Element icon textures loaded in _Ready()
     private readonly Dictionary<Element, Texture2D?> _elemIcons = new();
 
     // Stored so they can be disconnected in _ExitTree()
-    private GameBridge.PhaseChangedEventHandler?         _onPhaseChanged;
-    private GameBridge.TargetingModeChangedEventHandler? _onTargetingModeChanged;
+    private GameBridge.PhaseChangedEventHandler?              _onPhaseChanged;
+    private GameBridge.TargetingModeChangedEventHandler?      _onTargetingModeChanged;
+    private GameBridge.PairingSelectionChangedEventHandler?   _onPairingSelectionChanged;
 
     public override void _Ready()
     {
-        CustomMinimumSize = new Vector2(150, 200);
+        CustomMinimumSize = new Vector2(160, 210);
 
-        // TODO: visual upgrade — card_empty.png as panel background (StyleBoxTexture)
+        MouseFilter = MouseFilterEnum.Pass;
 
-        var cinzel = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
-        var imFell = GD.Load<Font>("res://godot/assets/fonts/IMFellEnglish-Regular.ttf");
+        var cinzel = FontCache.CinzelBold;
+        var imFell = FontCache.IMFell;
 
         // Use same icon filenames and loading approach as ElementTrackerController
         const string IconBase = "res://godot/assets/art/kenney_board-game-icons/PNG/Default (64px)/";
@@ -50,6 +54,14 @@ public partial class CardViewController : PanelContainer
 
         _elemRow = new HBoxContainer();
 
+        _timingBadge = new Label
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            AutowrapMode        = TextServer.AutowrapMode.Off,
+        };
+        _timingBadge.AddThemeFontSizeOverride("font_size", 10);
+        if (cinzel != null) _timingBadge.AddThemeFontOverride("font", cinzel);
+
         _topLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
         _botLabel = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart,
                                 Modulate = new Color(0.8f, 0.8f, 1.0f) };
@@ -58,27 +70,49 @@ public partial class CardViewController : PanelContainer
         _topLabel.AddThemeFontSizeOverride("font_size", 11);
         _botLabel.AddThemeFontSizeOverride("font_size", 11);
 
-        _playBtn = new Button();
+        _playBtn      = new Button();
+        _selectTopBtn = new Button { Visible = false };
+        _selectBotBtn = new Button { Visible = false };
 
         vbox.AddChild(_nameLabel);
         vbox.AddChild(_elemRow);
         vbox.AddChild(new HSeparator());
+        vbox.AddChild(_timingBadge);
         vbox.AddChild(new Label { Text = Loc.Get("CARD_TOP") });
         vbox.AddChild(_topLabel);
         vbox.AddChild(new HSeparator());
         vbox.AddChild(new Label { Text = Loc.Get("CARD_BOT") });
         vbox.AddChild(_botLabel);
+        var btnRow = new HBoxContainer();
+        btnRow.AddChild(_selectTopBtn);
+        btnRow.AddChild(_selectBotBtn);
+        vbox.AddChild(btnRow);
         vbox.AddChild(_playBtn);
 
-        _playBtn.Pressed += OnPlayPressed;
+        _playBtn.Pressed      += OnPlayPressed;
+        _selectTopBtn.Pressed += () => GameBridge.Instance?.SelectAsTop(_card);
+        _selectBotBtn.Pressed += () => GameBridge.Instance?.SelectAsBottom(_card);
+
+        MouseEntered += () =>
+        {
+            var tween = CreateTween();
+            tween.TweenProperty(this, "scale", new Vector2(1.05f, 1.05f), 0.1);
+        };
+        MouseExited += () =>
+        {
+            var tween = CreateTween();
+            tween.TweenProperty(this, "scale", Vector2.One, 0.1);
+        };
 
         var bridge = GameBridge.Instance;
         if (bridge != null)
         {
-            _onPhaseChanged         = _ => Refresh();
-            _onTargetingModeChanged = _ => Refresh();
-            bridge.PhaseChanged         += _onPhaseChanged;
-            bridge.TargetingModeChanged += _onTargetingModeChanged;
+            _onPhaseChanged              = _ => Refresh();
+            _onTargetingModeChanged      = _ => Refresh();
+            _onPairingSelectionChanged   = (_, _) => Refresh();
+            bridge.PhaseChanged             += _onPhaseChanged;
+            bridge.TargetingModeChanged     += _onTargetingModeChanged;
+            bridge.PairingSelectionChanged  += _onPairingSelectionChanged;
         }
     }
 
@@ -87,15 +121,33 @@ public partial class CardViewController : PanelContainer
         var bridge = GameBridge.Instance;
         if (bridge != null)
         {
-            if (_onPhaseChanged         != null) bridge.PhaseChanged         -= _onPhaseChanged;
-            if (_onTargetingModeChanged != null) bridge.TargetingModeChanged -= _onTargetingModeChanged;
+            if (_onPhaseChanged            != null) bridge.PhaseChanged            -= _onPhaseChanged;
+            if (_onTargetingModeChanged    != null) bridge.TargetingModeChanged    -= _onTargetingModeChanged;
+            if (_onPairingSelectionChanged != null) bridge.PairingSelectionChanged -= _onPairingSelectionChanged;
         }
     }
 
     public void Setup(Card card)
     {
         _card = card;
+        ApplyRarityFrame(_card.Rarity);
         Refresh();
+    }
+
+    private void ApplyRarityFrame(CardRarity rarity)
+    {
+        var sb = new StyleBoxFlat();
+        sb.BgColor = new Color(0.12f, 0.10f, 0.09f); // dark warm bg
+        sb.SetCornerRadiusAll(4);
+        sb.SetBorderWidthAll(2);
+        sb.BorderColor = rarity switch
+        {
+            CardRarity.Awakened => new Color(0.25f, 0.50f, 0.85f),
+            CardRarity.Ancient  => new Color(0.80f, 0.60f, 0.15f),
+            _                   => new Color(0.35f, 0.30f, 0.25f),
+        };
+        sb.SetContentMarginAll(6);
+        AddThemeStyleboxOverride("panel", sb);
     }
 
     public void Refresh()
@@ -127,6 +179,11 @@ public partial class CardViewController : PanelContainer
             _elemRow.AddChild(new Label { Text = "—" });
         }
 
+        // Timing badge
+        bool isFast = _card.TopTiming == HollowWardens.Core.Models.CardTiming.Fast;
+        _timingBadge.Text     = isFast ? Loc.Get("CARD_TIMING_FAST") : Loc.Get("CARD_TIMING_SLOW");
+        _timingBadge.Modulate = isFast ? new Color(0.4f, 0.9f, 0.4f) : new Color(0.5f, 0.6f, 1.0f);
+
         _topLabel.Text = FormatEffect(_card.TopEffect);
         _botLabel.Text = FormatEffect(_card.BottomEffect);
 
@@ -138,13 +195,39 @@ public partial class CardViewController : PanelContainer
             _                   => Colors.White
         };
         bool dormant = _card.IsDormant;
-        Modulate = dormant ? rarityTint * new Color(0.5f, 0.5f, 0.5f, 1f) : rarityTint;
 
         var bridge     = GameBridge.Instance;
         var phase      = bridge?.CurrentPhase;
         bool inRes     = bridge?.IsInResolution ?? false;
         bool targeting = bridge?.IsWaitingForTarget ?? false;
+        bool isPairing = bridge?.IsPairingSelection ?? false;
 
+        // ── Pairing selection mode ────────────────────────────────────────────
+        if (isPairing)
+        {
+            bool isTop    = bridge?.PairTop?.Id    == _card.Id;
+            bool isBottom = bridge?.PairBottom?.Id == _card.Id;
+
+            // Tint: green for selected top, blue for selected bottom, normal otherwise
+            Modulate = isTop    ? new Color(0.6f, 1.0f, 0.6f) * rarityTint
+                     : isBottom ? new Color(0.6f, 0.6f, 1.0f) * rarityTint
+                     : dormant  ? rarityTint * new Color(0.5f, 0.5f, 0.5f, 1f)
+                     : rarityTint;
+
+            _playBtn.Visible = false;
+            _selectTopBtn.Visible = !dormant && !isBottom;
+            _selectBotBtn.Visible = !dormant && !isTop;
+            _selectTopBtn.Text    = isTop    ? Loc.Get("CARD_SELECTED_TOP") : Loc.Get("CARD_SELECT_TOP");
+            _selectBotBtn.Text    = isBottom ? Loc.Get("CARD_SELECTED_BOT") : Loc.Get("CARD_SELECT_BOT");
+            _selectTopBtn.Disabled = false;
+            _selectBotBtn.Disabled = false;
+            return;
+        }
+
+        // ── Legacy / non-pairing mode ─────────────────────────────────────────
+        Modulate = dormant ? rarityTint * new Color(0.5f, 0.5f, 0.5f, 1f) : rarityTint;
+        _selectTopBtn.Visible = false;
+        _selectBotBtn.Visible = false;
         _playBtn.Visible  = true;
         _playBtn.Modulate = Colors.White;
 
@@ -194,7 +277,39 @@ public partial class CardViewController : PanelContainer
     }
 
     private static string FormatEffect(HollowWardens.Core.Effects.EffectData e)
-        => $"{e.Type} ×{e.Value}" + (e.Range > 0 ? $" r{e.Range}" : "");
+    {
+        int v = e.Value;
+        string range = e.Range > 0 ? $" (r{e.Range})" : "";
+        return e.Type switch
+        {
+            HollowWardens.Core.Effects.EffectType.PlacePresence      => Loc.Get("EFFECT_PLACE_PRESENCE", v) + range,
+            HollowWardens.Core.Effects.EffectType.MovePresence       => Loc.Get("EFFECT_MOVE_PRESENCE", v) + range,
+            HollowWardens.Core.Effects.EffectType.GenerateFear       => Loc.Get("EFFECT_GENERATE_FEAR", v),
+            HollowWardens.Core.Effects.EffectType.ReduceCorruption   => Loc.Get("EFFECT_REDUCE_CORRUPTION", v),
+            HollowWardens.Core.Effects.EffectType.Purify             => Loc.Get("EFFECT_PURIFY", v),
+            HollowWardens.Core.Effects.EffectType.DamageInvaders     => Loc.Get("EFFECT_DAMAGE_INVADERS", v) + range,
+            HollowWardens.Core.Effects.EffectType.PushInvaders       => Loc.Get("EFFECT_PUSH_INVADERS", v) + range,
+            HollowWardens.Core.Effects.EffectType.RoutInvaders       => Loc.Get("EFFECT_ROUT_INVADERS", v) + range,
+            HollowWardens.Core.Effects.EffectType.SlowInvaders       => Loc.Get("EFFECT_SLOW_INVADERS", v) + range,
+            HollowWardens.Core.Effects.EffectType.WeakenInvaders     => Loc.Get("EFFECT_WEAKEN_INVADERS", v) + range,
+            HollowWardens.Core.Effects.EffectType.ExposeInvaders     => Loc.Get("EFFECT_EXPOSE_INVADERS", v) + range,
+            HollowWardens.Core.Effects.EffectType.BrittleInvaders    => Loc.Get("EFFECT_BRITTLE_INVADERS", v) + range,
+            HollowWardens.Core.Effects.EffectType.RestoreWeave       => Loc.Get("EFFECT_RESTORE_WEAVE", v),
+            HollowWardens.Core.Effects.EffectType.ShieldNatives      => Loc.Get("EFFECT_SHIELD_NATIVES", v) + range,
+            HollowWardens.Core.Effects.EffectType.BoostNatives       => Loc.Get("EFFECT_BOOST_NATIVES", v) + range,
+            HollowWardens.Core.Effects.EffectType.HealNatives        => Loc.Get("EFFECT_HEAL_NATIVES", v) + range,
+            HollowWardens.Core.Effects.EffectType.DamageNatives      => Loc.Get("EFFECT_DAMAGE_NATIVES", v) + range,
+            HollowWardens.Core.Effects.EffectType.SpawnNatives       => Loc.Get("EFFECT_SPAWN_NATIVES", v) + range,
+            HollowWardens.Core.Effects.EffectType.MoveNatives        => Loc.Get("EFFECT_MOVE_NATIVES", v) + range,
+            HollowWardens.Core.Effects.EffectType.AwakeDormant       => Loc.Get("EFFECT_AWAKE_DORMANT", v),
+            HollowWardens.Core.Effects.EffectType.PullInvaders       => Loc.Get("EFFECT_PULL_INVADERS_FMT", v) + range,
+            HollowWardens.Core.Effects.EffectType.CorruptionDetonate => Loc.Get("EFFECT_CORRUPTION_DETONATE_FMT", v),
+            HollowWardens.Core.Effects.EffectType.AddCorruption      => Loc.Get("EFFECT_ADD_CORRUPTION_FMT", v) + range,
+            HollowWardens.Core.Effects.EffectType.Conditional        => Loc.Get("EFFECT_CONDITIONAL"),
+            HollowWardens.Core.Effects.EffectType.Custom             => Loc.Get("EFFECT_CUSTOM"),
+            _                                                         => e.Type.ToString(),
+        };
+    }
 
     private static Texture2D? LoadIcon(string path)
     {

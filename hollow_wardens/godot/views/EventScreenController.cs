@@ -23,8 +23,8 @@ public partial class EventScreenController : CanvasLayer
     {
         Layer   = 10;
         Visible = false;
-        _cinzel = GD.Load<Font>("res://godot/assets/fonts/Cinzel-Bold.ttf");
-        _imFell = GD.Load<Font>("res://godot/assets/fonts/IMFellEnglish-Regular.ttf");
+        _cinzel = FontCache.CinzelBold;
+        _imFell = FontCache.IMFell;
     }
 
     /// <summary>
