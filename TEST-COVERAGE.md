@@ -1,5 +1,5 @@
 # Hollow Wardens — BDD Test Coverage Report
-_Updated 2026-03-22 · 487 tests passing_
+_Updated 2026-03-27 · 690 tests passing_
 
 ## How to read
 Each line: `MethodName → what rule/behaviour it verifies — PASS`
@@ -17,8 +17,12 @@ Tier1DoesNotFireAt3                  → threshold T1 does not fire at 3 — PAS
 Tier2FiresAt7                        → threshold T2 fires at 7 — PASS
 Tier3FiresAt11                       → threshold T3 fires at 11 — PASS
 ThresholdFiresOncePerTurnPerTier     → each tier fires at most once per turn — PASS
+ThresholdFiresOncePerTurn_MultipleCardPlays → multiple card plays in same turn don't re-fire same tier — PASS
+ThresholdDoesNotResetBetweenPhases   → threshold fired flag persists across Vigil/Dusk phases — PASS
+ThresholdResetsNextTurn              → threshold fired flag resets at start of next turn — PASS
+AllThreeTiersCanFireInOneTurn        → T1+T2+T3 can all fire in a single turn — PASS
 Tier1InVigilAndTier2InDuskSameTurn   → T1+T2 can both fire in same turn — PASS
-BottomDoubleMultiplier               → bottom effects gain ×2 element multiplier — PASS
+BottomDoubleMultiplier               → bottom effects gain x2 element multiplier — PASS
 RestTurnCarryoverCheckFires          → rest turn re-checks thresholds for carry-over — PASS
 EngineBuilding5TurnsMatchesMathTable → 5-turn accumulation matches design schedule — PASS
 BankedEffectLostOnDecay              → banked effects clear on decay — PASS
@@ -40,7 +44,7 @@ CreatePyramidHas6Territories         → pyramid board has 6 territories — PAS
 ArrivalRowHas3Territories            → arrival row = 3 territories — PASS
 MiddleRowHas2Territories             → middle row = 2 territories — PASS
 InnerRowHas1Territory                → inner row = 1 (Sacred Heart) — PASS
-DistanceA1ToI1Is2                    → pathfinding distance A1→I1 = 2 — PASS
+DistanceA1ToI1Is2                    → pathfinding distance A1->I1 = 2 — PASS
 RangeQueryReturnsCorrectTerritories  → range-1 from M1 returns correct set — PASS
 ```
 
@@ -61,9 +65,13 @@ RetroactiveUpgradeOnDreadAdvance               → queued actions upgrade when d
 RevealDequeuesToEmpty                          → RevealAndDequeue clears the queue — PASS
 RetroactiveUpgradeReplacesActualObjects        → objects themselves replaced on upgrade — PASS
 QueuedCountTracksCorrectly                     → count increments at 5-fear boundaries — PASS
+QueuedCount_IsZero_OnFreshSystem               → fresh system starts with zero queued actions — PASS
+QueuedCount_NullableInterface_ReturnsZeroViaCoalescing → nullable interface safely returns 0 — PASS
 FearGenerated_DuringResolution_DoesNotQueue    → fear during BeginResolution guard is discarded (loop prevention) — PASS
 FearGenerated_AfterResolutionEnds_QueuesNormally → fear after EndResolution queues normally — PASS
 BeginResolution_EndResolution_CanBeCalledMultipleTimes → multiple begin/end cycles work without error — PASS
+FearActionQueued_Event_CallbackReadsCorrectCountOnceStateIsAvailable → callback reads correct count from state — PASS
+FearActionQueued_Event_CallbackWithNullStateSafelyReturnsZero → null state callback safely returns 0 — PASS
 ```
 
 ## [CorruptionSystemTests] — Corruption Levels & Purify
@@ -73,19 +81,19 @@ EightPointsReachesLevel2                  → 8+ pts = Level 2 (Defiled) — PAS
 FifteenPointsReachesLevel3                → 15+ pts = Level 3 (Desecrated) — PASS
 ReduceCorruptionClampsAtZero              → reduction can't go negative — PASS
 PurifyDropsOneLevel                       → purify removes 1 level — PASS
-PurifyDesecrated_DropsToStartOfDefiled    → purify Level 3 → 8 pts — PASS
-PurifyDefiled_DropsToStartOfTainted       → purify Level 2 → 3 pts — PASS
-PurifyTainted_DropsToClean                → purify Level 1 → 0 pts — PASS
+PurifyDesecrated_DropsToStartOfDefiled    → purify Level 3 -> 8 pts — PASS
+PurifyDefiled_DropsToStartOfTainted       → purify Level 2 -> 3 pts — PASS
+PurifyTainted_DropsToClean                → purify Level 1 -> 0 pts — PASS
 PersistenceLevel1ResetsToZero             → persistence at Level 1 clears all — PASS
-PersistenceLevel2BecomesThreePoints       → persistence at Level 2 → 3 pts — PASS
+PersistenceLevel2BecomesThreePoints       → persistence at Level 2 -> 3 pts — PASS
 PersistenceLevel3Permanent                → persistence at Level 3 = no change — PASS
 ```
 
 ## [CadenceManagerTests] — Action Deck Cadence
 ```
-PepePattern_MaxStreak1             → streak 1 → P-E-P-E alternation — PASS
-PpePattern_MaxStreak2              → streak 2 → P-P-E pattern — PASS
-PppePattern_MaxStreak3             → streak 3 → P-P-P-E pattern — PASS
+PepePattern_MaxStreak1             → streak 1 -> P-E-P-E alternation — PASS
+PpePattern_MaxStreak2              → streak 2 -> P-P-E pattern — PASS
+PppePattern_MaxStreak3             → streak 3 -> P-P-P-E pattern — PASS
 ManualOverride_Respected           → manual pattern followed exactly — PASS
 StreakResets_AfterEasy             → painful streak counter resets after Easy — PASS
 ```
@@ -100,7 +108,7 @@ PrefersTerritory_WithNatives                   → pathfinding prefers native te
 Ironclad_SkipsMove_WhenNotAlternateTurn        → Ironclad skips non-alternate turns — PASS
 Ironclad_Moves_WhenAlternateTurn               → Ironclad moves on alternate turns — PASS
 ToggleIroncladMove_FlipsFlag                   → ToggleIroncladMove inverts flag — PASS
-ToggleIroncladMove_DoesNothing_ForNonIronclad  → only Ironcads toggle — PASS
+ToggleIroncladMove_DoesNothing_ForNonIronclad  → only Ironclads toggle — PASS
 ```
 
 ## [UnitModifierTests] — Unit Type Special Rules
@@ -134,9 +142,9 @@ GenerateFearFiresEvent           → GenerateFear fires FearGenerated event — 
 ```
 RefillDrawsToHandLimit               → refill draws to hand limit — PASS
 RefillStopsWhenDeckEmpty             → refill stops at empty deck — PASS
-PlayTopMovesToDiscard                → top play → discard pile — PASS
-PlayBottomDissolves                  → bottom play → dissolved (removed) — PASS
-RestShufflesDiscardIntoDeck          → rest shuffles discard → draw pile — PASS
+PlayTopMovesToDiscard                → top play -> discard pile — PASS
+PlayBottomDissolves                  → bottom play -> dissolved (removed) — PASS
+RestShufflesDiscardIntoDeck          → rest shuffles discard -> draw pile — PASS
 RestDissolveRemovesOneCard           → rest dissolves 1 card from shuffled discard — PASS
 FourPlayTurnsThenRestWith10Cards     → 4-turn cycle matches design math — PASS
 AggressiveBottomsForceEarlierRest    → bottoms played = smaller deck, earlier rest — PASS
@@ -189,9 +197,9 @@ ActionDeckDrawDeterministic          → action deck draw is seed-deterministic 
 
 ## [CombatSystemTests] — Combat Resolution
 ```
-Ravage_BasePlusPerInvader_CorrectTotal     → 2 Marchers → 2 base + 2+2 = 6 total corruption — PASS
-Ravage_SingleMarcher_IncludesBase          → 1 Marcher → 2 base + 2 = 4 total — PASS
-Ravage_MixedUnits_CorrectTotal             → 1 Ironclad+1 Outrider → 2 base+3+1 = 6 — PASS
+Ravage_BasePlusPerInvader_CorrectTotal     → 2 Marchers -> 2 base + 2+2 = 6 total corruption — PASS
+Ravage_SingleMarcher_IncludesBase          → 1 Marcher -> 2 base + 2 = 4 total — PASS
+Ravage_MixedUnits_CorrectTotal             → 1 Ironclad+1 Outrider -> 2 base+3+1 = 6 — PASS
 RavageDealsCorruption                      → Ravage adds corruption by unit type — PASS
 RavageDamagesNatives                       → Ravage damages natives — PASS
 IroncladDealsExtraCorruption               → Ironclad adds +1 corruption — PASS
@@ -227,10 +235,10 @@ Outrider_PreHit2_DamagesNativeBeforeMainRavage  → Outrider pre-hit 2 dmg — P
 
 ## [RootDormancyTests] — Root Warden Dormancy Rules
 ```
-BottomPlayMakesCardDormant           → Root bottom play → card dormant — PASS
+BottomPlayMakesCardDormant           → Root bottom play -> card dormant — PASS
 DormantCardGoesToDiscard             → dormant card routes to discard — PASS
 DormantCardIsNotPlayable             → dormant cards unplayable — PASS
-RestDissolveGosDormantForRoot        → Root rest-dissolve → dormant not removed — PASS
+RestDissolveGosDormantForRoot        → Root rest-dissolve -> dormant not removed — PASS
 AwakeDormantReactivatesCard          → Awaken reactivates dormant — PASS
 AwakeAllReactivatesAllDormant        → AwakenAll reactivates all dormant — PASS
 BossDoubleDissolveRemovesPermanently → playing dormant card removes it permanently — PASS
@@ -239,7 +247,7 @@ DormantCountTracksCorrectly          → dormant count accurate across piles —
 
 ## [DormantToDiscardTests] — Dormant Card Flow
 ```
-PlayBottom_Dormant_CardInDiscard           → bottom play → dormant in discard — PASS
+PlayBottom_Dormant_CardInDiscard           → bottom play -> dormant in discard — PASS
 PlayBottom_Dormant_DrawPileUnchanged       → bottom play doesn't touch draw pile — PASS
 PlayBottom_Dormant_CardIsDormant           → bottom play marks card dormant — PASS
 PlayBottom_Dormant_RestCyclesCardToDrawPile → rest cycles dormant to draw — PASS
@@ -295,7 +303,7 @@ InvaderInI1_BeforeAdvance_DoesMarchOnHeart → invader already in I1 deals damag
 ## [InitialWaveTests] — Wave 1 Setup
 ```
 SpawnInitialWave_ARowHasInvaders               → initial wave populates A-row — PASS
-SpawnInitialWave_TideRunnerDoesNotRespawnWave1 → Tide 1 doesn't re-spawn initial wave — PASS
+Tide1Arrive_SpawnsWave2_NotWave1Again          → Tide 1 doesn't re-spawn initial wave — PASS
 ```
 
 ## [CadencePatternTest] — Cadence Integration
@@ -312,7 +320,7 @@ QueuedActions_DontUpgrade_IfDreadStaysAtLevel1  → no upgrade if dread stays 1 
 
 ## [BottomBudgetTest] — Deck Economy
 ```
-RestForcedOnTurn4_After3BottomPlays → 1 top+1 bottom/turn → rest on turn 4 — PASS
+RestForcedOnTurn4_After3BottomPlays → 1 top+1 bottom/turn -> rest on turn 4 — PASS
 DeckThinner_AfterRest               → deck thinner after rest due to dissolution — PASS
 ```
 
@@ -325,7 +333,7 @@ ConservativePlay_HasFullerResolutionHand       → idle play preserves full hand
 ## [BottomPlayTests] — Bottom Effect Resolution
 ```
 BottomPlay_UsesBottomEffect_NotTopEffect       → bottom play uses bottom effect — PASS
-BottomPlay_AddsElements_WithMultiplierTwo      → bottom play elements ×2 — PASS
+BottomPlay_AddsElements_WithMultiplierTwo      → bottom play elements x2 — PASS
 BottomPlay_ResolvesBottomSecondary_WhenPresent → bottom secondary effect resolves — PASS
 ```
 
@@ -343,15 +351,20 @@ FullChain_GenerateFearEffect_WiresThrough_BothSystems → full fear chain wires 
 ```
 BottomPlay_MakesCardDormant_NotDissolved                        → Root bottom = dormant not removed — PASS
 DormantCard_IsInDeck_ButNotPlayable                             → dormant in deck, unplayable — PASS
-NetworkFear_GeneratesFear_BasedOnPresenceAdjacency              → 1 adjacent pair = 1 fear (undirected) — PASS
-NetworkFear_TwoAdjacentPresencePairs_Returns2NotFour            → A1-M1-I1 chain = 2 undirected edges, not 4 directed — PASS
-Assimilation_RemovesUpToPresenceCount_WeakestFirst              → PresenceCount=2 removes 2 weakest, strongest survives — PASS
-Assimilation_MoreInvadersThanPresence_SomeRemain                → PresenceCount=1 removes 1 of 3 invaders — PASS
-Assimilation_MaxPresence_RemovesThree                           → PresenceCount=3 removes 3 of 5 invaders — PASS
-Assimilation_ReducesCorruptionByRemoveCount                     → 2 invaders removed → corruption −2 — PASS
-Assimilation_NoInvaders_NoCorruptionChange                      → no invaders = no corruption change — PASS
-OnResolution_Assimilation_RemovesAdjacentInvaders               → assimilation removes invaders from adjacent territories — PASS
-OnResolution_Assimilation_ReducesNeighborCorruption             → assimilation reduces corruption per removed invader — PASS
+NetworkFear_InvaderWith2PresenceNeighbors_GeneratesNoFear       → invader with only 2 presence neighbors generates no fear — PASS
+NetworkFear_InvaderSurroundedBy3PresenceNeighbors_Generates1Fear → invader surrounded by 3+ presence neighbors generates 1 fear — PASS
+Assimilation_TideStart_SkipsWhenNoPresence                      → assimilation skipped when territory has no presence — PASS
+Assimilation_TideStart_SpawnDoesNotRequireInvaders              → assimilation spawn does not require existing invaders — PASS
+Assimilation_TideStart_Half_PresenceOne_SpawnsOne               → half formula: 1 presence spawns 1 native — PASS
+Assimilation_TideStart_Half_PresenceThree_SpawnsTwo             → half formula: 3 presence spawns 2 natives (ceil(3/2)) — PASS
+Assimilation_TideStart_Linear_PresenceThree_SpawnsThree         → linear formula: 3 presence spawns 3 natives — PASS
+Assimilation_TideStart_Scaled_PresenceOne_SpawnsOne             → scaled formula: 1 presence spawns 1 native — PASS
+Assimilation_TideStart_Scaled_PresenceTwo_SpawnsTwo             → scaled formula: 2 presence spawns 2 natives — PASS
+Assimilation_TideStart_Scaled_PresenceThree_SpawnsTwo           → scaled formula: 3 presence spawns 2 natives (cap) — PASS
+Assimilation_Upgraded_2Presence_2Natives_1Invader_ConvertsOne   → upgraded assimilation: converts 1 invader with 2 presence + 2 natives — PASS
+Assimilation_Upgraded_4Presence_4Natives_Converts2              → upgraded assimilation: 4 presence + 4 natives converts 2 invaders — PASS
+Assimilation_Upgraded_ConvertedInvader_BecomesNativeWithHalfHp  → upgraded conversion turns invader into native with half HP — PASS
+Assimilation_Upgraded_FiresInvaderDefeatedEvent_PerConversion   → upgraded conversion fires InvaderDefeated event per converted invader — PASS
 ```
 
 ## [FullStandardEncounterTest] — End-to-End Encounter
@@ -376,48 +389,78 @@ ExecuteActivate_PmMarch_ExecutesMarchEffect   → pm_march executes correctly �
 
 ## [ThresholdPendingTests] — Player-Driven Threshold Queue
 ```
-OnThresholdTriggered_Tier1_GoesToPending                                → T1 trigger → pending queue — PASS
-OnThresholdTriggered_Tier2_GoesToPending                                → T2 trigger → pending queue — PASS
+OnThresholdTriggered_Tier1_GoesToPending                                → T1 trigger -> pending queue — PASS
+OnThresholdTriggered_Tier2_GoesToPending                                → T2 trigger -> pending queue — PASS
 PlayerResolves_Tier1_ExecutesEffect                                     → resolving T1 executes + clears pending — PASS
-PlayerResolves_Tier2_ReducesCorruptionInHighestPresenceTerritory        → Root T2 reduces corruption ×3 in territory with most corruption + presence — PASS
-UnresolvedThreshold_ClearsAtEndOfDusk                                   → unresolved → ThresholdExpired + cleared — PASS
+PlayerResolves_Tier2_PlacesPresenceAdjacentToExistingPresence           → Root T2 places presence adjacent to existing presence territory — PASS
+UnresolvedThreshold_ClearsAtEndOfDusk                                   → unresolved -> ThresholdExpired + cleared — PASS
 MultiplePending_ResolveInAnyOrder                                       → multiple pending resolve in any order — PASS
+AshT1_WithTarget_DamagesSpecificTerritory                               → Ash T1 with player target damages invaders in chosen territory — PASS
+AshT2_WithTarget_DamagesSpecificTerritoryAndAddsCorruption              → Ash T2 with player target damages territory + adds corruption — PASS
+GaleT2_WithTarget_PushesInvadersFromSpecificTerritory                   → Gale T2 with player target pushes invaders from chosen territory — PASS
+RootT1_WithTarget_ReducesCorruptionInChosenTerritory                    → Root T1 with player target reduces corruption in chosen territory — PASS
+RootT2_WithTarget_PlacesPresenceInChosenTerritory                       → Root T2 with player target places presence in chosen territory — PASS
+NeedsTarget_ReturnsTrue(element: Ash, tier: 1)                         → Ash T1 requires player target — PASS
+NeedsTarget_ReturnsTrue(element: Ash, tier: 2)                         → Ash T2 requires player target — PASS
+NeedsTarget_ReturnsTrue(element: Ash, tier: 3)                         → Ash T3 requires player target — PASS
+NeedsTarget_ReturnsTrue(element: Gale, tier: 1)                        → Gale T1 requires player target — PASS
+NeedsTarget_ReturnsTrue(element: Gale, tier: 2)                        → Gale T2 requires player target — PASS
+NeedsTarget_ReturnsTrue(element: Root, tier: 1)                        → Root T1 requires player target — PASS
+NeedsTarget_ReturnsTrue(element: Root, tier: 2)                        → Root T2 requires player target — PASS
+NeedsTarget_ReturnsFalse(element: Gale, tier: 3)                       → Gale T3 auto-resolves (no target) — PASS
+NeedsTarget_ReturnsFalse(element: Mist, tier: 1)                       → Mist T1 auto-resolves (no target) — PASS
+NeedsTarget_ReturnsFalse(element: Mist, tier: 2)                       → Mist T2 auto-resolves (no target) — PASS
+NeedsTarget_ReturnsFalse(element: Shadow, tier: 1)                     → Shadow T1 auto-resolves (no target) — PASS
+NeedsTarget_ReturnsFalse(element: Void, tier: 1)                       → Void T1 auto-resolves (no target) — PASS
 ```
 
 ## [ThresholdResolverTests] — Per-Element T1 Effects
 ```
-RootTier1_PlacesPresence_AtRangeOneFromExistingPresence → Root T1 places presence adjacent to existing — PASS
-MistTier1_RestoresOneWeave                              → Mist T1 restores 1 weave — PASS
-ShadowTier1_GeneratesTwoFear                            → Shadow T1 generates 2 fear — PASS
-VoidTier1_DamagesLowestHpInvader                        → Void T1 damages lowest-HP invader — PASS
+RootTier1_ReducesCorruptionByThree_InHighestCorruptPresenceTerritory → Root T1 reduces corruption x3 in highest-corrupt presence territory — PASS
+RootTier1_DoesNothing_WhenNoPresenceTerritoriesHaveCorruption        → Root T1 no-op when no presence territories have corruption — PASS
+MistTier1_RestoresTwoWeave                                            → Mist T1 restores 2 weave — PASS
+ShadowTier1_GeneratesTwoFear                                          → Shadow T1 generates 2 fear — PASS
+VoidTier1_DealThreeDamageToLowestHpInvader                            → Void T1 deals 3 damage to lowest-HP invader — PASS
 ```
 
 ## [ThresholdTargetingTests] — Threshold Player-Target Requirements
 ```
 NeedsTarget_RootT1_ReturnsTrue                  → Root T1 requires territory selection — PASS
-NeedsTarget_RootT2_ReturnsFalse                 → Root T2 auto-resolves (no selection) — PASS
+NeedsTarget_RootT2_ReturnsTrue                  → Root T2 requires territory selection — PASS
 NeedsTarget_RootT3_ReturnsFalse                 → Root T3 auto-resolves — PASS
-NeedsTarget_NonRootElements_ReturnFalse         → Mist/Shadow/Ash/Gale/Void T1 all auto-resolve — PASS
-GetTargetEffect_RootT1_ReturnsPlacePresenceRange1 → Root T1 target effect = PlacePresence range 1 — PASS
-GetTargetEffect_RootT2_ReturnsNull              → Root T2 returns null (no targeting needed) — PASS
+NeedsTarget_AshT1T2_ReturnTrue                  → Ash T1 and T2 require territory selection — PASS
+NeedsTarget_AshT3_ReturnsTrue                   → Ash T3 requires territory selection — PASS
+NeedsTarget_GaleT1T2_ReturnTrue                 → Gale T1 and T2 require territory selection — PASS
+NeedsTarget_GaleT3_ReturnsFalse                 → Gale T3 auto-resolves — PASS
+NeedsTarget_UntargetedElements_ReturnFalse      → Mist/Shadow/Void all auto-resolve — PASS
+GetTargetEffect_RootT1_ReturnsReduceCorruption  → Root T1 target effect = ReduceCorruption — PASS
+GetTargetEffect_RootT2_ReturnsPlacePresenceRange1 → Root T2 target effect = PlacePresence range 1 — PASS
+GetTargetEffect_AshT1_ReturnsDamageInvaders     → Ash T1 target effect = DamageInvaders — PASS
+GetTargetEffect_AshT2_ReturnsDamageInvaders     → Ash T2 target effect = DamageInvaders — PASS
+GetTargetEffect_AshT3_ReturnsDamageInvaders     → Ash T3 target effect = DamageInvaders — PASS
+GetTargetEffect_GaleT1T2_ReturnPushInvaders     → Gale T1/T2 target effect = PushInvaders — PASS
+GetTargetEffect_GaleT3AndRootT3_ReturnNull      → Gale T3 and Root T3 return null (no targeting needed) — PASS
+GetTargetEffect_UntargetedElements_ReturnNull   → Mist/Shadow/Void return null (no targeting needed) — PASS
 ```
 
 ## [ThresholdT2T3Tests] — Per-Element T2 & T3 Effects
 
 ### Root
 ```
-RootTier2_ReducesCorruptionByThree_InHighestCorruptTerritory → Root T2 reduces corruption ×3 in highest-corrupt presence territory — PASS
-RootTier2_PicksTerritoryWithPresenceAndHighestCorruption     → Root T2 only targets territories with presence (ignores non-presence even if higher corruption) — PASS
-RootTier3_PlacesTwoPresenceTokens                            → Root T3 places 2 presence tokens — PASS
-RootTier3_ReducesCorruptionByTwoInEachPresenceTerritory      → Root T3 reduces corruption ×2 in every territory with presence — PASS
+RootTier2_PlacesPresenceAdjacentToExistingPresence                  → Root T2 places presence adjacent to existing presence — PASS
+RootTier2_WithTarget_PlacesPresenceInSpecifiedTerritory             → Root T2 with player target places presence in specified territory — PASS
+RootTier3_PlacesTwoPresenceTokens                                    → Root T3 places 2 presence tokens — PASS
+RootTier3_AutoResolve_ReducesCorruptionByThreeInPlacedTerritories   → Root T3 auto-resolve reduces corruption x3 in placed territories — PASS
+RootTier3_WithTarget_PlacesTwoPresenceAndReducesCorruptionByThree   → Root T3 with target places 2 presence and reduces corruption x3 — PASS
 ```
 
 ### Mist
 ```
-MistTier2_ReturnsOneCardFromDiscardToHand    → Mist T2 moves 1 card from discard back to hand — PASS
-MistTier2_DoesNothing_WhenDiscardIsEmpty     → Mist T2 is a no-op when discard is empty — PASS
-MistTier3_RestoresThreeWeave                 → Mist T3 restores 3 weave — PASS
-MistTier3_ReturnsAllDiscardedCardsToHand     → Mist T3 returns entire discard pile to hand — PASS
+MistTier2_ReturnsTwoCardsFromDiscardToDrawPile  → Mist T2 moves 2 cards from discard to draw pile — PASS
+MistTier2_MovesOnlyAvailableCards_WhenDiscardHasOne → Mist T2 moves only available card when discard has 1 — PASS
+MistTier2_DoesNothing_WhenDiscardIsEmpty        → Mist T2 is a no-op when discard is empty — PASS
+MistTier3_RestoresThreeWeave                    → Mist T3 restores 3 weave — PASS
+MistTier3_ReturnsThreeCardsFromDiscardToDrawPile → Mist T3 returns 3 cards from discard to draw pile — PASS
 ```
 
 ### Shadow
@@ -431,9 +474,10 @@ ShadowTier3_GeneratesFiveFear                            → Shadow T3 generates
 ```
 AshTier2_DealsTwoDamageToAllInvadersInMostInvadedTerritory → Ash T2 deals 2 damage to all invaders in auto-selected territory — PASS
 AshTier2_AddsOneCorruptionToTargetTerritory                 → Ash T2 adds 1 Corruption to the targeted territory — PASS
-AshTier3_DealsThreeDamageToAllBoardInvaders                 → Ash T3 deals 3 damage to every invader on the board — PASS
-AshTier3_NoCorruptionAdded_CorruptionRiderRemoved            → Ash T3 does NOT add corruption (D31 fix — was adds 1 per territory) — PASS
-AshTier3_IroncladSurvivesThreeDamage                        → Ash T3 leaves Ironclad (HP 5) alive at HP 2 — PASS
+AshTier3_AutoResolve_PicksTerritoryWithPresenceAndInvaders  → Ash T3 auto-resolve picks territory with presence and invaders — PASS
+AshTier3_WithTarget_DealsPresenceScaledDamageInChosenTerritory → Ash T3 with target deals presence-scaled damage in chosen territory — PASS
+AshTier3_TwoPresence_DealsFourDamagePerInvader              → Ash T3 with 2 presence deals 4 damage per invader — PASS
+AshTier3_NoCorruptionAdded                                   → Ash T3 does NOT add corruption — PASS
 ```
 
 ### Gale
@@ -441,15 +485,17 @@ AshTier3_IroncladSurvivesThreeDamage                        → Ash T3 leaves Ir
 GaleTier2_PushesAllInvadersOutOfClosestTerritory → Gale T2 pushes all invaders out of most-threatened territory — PASS
 GaleTier2_LeavesOtherTerritoryUntouched          → Gale T2 only targets one territory; others unaffected — PASS
 GaleTier3_PushesAllInvadersOnBoard               → Gale T3 displaces every invader from their starting territory — PASS
-GaleTier3_ARowInvadersCanPushToAdjacentARow      → Gale T3 laterally pushes A1→A2 (same distance from I1 = valid target) — PASS
+GaleTier3_ARowInvadersCanPushToAdjacentARow      → Gale T3 laterally pushes A1->A2 (same distance from I1 = valid target) — PASS
 ```
 
 ### Void
 ```
 VoidTier2_AllInvadersOnBoardTakeOneDamage  → Void T2 deals 1 damage to every alive invader — PASS
 VoidTier2_KillsOutrider_WithOneDamage      → Void T2 kills invaders with only 1 HP remaining — PASS
-VoidTier3_AllInvadersTakeTwoDamage         → Void T3 deals 2 damage to every alive invader — PASS
-VoidTier3_KillsOutrider_WithTwoDamage      → Void T3 kills Outrider (MaxHp 2) outright — PASS
+VoidTier2_NativesAlsoTakeOneDamage         → Void T2 also deals 1 damage to natives — PASS
+VoidTier3_AllInvadersTakeOneDamage         → Void T3 deals 1 damage to every alive invader — PASS
+VoidTier3_KillsOutrider_WoundedToOne       → Void T3 kills Outrider wounded to 1 HP — PASS
+VoidTier3_KillGeneratesFear                → Void T3 kills generate fear — PASS
 ```
 
 ## [StartingStateTests] — Encounter Initialisation
@@ -472,8 +518,8 @@ DamageInvaders_AmplifiedByPresence                            → DamageInvaders
 DamageInvaders_NoPresence_BaseValueOnly                       → DamageInvaders at base value when no presence — PASS
 ReduceCorruption_AmplifiedByPresence                          → ReduceCorruption resolved at base+presence — PASS
 ReduceCorruption_HighPresence_ClampsToZero                    → amplified cleanse clamps to 0 — PASS
-Amplification_Spec_Example_ReduceCorruption2_With1Presence_Equals3 → spec example: RC×2 + 1p = 3 — PASS
-Amplification_Spec_Example_DamageInvaders4_With2Presence_Equals6   → spec example: DI×4 + 2p = 6 — PASS
+Amplification_Spec_Example_ReduceCorruption2_With1Presence_Equals3 → spec example: RC x2 + 1p = 3 — PASS
+Amplification_Spec_Example_DamageInvaders4_With2Presence_Equals6   → spec example: DI x4 + 2p = 6 — PASS
 ```
 
 ### Vulnerability
@@ -483,7 +529,7 @@ Vulnerability_Level2_BlocksPresencePlacement          → Level 2 (8 pts) blocks
 Vulnerability_Level3_BlocksPresencePlacement          → Level 3 (15 pts) blocks new placement — PASS
 Vulnerability_Level3_DestroysAllPresence_OnCrossing   → crossing to Level 3 destroys all presence — PASS
 Vulnerability_Level3_DoesNotFire_WhenAlreadyDesecrated → no second destroy event at Level 3 — PASS
-Vulnerability_Level1ToLevel3_DestroysPresence         → direct L1→L3 jump also destroys presence — PASS
+Vulnerability_Level1ToLevel3_DestroysPresence         → direct L1->L3 jump also destroys presence — PASS
 ```
 
 ### Sacrifice
@@ -525,19 +571,19 @@ Desecration_ThenPlacement_Blocked                  → placement still blocked a
 
 ### Network Slow
 ```
-NetworkSlow_TwoPresenceNeighbors_ReturnsPenalty1          → 2 presence > 1 invader → −1 movement — PASS
-NetworkSlow_OnePresenceNeighbor_ReturnsZero               → 1 presence neighbor → no penalty — PASS
-NetworkSlow_ThreePresenceNeighbors_StillReturnsPenalty1   → penalty caps at 1 regardless of count — PASS
-NetworkSlow_OneInvader_TwoPresenceNeighbors_Slowed        → 2 presence > 1 invader → slowed (outnumber check) — PASS
-NetworkSlow_TwoInvaders_TwoPresenceNeighbors_NotSlowed    → 2 presence == 2 invaders → not slowed — PASS
-NetworkSlow_ThreeInvaders_TwoPresenceNeighbors_NotSlowed  → 2 presence < 3 invaders → not slowed — PASS
-NetworkSlow_OneInvader_ThreePresenceNeighbors_Slowed      → 3 presence > 1 invader → slowed — PASS
-NetworkSlow_ZeroInvaders_ReturnsZero                      → 0 invaders = no penalty (nothing to slow) — PASS
-NetworkSlow_WaveBreaksThrough                              → 4 invaders vs 3 presence → not outnumbered → penalty 0 — PASS
-NetworkSlow_DefaultInterface_ReturnsZero                  → default IWardenAbility returns 0 — PASS
-NetworkSlow_InvaderStays_WhenPenaltyEqualsMoves           → 1 step − 1 penalty = 0 → invader stays — PASS
-NetworkSlow_Outrider_ReducedByPenalty                     → Outrider 2 steps − 1 penalty = 1 step — PASS
-NetworkSlow_NoPresence_NoImpactOnMovement                 → no presence = no movement reduction — PASS
+NetworkSlow_TwoPresenceNeighbors_ReturnsZero_BelowThreshold          → 2 presence neighbors below threshold returns 0 penalty — PASS
+NetworkSlow_OnePresenceNeighbor_ReturnsZero                          → 1 presence neighbor -> no penalty — PASS
+NetworkSlow_ThreePresenceNeighbors_StillReturnsPenalty1              → penalty caps at 1 regardless of count — PASS
+NetworkSlow_ThreePresenceNeighbors_ReturnsPenalty_RegardlessOfInvaderCount → 3 presence neighbors returns penalty regardless of invader count — PASS
+NetworkSlow_OneInvader_TwoPresenceNeighbors_NotSlowed_BelowThreshold → 1 invader + 2 presence neighbors below threshold = not slowed — PASS
+NetworkSlow_TwoInvaders_TwoPresenceNeighbors_NotSlowed               → 2 presence == 2 invaders -> not slowed — PASS
+NetworkSlow_ThreeInvaders_TwoPresenceNeighbors_NotSlowed             → 2 presence < 3 invaders -> not slowed — PASS
+NetworkSlow_OneInvader_ThreePresenceNeighbors_Slowed                 → 3 presence > 1 invader -> slowed — PASS
+NetworkSlow_ZeroInvaders_ReturnsZero                                 → 0 invaders = no penalty (nothing to slow) — PASS
+NetworkSlow_DefaultInterface_ReturnsZero                             → default IWardenAbility returns 0 — PASS
+NetworkSlow_InvaderStays_WhenPenaltyEqualsMoves                     → 1 step - 1 penalty = 0 -> invader stays — PASS
+NetworkSlow_Outrider_ReducedByPenalty                                → Outrider 2 steps - 1 penalty = 1 step — PASS
+NetworkSlow_NoPresence_NoImpactOnMovement                            → no presence = no movement reduction — PASS
 ```
 
 ### Presence Provocation
@@ -551,9 +597,9 @@ ProvokesNatives_DefaultInterface_ReturnsFalse    → default interface method re
 ```
 SlowInvaders_MarksAliveInvaders                              → SlowInvadersEffect marks alive invaders — PASS
 SlowInvaders_DoesNotMarkDeadInvaders                         → dead invaders not marked — PASS
-SlowInvaders_EffectResolverWorks                             → EffectResolver maps SlowInvaders → SlowInvadersEffect — PASS
-SlowInvaders_HalvesMovement_Base2Becomes1                    → slowed invader: 2 steps → 1 — PASS
-SlowInvaders_HalvesMovement_Base1BecomesZero                 → slowed invader: 1 step → 0 — PASS
+SlowInvaders_EffectResolverWorks                             → EffectResolver maps SlowInvaders -> SlowInvadersEffect — PASS
+SlowInvaders_HalvesMovement_Base2Becomes1                    → slowed invader: 2 steps -> 1 — PASS
+SlowInvaders_HalvesMovement_Base1BecomesZero                 → slowed invader: 1 step -> 0 — PASS
 SlowInvaders_StacksWithNetworkSlow_Base2HalvedTo1ThenMinus1Equals0 → slow + network penalty stacks to 0 — PASS
 ```
 
@@ -563,7 +609,7 @@ RestGrowth_PlacesPresence_WhenTerritoryHasPresence  → OnRest adds 1 presence t
 RestGrowth_NoChange_WhenTerritoryHasNoPresence      → no growth if target has 0 presence — PASS
 RestGrowth_Blocked_ByDefiledCorruption              → growth blocked by Level 2 corruption — PASS
 RestGrowth_NullTarget_NoChange                      → null target = no-op — PASS
-RestGrowth_Stacks_TwoPresenceBecomesThree           → 2 presence → 3 after rest — PASS
+RestGrowth_Stacks_TwoPresenceBecomesThree           → 2 presence -> 3 after rest — PASS
 RestGrowth_TurnActions_CallsWardenOnRest             → TurnActions.Rest() invokes OnRest — PASS
 RestGrowth_TurnManager_PassesTargetThrough          → TurnManager.Rest(target) propagates target — PASS
 ```
@@ -571,13 +617,13 @@ RestGrowth_TurnManager_PassesTargetThrough          → TurnManager.Rest(target)
 ## [WardenLoaderTests] — Unified Warden JSON Loading
 ```
 FullLoad_ReturnsCorrectMetadata                              → wardenId, name, hand limit parsed — PASS
-StartingPresence_IsI1Count1                                  → starting presence I1×1 — PASS
+StartingPresence_IsI1Count1                                  → starting presence I1x1 — PASS
 Passives_Count_IsSix                                         → 6 passives loaded — PASS
 Passive_NetworkFear_HasCorrectTriggerAndMechanic             → network_fear passive fields correct — PASS
 Cards_TotalCount_Is25                                        → 25 total cards in pool — PASS
 Cards_StartingCount_Is10                                     → 10 starting cards — PASS
 CardSwap_Root025_IsStarting_Root011_IsNot                    → root_025 starting, root_011 draft — PASS
-EffectParsing_Root025_TopIsDamageRange1_BottomSecondaryIsSlowInvaders → root_025 effects parsed correctly — PASS
+EffectParsing_Root025_TopIsDamageRange1_BottomIsPushInvadersWithReduceCorruption → root_025 effects parsed correctly — PASS
 ElementAffinity_IsRoot_Mist_Shadow                           → element affinity fields parsed — PASS
 ConvenienceMethods_ReturnSameCountAsFullLoad                 → LoadCards/LoadPassives match full load — PASS
 Load_NonExistentFile_Throws                                  → FileNotFoundException on bad path — PASS
@@ -598,7 +644,7 @@ ChooseRestGrowthTarget_ReturnsNull_WhenAllPresenceTerritoriesDefiled       → n
 
 ## [ReplayTests] — Deterministic Replay
 ```
-SameSeed_ProducesSameExportString          → same seed → identical export string — PASS
+SameSeed_ProducesSameExportString          → same seed -> identical export string — PASS
 DifferentSeeds_ProduceDifferentExportStrings → different seeds produce different exports — PASS
 ExportString_ContainsSeedPrefix            → export starts with "SEED:N|" — PASS
 ImportFull_RoundTrips_Seed                 → imported seed matches original — PASS
@@ -645,12 +691,11 @@ B2Applied_Elite_EveryWaveOptionHasA1Marcher     → every option in elite has A1
 ```
 _Note: B2 tests (last 4) would fail if `AddB2Marchers()` is removed, as several options in each encounter originally have no A1 entry._
 
-## [EncounterLeverTests] — 22 Encounter Levers
+## [EncounterLeverTests] — Encounter Levers
 ```
 SurgeTide_SpawnsDoubleWave                    → surge_tides causes double spawn on that tide — PASS
 InvaderAdvanceBonus_IncreasesMovement         → invader_advance_bonus adds extra movement steps — PASS
 InvaderCorruptionScaling_BonusHp_MatchesL1Count → invaders gain +HP per L1+ territory on arrival — PASS
-InvaderHpBonus_AppliedOnCreation              → invader_hp_bonus increases base HP at spawn — PASS
 InvaderArrivalShield_AppliedOnSpawn           → invaders spawn with shield points — PASS
 PresencePlacementCorruptionCost_AddsCorruption → placing presence adds corruption to territory — PASS
 CorruptionSpread_L1Territory_SpreadsToAdjacentL0 → L1+ territories spread corruption to clean neighbours — PASS
@@ -659,14 +704,14 @@ BlightPulse_AddsCorruptionEveryNTides         → blight_pulse_interval triggers
 NativeErosion_ReducesHpEachTide               → native_erosion_per_tide reduces native HP per tide — PASS
 NativeErosion_KillsNativeAtZero               → natives at 0 HP are removed — PASS
 NativeOverride_CustomHpAndDamage              → native_hp_override and native_damage_override applied at spawn — PASS
-NativeSpawns_PopulatesTerritoriesWithCorrectCount → NativeSpawns field places correct native counts — PASS
-NativeSpawns_NativesHaveCorrectStats          → spawned natives use config hp/damage — PASS
 ElementDecayOverride_UsedInsteadOfGlobal      → element_decay_override replaces global decay rate — PASS
 ThresholdDamageBonus_AppliedToAllTiers        → threshold_damage_bonus adds to T1/T2/T3 damage — PASS
 FearMultiplier_HalvesFear                     → fear_multiplier = 0.5 halves generated fear — PASS
 HeartDamageMultiplier_IncreasesWeaveLoss      → heart_damage_multiplier increases weave loss on heart hit — PASS
 PlayLimitOverrides_RestrictCardPlays          → play_limit_overrides cap top/bottom play counts — PASS
-ApplyStartingCorruption_SetsPoints            → StartingCorruption field pre-corrupts territories — PASS
+InvaderRegenOnRest_HealsInvaders              → invader regen on rest heals invaders — PASS
+SacredTerritory_CannotGainCorruption          → sacred territory cannot gain corruption — PASS
+StartingElements_AppliedAtSetup               → starting elements applied during encounter setup — PASS
 ```
 
 ## [BoardCarryoverTests] — Run Arc Carryover
@@ -676,9 +721,15 @@ ExtractCarryover_DefiledTerritory_PersistsAsL1        → L2 (Defiled) persists 
 ExtractCarryover_DesecratedTerritory_FullPersistence  → L3 (Desecrated) persists at full points — PASS
 ExtractCarryover_WeavePreserved                       → final weave captured in carryover — PASS
 ExtractCarryover_DreadPreserved                       → dread level captured in carryover — PASS
+ExtractCarryover_AppliesWeaveLoss                     → weave loss applied during carryover extraction — PASS
 ApplyCarryover_SetsCorruption                         → ApplyCarryover pre-corrupts territories as specified — PASS
 ApplyCarryover_SetsWeave                              → ApplyCarryover sets starting weave — PASS
+ApplyCarryover_SetsMaxWeave                           → ApplyCarryover sets max weave — PASS
 ApplyCarryover_RemovesCards                           → PermanentlyRemovedCards removed from starting deck — PASS
+WeaveLoss_ZeroMissing_NoDecay                         → 0 missing weave = no max weave decay — PASS
+WeaveLoss_3Missing_Loses1Max                          → 3 missing weave = lose 1 max weave — PASS
+WeaveLoss_4Missing_Loses2Max                          → 4 missing weave = lose 2 max weave — PASS
+WeaveLoss_8Missing_Loses3Max                          → 8 missing weave = lose 3 max weave — PASS
 ```
 
 ## [LocalizationTests] — Loc.cs Key-Value System
@@ -693,6 +744,31 @@ Clear_RemovesAllStrings                  → Loc.Clear resets state — PASS
 LoadFromCsv_ParsesCorrectly              → CSV file loaded and parsed — PASS
 LoadFromCsv_HandlesQuotedCommas          → quoted CSV fields with commas parsed correctly — PASS
 LoadFromCsv_MissingFile_NoException      → missing CSV file does not throw — PASS
+Load_EscapeNewline_IsRealNewline         → escaped \n in CSV becomes real newline — PASS
+CaDmgN_FormatsZeroAndNonZero            → CA_DMG_N key formats both 0 and non-zero values — PASS
+DeckCounts_FormatsCorrectly             → DECK_COUNTS key formats correctly with args — PASS
+PhaseVigilN_FormatsCorrectly            → PHASE_VIGIL_N key formats correctly — PASS
+AllNewKeys_PresentInCsvFile(key: "BTN_BACK")                    → BTN_BACK present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "BTN_PLAY_TOP_RES")            → BTN_PLAY_TOP_RES present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "BTN_SKIP_DMG")                → BTN_SKIP_DMG present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "BTN_START_CHAIN")             → BTN_START_CHAIN present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "CA_DMG_N")                    → CA_DMG_N present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "CA_NO_DAMAGE")                → CA_NO_DAMAGE present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "CHAIN_CARRYOVER")             → CHAIN_CARRYOVER present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "CHAIN_CONTINUE")              → CHAIN_CONTINUE present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "CHAIN_RESULT_TITLE")          → CHAIN_RESULT_TITLE present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "CHAIN_SLOT_CAPSTONE")         → CHAIN_SLOT_CAPSTONE present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "CHAIN_SLOT_E1")               → CHAIN_SLOT_E1 present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "CHAIN_SLOT_E2")               → CHAIN_SLOT_E2 present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "DECK_COUNTS")                 → DECK_COUNTS present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "ENCOUNTER_SELECT_MODE_CHAIN") → ENCOUNTER_SELECT_MODE_CHAIN present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "ENCOUNTER_SELECT_MODE_SINGLE")→ ENCOUNTER_SELECT_MODE_SINGLE present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "FEAR_CONFIRM_BTN")            → FEAR_CONFIRM_BTN present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "LABEL_NEXT")                  → LABEL_NEXT present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "LABEL_NONE")                  → LABEL_NONE present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "LABEL_NO_CARD")               → LABEL_NO_CARD present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "LABEL_REVEALED")              → LABEL_REVEALED present in CSV — PASS
+AllNewKeys_PresentInCsvFile(key: "PHASE_VIGIL_N")               → PHASE_VIGIL_N present in CSV — PASS
 ```
 
 ## [SimProfileTests] — Sim Profile Loading & Application
@@ -706,8 +782,7 @@ ApplyWardenOverrides_RemovesCards        → warden_overrides.remove_cards remov
 ApplyWardenOverrides_UpgradesCardValue   → warden_overrides.upgrade_cards changes card value — PASS
 ApplyPassiveOverrides_ForcesLock         → passive_overrides force_lock disables passive — PASS
 ApplyPassiveOverrides_ForcesUnlock       → passive_overrides force_unlock enables passive — PASS
-ApplyCarryover_RemovesCards              → board_carryover.removed_cards removes from deck — PASS
-SimProfile_ElementOverrides_Applied      → element_overrides applied to BalanceConfig — PASS
+ApplyStartingCorruption_SetsPoints       → StartingCorruption field pre-corrupts territories — PASS
 ```
 
 ## [BalanceConfigTests] — Data-Driven Threshold Overrides
@@ -720,6 +795,11 @@ GetThresholdDamage_DefaultsToGlobal                → threshold damage uses glo
 GetThresholdDamage_UsesElementOverride             → threshold damage uses per-element override — PASS
 Config_Clone_IsIndependent                         → Clone() creates independent copy (no shared dict) — PASS
 PerElementThreshold_IntegratesWithElementSystem    → overrides wired end-to-end through ElementSystem — PASS
+InvaderHpBonus_AppliedOnCreation                   → invader_hp_bonus increases base HP at spawn — PASS
+AmplificationHelper_RespectsConfig_Cap             → amplification helper respects config cap — PASS
+AmplificationHelper_RespectsConfig_PerPresence     → amplification helper respects per-presence config — PASS
+SacrificePresence_RespectsConfig_CleanseAmount     → sacrifice presence respects config cleanse amount — PASS
+SimProfile_ElementOverrides_Applied                → element_overrides applied to BalanceConfig — PASS
 ```
 
 ## [EmberAbilityTests] — Ember Warden Passives
@@ -727,7 +807,6 @@ PerElementThreshold_IntegratesWithElementSystem    → overrides wired end-to-en
 Ember_AshTrail_AddsCorruption_AndDamagesInvaders   → Ash Trail adds 1 corruption + 1 damage per presence territory — PASS
 Ember_AshTrail_OnlyAffectsPresenceTerritories      → Ash Trail only fires in territories with presence — PASS
 Ember_AshT3_DealsOnlyDamage_NoCorruption           → Ash T3 (B1 nerf path) — see AshTier3 in ThresholdT2T3Tests — PASS
-Ember_AshTrail_Ash_T3 tests → see [ThresholdT2T3Tests] Ash section — PASS
 Ember_EmberFury_BonusDamage_PerCorruptedTerritory  → EmberFury adds +1 damage per L1+ territory — PASS
 Ember_EmberFury_Inactive_WhenLocked                → EmberFury passive locked = no bonus damage — PASS
 Ember_ControlledBurn_Generates2Fear_With3PlusL1Territories → Controlled Burn generates 2 fear at 3+ L1 — PASS
@@ -735,6 +814,7 @@ Ember_ControlledBurn_NoFear_WithFewerThan3L1       → below 3 L1 territories = 
 Ember_ControlledBurn_OnlyCountsL1_NotL2OrL0        → only L1 (Tainted) territories count, not L2/L3 — PASS
 Ember_ScorchedEarth_DamageEqualsCorruptionSum       → Resolution damage = sum of corruption in presence territories — PASS
 Ember_ScorchedEarth_FullyCleansesL0AndL1           → Resolution cleanses L0 and L1 fully — PASS
+Ember_ScorchedEarth_FullyCleansesLevel1            → Resolution fully cleanses Level 1 territories — PASS
 Ember_ScorchedEarth_HalvesLevel2                   → Resolution halves L2 corruption (round down) — PASS
 Ember_ScorchedEarth_NoChangeLevel3                 → Resolution does not change L3 (permanent) — PASS
 Ember_ScorchedEarth_MixedBoard_CorrectCleanse       → mixed board: L0 cleansed, L2 halved, L3 unchanged — PASS
@@ -742,6 +822,9 @@ Ember_PhoenixSpark_GeneratesFear_OnPermanentRemoval → PhoenixSpark generates 3
 Ember_PresencePlacement_AllowedAtLevel2             → Ember can place presence in Defiled (L2) territory — PASS
 Ember_PresencePlacement_BlockedAtLevel3             → Ember blocked from Desecrated (L3) territory — PASS
 Ember_CleanWin_Possible_WhenAllPresenceAtL1         → Ember can achieve Clean outcome with correct play — PASS
+Ember_HeatWave_OnRest_DamagesAllPresenceTerritories → HeatWave on rest damages all invaders in presence territories — PASS
+Ember_OnBottomPlayed_AlwaysPermanentlyRemoved       → Ember bottom play always permanently removes card — PASS
+Ember_OnRestDissolve_PermanentlyRemoved             → Ember rest dissolve permanently removes card — PASS
 ```
 
 ## [EmberLoaderTests] — Ember JSON Loading
@@ -756,20 +839,223 @@ EmberLoad_Passives_Count            → 7 passives (6 unlockable + base set) —
 ## [PassiveGatingTests] — Passive Unlock/Lock System
 ```
 Root_StartsWithThreeActivePassives          → Root has 3 base passives active at encounter start — PASS
-Root_NetworkSlowInactive_AtStart            → network_slow locked at start (unlocks on Shadow T1) — PASS
-Root_ProvocationInactive_AtStart            → presence_provocation locked at start — PASS
+Root_NetworkSlowInactive_AtStart            → network_slow locked at start — PASS
 Root_RestGrowthInactive_AtStart             → rest_growth locked at start — PASS
-Root_RestGrowth_UnlocksOnRootT1             → rest_growth unlocks when Root T1 fires — PASS
-Root_NetworkSlow_UnlocksOnShadowT1          → network_slow unlocks when Shadow T1 fires — PASS
-Root_Provocation_UnlocksOnRootT2            → presence_provocation unlocks when Root T2 fires — PASS
-Root_DuplicateThreshold_DoesNotReUnlock     → threshold firing twice doesn't re-unlock — PASS
-Root_UnlockFiresEvent                       → PassiveUnlocked event fires on unlock — PASS
+Root_AssimilationInactive_AtStart           → assimilation locked at start — PASS
+Root_ProvocationActive_AtStart              → provocation is active (base passive) at start — PASS
+Root_NetworkSlow_UnlocksViaForceUnlock      → network_slow unlocks via force_unlock override — PASS
+Root_RestGrowth_UnlocksViaForceUnlock       → rest_growth unlocks via force_unlock override — PASS
+Root_Provocation_UnlocksViaForceUnlock      → provocation unlocks via force_unlock override — PASS
+Root_ForceUnlock_FiresPassiveUnlockedEvent  → force_unlock fires PassiveUnlocked event — PASS
+Root_ForceUnlock_AlreadyActive_DoesNotRefire → force_unlock on already-active passive does not re-fire event — PASS
 Root_Reset_ClearsUnlocks                    → Reset() restores warden defaults — PASS
 Root_GetMovementPenalty_ReturnsZero_WhenNetworkSlowLocked → locked network_slow returns 0 penalty — PASS
-Root_NetworkFearCapped_At4                  → Network Fear capped at 4 per BalanceConfig — PASS
-Root_ProvokesNatives_ReturnsFalse_WhenLocked → locked provocation = false — PASS
-ApplyPassiveOverrides_ForcesUnlock          → force_unlock overrides gating — PASS
-ApplyPassiveOverrides_ForcesLock            → force_lock prevents unlock — PASS
+Root_NetworkFear_CappedAt3                  → Network Fear capped at 3 — PASS
+Root_NetworkFear_InvaderWith2PresenceNeighbors_GeneratesNoFear → invader with 2 presence neighbors generates no fear — PASS
+Root_NetworkFear_InvaderWith3PresenceNeighbors_GeneratesFear   → invader with 3+ presence neighbors generates fear — PASS
+Root_NetworkFear_ZeroInvaders_GeneratesNoFear → zero invaders generates no fear — PASS
+Root_ProvokesNatives_ReturnsFalse_WhenForceLocked → locked provocation = false — PASS
+Root_OnRest_DoesNothing_WhenRestGrowthLocked → rest does nothing when rest_growth locked — PASS
+Root_NetworkSlow_Upgrade_Returns2Penalty    → upgraded network_slow returns 2 movement penalty — PASS
+Root_RestGrowth_Upgrade_Places2Presence     → upgraded rest_growth places 2 presence — PASS
+```
+
+---
+
+## [CardUpgradeTests] — Card Upgrade System
+```
+ApplyUpgrade_ValueBump_ChangesTopValue     → value_bump upgrade changes top effect value — PASS
+ApplyUpgrade_AddElement_AddsToArray        → add_element upgrade adds element to card array — PASS
+ApplyUpgrade_TrackedInAppliedIds           → applied upgrade tracked in AppliedIds list — PASS
+ApplyUpgrade_AlreadyApplied_ReturnsFalse   → re-applying same upgrade returns false — PASS
+ApplyUpgrade_UnknownId_ReturnsFalse        → unknown upgrade ID returns false — PASS
+WardenLoader_ParsesUpgradeSlots            → WardenLoader parses upgrade slot definitions from JSON — PASS
+```
+
+## [PassiveUpgradeTests] — Passive Upgrade System
+```
+UpgradePassive_SetsFlag                    → upgrading passive sets the upgraded flag — PASS
+UpgradePassive_AlreadyUpgraded_ReturnsFalse → re-upgrading already upgraded passive returns false — PASS
+UpgradedPassives_TrackedCorrectly          → upgraded passives tracked in collection — PASS
+WardenLoader_ParsesPassiveUpgrades         → WardenLoader parses passive upgrade definitions from JSON — PASS
+```
+
+## [RewardTests] — Encounter Reward System
+```
+Root_Standard_Clean_GetsTier1              → Root standard clean win gets tier 1 reward — PASS
+Root_Standard_Weathered_GetsTier2          → Root standard weathered win gets tier 2 reward — PASS
+Root_Standard_Breach_GetsTier3             → Root standard breach result gets tier 3 reward — PASS
+Ember_Siege_Weathered_HighWeave_GetsTier1  → Ember siege weathered with high weave gets tier 1 — PASS
+Tier1_Gets3Choices_1Token_CardRemoval      → tier 1 reward gives 3 choices, 1 token, card removal option — PASS
+Tier3_Gets2Choices_NoToken_HealOption      → tier 3 reward gives 2 choices, no token, heal option — PASS
+DraftPool_FiltersCorrectRarities           → draft pool filters cards by correct rarities — PASS
+```
+
+## [RunEffectEngineTests] — Run-Level Effect Engine
+```
+HealWeave_ClampsAtMax                      → heal weave clamps at max weave — PASS
+HealMaxWeave_Increases                     → heal max weave increases max weave value — PASS
+ReduceMaxWeave_ClampsAt1                   → reduce max weave clamps minimum at 1 — PASS
+AddTokens_Increases                        → add tokens increases token count — PASS
+DissolveCard_RemovesFromDeck               → dissolve card removes it from deck — PASS
+RecoverCard_MovesFromRemovedToDeck         → recover card moves from removed pile back to deck — PASS
+UnlockPassive_AddsToList                   → unlock passive adds to unlocked list — PASS
+CleansCarryover_ClearsDict                 → cleans carryover clears the corruption dictionary — PASS
+AddCorruption_RandomTerritory_Works        → add corruption to random territory works — PASS
+```
+
+## [EventTests] — Narrative Event System
+```
+EventLoader_LoadsAllEvents                 → event loader loads all event definitions — PASS
+EventLoader_FiltersByTags                  → event loader filters events by tag — PASS
+EventLoader_FiltersByWarden                → event loader filters events by warden — PASS
+EventRunner_AppliesAllEffectsInOrder       → event runner applies all effects in order — PASS
+EventRunner_AppliesChoiceEffects           → event runner applies player choice effects — PASS
+CorruptionEvent_SpendToken_ReducesDamage   → corruption event spend-token choice reduces damage — PASS
+SacrificeEvent_MeetsThreshold_GrantsReward → sacrifice event meeting threshold grants reward — PASS
+SacrificeEvent_MissesThreshold_NoReward    → sacrifice event missing threshold gives no reward — PASS
+```
+
+## [RealmTests] — Realm Map System
+```
+RealmLoader_LoadsRealm1                    → realm loader loads realm 1 definition — PASS
+RealmRunner_StartsAtStage1                 → realm runner starts at stage 1 — PASS
+RealmRunner_AvailableNodes_ReturnsPathOptions → available nodes returns path options — PASS
+RealmRunner_AdvanceNode_UpdatesRunState    → advancing node updates run state — PASS
+RealmRunner_IsComplete_AfterFinalStage     → realm runner reports complete after final stage — PASS
+OptionalStage_RequiresTier1                → optional stage requires tier 1 prerequisite — PASS
+DrawEvent_FiltersByTags_AndWarden          → draw event filters by tags and warden — PASS
+```
+
+## [ChainSimTests] — Chain Encounter Simulation
+```
+ChainSim_CompletesFullRun                  → chain sim completes a full multi-encounter run — PASS
+ChainSim_CarryoverApplied                  → chain sim applies carryover between encounters — PASS
+ChainSim_WeaveDecays_AcrossEncounters      → chain sim weave decays across encounters — PASS
+ChainSim_RewardsApplied                    → chain sim applies rewards between encounters — PASS
+ChainSim_EventsResolve                     → chain sim resolves events during run — PASS
+```
+
+## [CommandParserTests] — Dev Console Command Parser
+```
+Parse_ValidCommand_ReturnsName_Args        → valid command returns parsed name and args — PASS
+Parse_EmptyInput_IsInvalid                 → empty input returns invalid result — PASS
+Parse_NoSlash_IsInvalid                    → input without slash prefix is invalid — PASS
+Parse_UnknownCommand_IsValid               → unknown command still parses as valid — PASS
+Parse_QuotedArgs_HandlesSpaces             → quoted args handle embedded spaces — PASS
+```
+
+## [GameVersionTests] — Game Version & Balance Hash
+```
+Version_IsNotEmpty                         → game version string is not empty — PASS
+Full_ContainsPlus                          → full version string contains '+' separator — PASS
+BalanceHash_IsDeterministic                → balance hash is deterministic for same config — PASS
+BalanceHash_Is12Chars                      → balance hash is 12 characters long — PASS
+BalanceHash_ChangesWhenConfigChanges       → balance hash changes when config changes — PASS
+```
+
+## [TelemetryModelTests] — Telemetry Data Models
+```
+RunRecord_HasGameVersion                   → run record includes game version — PASS
+RunRecord_HasSchemaVersion                 → run record includes schema version — PASS
+EncounterRecord_GeneratesUniqueUid         → encounter record generates unique UID — PASS
+DecisionRecord_DefaultSource_IsPlayer      → decision record default source is Player — PASS
+```
+
+## [TelemetryCollectorTests] — Telemetry Collection
+```
+StartRun_SetsRunId                         → start run sets the run ID — PASS
+EndRun_WritesRunRecord                     → end run writes run record to sink — PASS
+MultipleEncounters_IndexIncrements         → multiple encounters increment the index — PASS
+OnInvaderKilled_IncrementsStat             → invader killed event increments stat — PASS
+RecordDecision_CapturesContext             → record decision captures decision context — PASS
+RecordEvent_CapturesBeforeAfter            → record event captures before/after state — PASS
+RecordTideSnapshot_CapturesBoardState      → record tide snapshot captures board state — PASS
+```
+
+## [TelemetryDrivenStrategyTests] — Telemetry-Driven Bot Strategy
+```
+DefaultProfile_BehavesLikeBot              → default profile behaves like standard bot — PASS
+ChoosePlay_WeightsByDistribution           → choose play weights by card distribution — PASS
+ChoosePlay_SometimesRests                  → choose play sometimes chooses rest — PASS
+ChooseTarget_UsesPreference                → choose target uses preference from profile — PASS
+ChooseDraft_WeightsByPreference            → choose draft weights by card preference — PASS
+```
+
+## [SQLiteSinkTests] — SQLite Data Sink
+```
+CreateDb_CreatesAllTables                  → creating DB creates all expected tables — PASS
+WriteRun_InsertsRecord                     → write run inserts record into runs table — PASS
+WriteEncounter_InsertsRecord               → write encounter inserts record — PASS
+WriteTideSnapshot_InsertsRecord            → write tide snapshot inserts record — PASS
+WriteDecision_InsertsRecord                → write decision inserts record — PASS
+WriteEvent_InsertsRecord                   → write event inserts record — PASS
+MultipleWrites_AllPersist                  → multiple writes all persist in DB — PASS
+NullSink_DoesNotThrow                      → null sink does not throw on write calls — PASS
+RunRecord_HasVersionFields                 → run record has version fields in DB — PASS
+```
+
+## [TelemetryAggregatorTests] — Telemetry Aggregation
+```
+Aggregate_EmptyDb_ReturnsDefaultProfile    → empty DB returns default profile — PASS
+Aggregate_WithDecisions_CalculatesDistribution → aggregation with decisions calculates distribution — PASS
+Aggregate_BottomPlayRate_Calculated        → bottom play rate is calculated from records — PASS
+Aggregate_RestTiming_Calculated            → rest timing is calculated from records — PASS
+Aggregate_VersionFilter_ExcludesOldRuns    → version filter excludes old run records — PASS
+```
+
+## [EncounterConfigTests] — Encounter Configuration
+```
+ResolutionTurns_DefaultTier_ReturnsTwo                       → default tier returns 2 resolution turns — PASS
+ResolutionTurns_NullableConfigReference_SafelyReturnsZero    → nullable config reference safely returns 0 — PASS
+ResolutionTurns_ReturnsCorrectValuePerTier(tier: Standard, expected: 2) → Standard tier = 2 resolution turns — PASS
+ResolutionTurns_ReturnsCorrectValuePerTier(tier: Elite, expected: 3)    → Elite tier = 3 resolution turns — PASS
+ResolutionTurns_ReturnsCorrectValuePerTier(tier: Boss, expected: 1)     → Boss tier = 1 resolution turn — PASS
+```
+
+## [EncounterSelectionTests] — Encounter Selection & Validation
+```
+EncounterLoader_AllSelectableIds_CreateValidConfig(encounterId: "pale_march_standard")  → standard creates valid config — PASS
+EncounterLoader_AllSelectableIds_CreateValidConfig(encounterId: "pale_march_scouts")    → scouts creates valid config — PASS
+EncounterLoader_AllSelectableIds_CreateValidConfig(encounterId: "pale_march_siege")     → siege creates valid config — PASS
+EncounterLoader_AllSelectableIds_CreateValidConfig(encounterId: "pale_march_elite")     → elite creates valid config — PASS
+EncounterLoader_AllSelectableIds_CreateValidConfig(encounterId: "pale_march_frontier")  → frontier creates valid config — PASS
+AllEncounters_ReturnDistinctInstances              → all encounters return distinct instances — PASS
+Elite_HasStartingCorruption                        → elite encounter has starting corruption — PASS
+Frontier_HasWiderBoardThanStandard                 → frontier has wider board than standard — PASS
+DefaultChainSlots_E1Standard_E2Scouts_CapstoneElite_AllValid → default chain slots all create valid configs — PASS
+ChainCarryover_ExtractFromFreshState_DoesNotThrow  → chain carryover extraction from fresh state does not throw — PASS
+```
+
+## [EncounterStartTests] — Encounter Initialisation (Multi-Warden)
+```
+AllWardenEncounterCombos_BuildWithoutThrowing(wardenId: "root", encounterId: "pale_march_standard")  → root+standard builds — PASS
+AllWardenEncounterCombos_BuildWithoutThrowing(wardenId: "root", encounterId: "pale_march_scouts")    → root+scouts builds — PASS
+AllWardenEncounterCombos_BuildWithoutThrowing(wardenId: "root", encounterId: "pale_march_siege")     → root+siege builds — PASS
+AllWardenEncounterCombos_BuildWithoutThrowing(wardenId: "root", encounterId: "pale_march_elite")     → root+elite builds — PASS
+AllWardenEncounterCombos_BuildWithoutThrowing(wardenId: "root", encounterId: "pale_march_frontier")  → root+frontier builds — PASS
+AllWardenEncounterCombos_BuildWithoutThrowing(wardenId: "ember", encounterId: "pale_march_standard") → ember+standard builds — PASS
+AllWardenEncounterCombos_BuildWithoutThrowing(wardenId: "ember", encounterId: "pale_march_scouts")   → ember+scouts builds — PASS
+AllWardenEncounterCombos_BuildWithoutThrowing(wardenId: "ember", encounterId: "pale_march_siege")    → ember+siege builds — PASS
+AllWardenEncounterCombos_BuildWithoutThrowing(wardenId: "ember", encounterId: "pale_march_elite")    → ember+elite builds — PASS
+AllWardenEncounterCombos_BuildWithoutThrowing(wardenId: "ember", encounterId: "pale_march_frontier") → ember+frontier builds — PASS
+ChainStart_FirstEncounterInChain_BuildsWithoutThrowing(wardenId: "root")  → root chain start builds — PASS
+ChainStart_FirstEncounterInChain_BuildsWithoutThrowing(wardenId: "ember") → ember chain start builds — PASS
+EncounterStart_AfterInit_StartingPresencePlacedOnI1(wardenId: "root")  → root starting presence placed on I1 — PASS
+EncounterStart_AfterInit_StartingPresencePlacedOnI1(wardenId: "ember") → ember starting presence placed on I1 — PASS
+EncounterStart_StandardBoard_HasExpectedTerritories(wardenId: "root")  → root standard board has expected territories — PASS
+EncounterStart_StandardBoard_HasExpectedTerritories(wardenId: "ember") → ember standard board has expected territories — PASS
+WardenJson_LoadsWithCorrectStartingCardCount(wardenId: "root", expectedStarting: 10)  → root loads 10 starting cards — PASS
+WardenJson_LoadsWithCorrectStartingCardCount(wardenId: "ember", expectedStarting: 8)  → ember loads 8 starting cards — PASS
+EncounterStart_FullRun_CompletesWithValidResult(wardenId: "root", encounterId: "pale_march_standard")  → root full run completes — PASS
+EncounterStart_FullRun_CompletesWithValidResult(wardenId: "ember", encounterId: "pale_march_standard") → ember full run completes — PASS
+```
+
+## [RunStateTests] — Run State Management
+```
+NewRunState_HasDefaults                    → new run state has expected defaults — PASS
+Clone_CopiesAllFields                      → clone copies all fields — PASS
+Clone_IsIndependent                        → cloned state is independent from original — PASS
 ```
 
 ---
@@ -789,4 +1075,3 @@ ApplyPassiveOverrides_ForcesLock            → force_lock prevents unlock — P
 |---|---|---|
 | Shadow T3 | Generates 5 Fear only | Should also preview 2 Fear Actions and let player choose |
 | Gale T3 | Pushes all board invaders | Should also flag pushed invaders to skip their next Advance |
-| Void T3 | Deals 2 damage to all | Invaders killed by this should not generate Corruption on death (no per-death Corruption mechanic yet) |

@@ -1,7 +1,49 @@
 # Hollow Wardens — Simulation Reference
 > Single source of truth for the sim harness, balance knobs, and CLI.
 > Updated by the architecture conversation. Read by the balance conversation.
-> Last updated: 2026-03-22 (Phase 6+ — Progression System added)
+> Last updated: 2026-04-01 (Core Loop Redesign — pairing, dual-discard, terrain, element decay scaling, Root passive, new effect types)
+
+---
+
+## Turn Structure (Core Loop Redesign)
+
+### New Phase Order
+
+```
+Plan → Fast → Tide → Slow → Dusk → Elements → Cleanup
+```
+
+| Phase | What happens |
+|-------|-------------|
+| **Plan** | Player (or bot) submits a `CardPair` (top card + bottom card) |
+| **Fast** | Top card resolves if `TopTiming == Fast` (before invaders act) |
+| **Tide** | Ravage → March → Arrive (unchanged). Invaders act. |
+| **Slow** | Top card resolves if `TopTiming == Slow` (after invaders act) |
+| **Dusk** | Bottom card resolves |
+| **Elements** | Top elements added ×1, bottom elements added ×2, threshold effects resolved |
+| **Cleanup** | Top → TopDiscard, Bottom → BottomDiscard, element decay applied |
+
+**Rest turn:** No pair submitted. Tide still runs (invaders act). After Tide: `DeckManager.Rest(rng)` dissolves 2 random cards from BottomDiscard. Player is shown dissolved cards and may reroll each for 2 weave.
+
+### Card Pairing
+
+Each turn the player picks exactly 2 cards: one as **top** (resolves before or after Tide depending on Fast/Slow), one as **bottom** (resolves at Dusk, goes into at-risk pile on Cleanup).
+
+- **Fast top** cards resolve before the Tide — proactive denial/positioning.
+- **Slow top** cards resolve after the Tide — reactive response.
+- **Bottom** cards always resolve at Dusk; the at-risk pile is dissolved on rest.
+
+### Dual Discard System
+
+| Pile | Cards enter when | Cards exit when |
+|------|-----------------|-----------------|
+| **TopDiscard** | Card played as top, soak card used | Rest (fully recovered) |
+| **BottomDiscard** | Card played as bottom | Rest (2 random dissolved), or drawn back next turn |
+| **Dissolved** | 2 random from BottomDiscard on rest, or Reroll victim | Permanent (encounter-scoped) |
+
+**RerollDissolve:** Pay 2 weave to save one dissolved card during the rest screen; a different BottomDiscard card is dissolved instead. One reroll per rest turn.
+
+**Damage Soak:** Before heart damage applies, discard a card from hand → TopDiscard (safe) to block up to 3 damage.
 
 ---
 
@@ -45,8 +87,13 @@ dotnet run --project src/HollowWardens.Sim/ -- --seeds 1-500 --warden root --out
 | `--verbose` | off | Write per-encounter turn-by-turn logs |
 | `--mode` | `single` | Sim mode: `single` (per-encounter) or `chain` (full roguelike run) |
 | `--realm` | `realm_1` | Realm ID to use in chain mode |
-| `--strategy` | `bot` | Decision strategy: `bot` (heuristic) or `telemetry` (profile-driven) |
+| `--strategy` | `root_tall` | Strategy: `root_tall`, `root_wide`, `smart`, `optimised`, `telemetry` |
 | `--strategy-profile` | — | Path to PlayerProfile JSON (required when `--strategy telemetry`) |
+| `--strategy-params` | — | Path to StrategyParams JSON (used with `--strategy optimised`) |
+| `--optimise` | off | Enable HillClimber optimizer mode |
+| `--optimise-seeds` | `1-100` | Seed range for optimization fitness evaluation |
+| `--optimise-iterations` | `200` | Max optimizer iterations |
+| `--optimise-output` | — | Path to write optimized StrategyParams JSON |
 
 **Chain mode example:**
 ```bash
@@ -186,6 +233,134 @@ Controls bot decisions between encounters:
 
 ---
 
+## Terrain System
+
+### Terrain Types
+
+| Terrain | Key Modifier | Trade-off |
+|---------|-------------|-----------|
+| **Plains** | Neutral | Default terrain |
+| **Forest** | +1 player damage, +1 invader Ravage corruption | Bonus damage but corruption risk |
+| **Mountain** | +2 fear on kill, +1 invader counter-attack | Fear engine but tougher fights |
+| **Wetland** | +2 corruption threshold | Harder to corrupt, invaders rest-heal 1 |
+| **Sacred** | Max corruption L1 | Corruption-immune above level 1 |
+| **Scorched** | Invaders take 2 entry damage, no native spawn | Punishing to enter; blocks natives |
+| **Blighted** | Auto-corrupts per tide | Net-negative; cleanse to escape |
+| **Ruins** | No modifier (stub) | Transition target for Mountain |
+| **Fertile** | No modifier | Transition target; collapses to Plains with 3+ invaders |
+
+### Terrain Transitions
+
+| From | Trigger | To |
+|------|---------|-----|
+| Forest | Corruption reaches L2 | Scorched |
+| Mountain | Corruption reaches L3 | Ruins |
+| Sacred | Invader Settles | Blighted |
+| Blighted | Fully cleansed | Plains |
+| Scorched | 3 clean tides (no corruption) | Plains |
+| Fertile | 3+ invaders present | Plains |
+
+Transitions are checked at tide end via `TerrainTransitions.CheckTransitions`.
+
+### Terrain SimProfile Overrides
+
+Set terrain in encounter config:
+```json
+"encounter_overrides": {
+  "terrain_preset": "scorched_frontier",
+  "terrain_overrides": {
+    "A1": "Scorched",
+    "M1": "Forest"
+  }
+}
+```
+
+Preset file: `data/terrain_presets.json`.
+
+---
+
+## Element Decay Scaling
+
+Element decay now scales with current tier (configurable per balance key):
+
+| Tier | Default Decay/turn |
+|------|--------------------|
+| Below T1 | 1 |
+| At T1 | 2 |
+| At T2 | 3 |
+| At T3 | 4 |
+
+### New Balance Keys — Element Decay
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `element_decay_below_t1` | 1 | Decay when below T1 threshold |
+| `element_decay_at_t1` | 2 | Decay when at or above T1 |
+| `element_decay_at_t2` | 3 | Decay when at or above T2 |
+| `element_decay_at_t3` | 4 | Decay when at or above T3 |
+| `root_rest_extra_decay` | 2 | Extra decay Root suffers on rest turns |
+
+---
+
+## Root Passive — Elemental Offering
+
+**Once per rest cycle:** Discard a card from hand to TopDiscard (safe). Add that card's elements ×1 to pool. No effect resolves. Flag `RootOfferingUsedThisCycle` resets on rest.
+
+Triggered via `GameBridge.UseElementalOffering(cardId)` in Godot or `RootAbility.UseElementalOffering(card, state)` in Core.
+
+### New Balance Key
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `root_offering_element_multiplier` | 1 | Element multiplier for offering card (default ×1) |
+
+---
+
+## New Effect Types
+
+| Type | Description | `value` field |
+|------|-------------|---------------|
+| `PullInvaders` | Pull up to N invaders from adjacent territories into target | Max count (0 = all) |
+| `AddCorruption` | Add N corruption to target territory | Points to add |
+| `CorruptionDetonate` | Damage all invaders = corruption × value, then cleanse all corruption | Damage multiplier |
+
+### Pull Behavior
+
+`PullInvadersEffect` gathers invaders from all adjacent territories into the target. Invaders entering a **Scorched** territory immediately take entry damage (2). The effect respects `_count` (limited pull) or pulls all if `value = 0`.
+
+---
+
+## Bot Strategy — Pairing System
+
+### PairingBotStrategy
+
+New `PairingBotStrategy` class evaluates all N×(N-1) card pair orientations per turn.
+
+**Score formula per orientation:**
+```
+FastTopBonus (if card is Fast) + TopValue×2 + BottomValue×3 + ElementSynergy - RiskPenalty
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `HighValueThreshold` | 5 | Bottom values above this incur risk penalty |
+| `FastTopBonus` | 10 | Score bonus for Fast cards played as top |
+| `RestHandThreshold` | 2 | Hand size at or below which bot rests |
+| `RerollValueThreshold` | 8 | Dissolved card bottom value above which bot rerolls |
+| `RerollWeaveThreshold` | 6 | Minimum weave to trigger reroll |
+
+**Element synergy:** +2 per element shared between top and bottom cards (builds toward thresholds).
+
+**Rest decision:** `ShouldRest()` → rest when non-dormant hand ≤ 2 cards (default).
+
+**Reroll decision:** `ShouldReroll()` → reroll if `dissolved.BottomEffect.Value > 8 && weave > 6`.
+
+**Offering decision (Root):** `ShouldUseOffering()` → use if card has ≥2 primary elements and offering not yet used this cycle.
+
+Strategy flag: `--strategy pairing` (use with `PairingBotStrategy`). Not yet wired into sim CLI — use `smart` for near-optimal play.
+
+---
+
 ## Balance Overrides — Complete Key Reference
 
 ### Presence
@@ -198,7 +373,7 @@ Controls bot decisions between encounters:
 ### Network Fear (Root)
 | Key | Default | Description |
 |-----|---------|-------------|
-| `network_fear_cap` | 4 | Max passive fear generated per tide by Root |
+| `network_fear_cap` | 3 | Max passive fear generated per tide by Root. Triggers via cluster presence ≥ 3 (self + neighbors) |
 
 ### Sacrifice
 | Key | Default | Description |
@@ -270,12 +445,24 @@ Omitted fields fall back to global. Example:
 | `dread_threshold2` | 30 | Total fear for Dread Level 3 |
 | `dread_threshold3` | 45 | Total fear for Dread Level 4 |
 
+### Terrain
+| Key | Default | Description |
+|-----|---------|-------------|
+| `element_decay_below_t1` | 1 | Element decay when below T1 |
+| `element_decay_at_t1` | 2 | Element decay at T1 |
+| `element_decay_at_t2` | 3 | Element decay at T2 |
+| `element_decay_at_t3` | 4 | Element decay at T3 |
+| `root_rest_extra_decay` | 2 | Extra elements Root loses on rest |
+| `scorched_entry_damage` | 2 | Damage invaders take entering Scorched territory |
+
 ### Natives / Assimilation
 | Key | Default | Description |
 |-----|---------|-------------|
 | `default_native_hp` | 2 | Native HP |
 | `default_native_damage` | 3 | Native counter-attack damage |
-| `assimilation_spawn_threshold` | 3 | Presence needed per territory for base Assimilation to spawn 1 native at Resolution |
+| `assimilation_spawn_mode` | `scaled` | Tide-start native spawn formula: `linear` (=presence), `scaled` (=1+floor(presence/2)), `half` (=ceil(presence/2)) |
+| `provocation_territory_limit` | 0 | Max presence territories with Provocation per tide (0 = unlimited) |
+| `provocation_natives_per_presence` | 1 | Max natives counter-attacking per invader action per presence |
 
 ### Cards / Turns
 | Key | Default | Description |
@@ -466,7 +653,7 @@ dotnet run --project src/HollowWardens.Sim/ -- --warden root --strategy telemetr
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--strategy` | `bot` | `bot` = BotStrategy heuristics; `telemetry` = weighted by PlayerProfile |
+| `--strategy` | `root_tall` | `root_tall` (heuristic), `root_wide` (greedy), `smart` (parameterized), `optimised` (tuned), `telemetry` (profile) |
 | `--strategy-profile` | — | Path to PlayerProfile JSON (required for `--strategy telemetry`) |
 | `--aggregate-telemetry` | — | Path to telemetry DB to aggregate; writes JSON to `--output` then exits |
 | `--version-filter` | — | Version prefix filter applied to aggregated records (e.g. `"0.8"`) |
@@ -616,6 +803,58 @@ All fields are optional when hand-authoring a profile. Missing fields cause the 
 
 ---
 
+## Strategy System
+
+### Three-Tier Measurement Model
+
+| Tier | Strategy Flag | Class | Description |
+|------|---------------|-------|-------------|
+| Floor | `root_wide` | `RootTallStrategy` (greedy mode) | Greedy heuristic — establishes minimum performance baseline |
+| Heuristic | `root_tall` | `RootTallStrategy` | Presence-stacking heuristic with fear/cleanse priorities |
+| Near-ceiling | `smart` | `ParameterizedBotStrategy` | 68-parameter scoring engine — near-optimal play |
+| Tuned | `optimised` | `ParameterizedBotStrategy` | Uses HillClimber-optimized params from `--strategy-params` |
+| Telemetry | `telemetry` | `TelemetryDrivenStrategy` | Replays from PlayerProfile (see Telemetry section) |
+
+### ParameterizedBotStrategy
+
+Scoring-based strategy with 68 perturbable parameters controlling:
+
+- **Phase transition** — early/late split at configurable tide (default: tide 3)
+- **Effect priorities** — 12 priority ranks (early + late for: Damage, Fear, Cleanse, Presence, Weave, Passive Unlock, Spawn Natives, Move Natives)
+- **Urgency thresholds** — when to switch from priority ordering to emergency response (heart threat, low weave, high corruption)
+- **Bottom play weights** — 7 weights controlling when bottom plays are preferred
+- **Targeting** — 16 params for kill preference, row targeting, cleanse strategies, threshold-specific targeting, provocation selection
+
+Default parameters per warden are in `src/HollowWardens.Core/Run/StrategyDefaults.cs`.
+
+### HillClimber Optimizer
+
+Momentum-biased hill climbing optimizer. Evaluates breach% + clean% + average weave across a seed range.
+
+```bash
+# Optimize Root params over 200 iterations
+dotnet run --project src/HollowWardens.Sim/ -- --warden root --optimise --optimise-seeds 1-100 --optimise-iterations 200 --optimise-output sim-params/root-optimised.json
+
+# Run sim with optimized params
+dotnet run --project src/HollowWardens.Sim/ -- --warden root --strategy optimised --strategy-params sim-params/root-optimised.json --seeds 1-500
+```
+
+Optimizer features:
+- 70% recent-param-bias, 30% random exploration
+- Periodic shakes every 60 iterations (4 random params perturbed ±1–3)
+- Early convergence detection (window=40, min improvement=0.5)
+
+### SimProfile Strategy Fields
+
+```json
+{
+  "strategy": "smart",
+  "strategy_params_path": "sim-params/root-optimised.json"
+}
+```
+
+---
+
 ## Combo Testing Scripts
 
 ```bash
@@ -633,8 +872,8 @@ sim-profiles/scripts/compare.sh sim-results/a/ sim-results/b/
 - Elements: Root / Mist / Shadow
 - Starting deck: 10 cards, hand limit 5
 - Starting presence: I1 × 1
-- Base passives: Network Fear, Dormancy, Assimilation
-- Unlockable: Rest Growth (Root T1), Provocation (Root T2), Network Slow (Shadow T1)
+- Base passives: Presence Provocation, Dormancy, Rest Growth
+- Pool passives (unlockable): Network Fear, Network Slow, Assimilation
 
 ### Ember
 - Elements: Ash / Shadow / Gale
@@ -794,7 +1033,7 @@ Toggle with backtick (`` ` ``). Available commands:
 
 ## Known Balance Status
 
-### Encounter Baseline Matrix (500 seeds each, no B2 overrides)
+### Encounter Baseline Matrix (500 seeds each, `root_tall` heuristic, no B2 overrides)
 
 | Encounter | Root Clean% | Root Breach% | Ember Clean% | Ember Breach% |
 |-----------|-------------|--------------|--------------|---------------|
@@ -804,7 +1043,7 @@ Toggle with backtick (`` ` ``). Available commands:
 | `pale_march_elite` | 58% | 1.2% | 5.6% | 0% |
 | `pale_march_frontier` | 10.2% | 8.4% | 0% | 5.4% |
 
-### B2 (+1 invader/wave) — Confirmed config, not yet in EncounterLoader code
+### B2 (+1 invader/wave) — Shipped
 
 | Encounter | Root B2 Clean% | Root B2 Breach% | Ember B2 Clean% | Ember B2 Breach% |
 |-----------|----------------|-----------------|-----------------|------------------|
@@ -814,7 +1053,16 @@ Toggle with backtick (`` ` ``). Available commands:
 | `pale_march_elite` | 33% | 3.8% | 4.2% | 0% |
 | `pale_march_frontier` | NOT TESTED | — | NOT TESTED | — |
 
-Apply B2 to: standard, scouts, siege, elite. **Do not apply to frontier** (already 8.4% breach for Root; wide board is its own difficulty).
+B2 applied to: standard, scouts, siege, elite. **Not applied to frontier** (already 8.4% breach for Root; wide board is its own difficulty).
+
+### B6 — Root Passive Redesign (shipped)
+
+Presence Provocation moved to base passive, Assimilation moved to pool (unlockable). Assimilation now spawns natives at tide start (not resolution). Three spawn formulas configurable via `assimilation_spawn_mode`:
+- `linear` — spawn count = presence count
+- `scaled` — spawn count = 1 + floor(presence/2) (default)
+- `half` — spawn count = ceil(presence/2)
+
+Network Fear and Network Slow use **cluster presence ≥ 3** formula: `clusterPresence = territory.PresenceCount + sum(neighbor.PresenceCount)`. Triggers when total ≥ 3.
 
 ### Warden Character Identity (emergent, no tuning)
 
@@ -837,9 +1085,21 @@ E1: 56% clean / 9.4% breach → E2: 61.8% clean / 5.4% breach → E3: 32.6% clea
 - **No corruption carryover** on any standard/scouts/elite run — corruption is cleansed before encounter ends.
 - **No card removal** in any tested encounter — boss bottom mechanic not triggered at current difficulty.
 
-### Shipped Changes
+### Balance Targets (tiered breach %)
+
+| Tier | Target Breach % | Measured Against |
+|------|-----------------|------------------|
+| Easy encounters | ~5% | `smart` bot |
+| Hard / elite encounters | 15–20% | `smart` bot |
+| No upgrades / unimproved deck | up to 30% | `smart` bot |
+
+Targets are iterative — will be refined with playtesting.
+
+### Shipped Balance Changes
 
 - **B1 (shipped):** `ember_001` + `ember_008` top damage 3 → 2 in `data/wardens/ember.json`.
-- **B2 (pending):** Apply `extra_invaders_per_wave: 1` in `EncounterLoader` for standard, scouts, siege, elite.
+- **B2 (shipped):** `extra_invaders_per_wave: 1` applied in EncounterLoader for standard, scouts, siege, elite.
+- **B4/B5 (shipped):** Chain arc balancing complete.
+- **B6 (shipped):** Root passive redesign — Provocation base, Assimilation pool, tide-start spawn.
 
 **Remaining gap:** Sim bot plays optimally. 0% breach for Ember is an artifact of perfect play. Validate real-player breach rates via playtesting. Ember run arc flatness needs design decision — see CLAUDE-balance.md §B3.

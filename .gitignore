@@ -31,6 +31,13 @@ reports/
 *.bak
 *.orig
 
+# Stray zero-byte hook artifacts (punctuation/digit-only names like ",+", "{,", "0", "0)")
+/[0-9]
+/[0-9][),;+*]*
+/[,;{}()\[\]+*!]*
+# Code fragments accidentally used as filenames (e.g. "!c.IsDormant)")
+/!*
+
 # OS
 .DS_Store
 Thumbs.db
@@ -38,5 +45,11 @@ Thumbs.db
 temp-message.txt
 
 sim-results/
+sim-output/
 ui-test-output.txt
+ui-test-screenshots/
 *.ps1
+
+# Claude-flow MCP auto-generated agent configs and metrics (not project files)
+.claude-flow/
+.claude/agents/

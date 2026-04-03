@@ -1,6 +1,6 @@
 # Hollow Wardens — Master Document
 > Game Design + Technical Architecture  
-> Version 0.5 — Working reference for Claude Code sessions
+> Version 0.6 — Working reference for Claude Code sessions (updated through D46, B6)
 
 ---
 
@@ -150,7 +150,7 @@ Different Wardens resolve encounters differently, even against identical invader
 
 | Warden | Resolution style |
 |---|---|
-| The Root | Assimilation — Presence tokens absorb adjacent invaders, reducing Corruption in that territory by 1 per invader absorbed |
+| The Root | Assimilation — tide-start native spawn (1 territory/tide, natives scale with presence); upgrade adds invader→native conversion at Resolution |
 | The Ember | Destruction — Resolution turns are uncapped damage output |
 | The Veil | Repulsion — pushes remaining invaders back toward spawn, reduces Corruption in vacated territories |
 
@@ -389,9 +389,9 @@ Fear is a resource you generate and spend. Dread is the escalation track that ma
 
 | Unit | HP | Identity | Activate modifier | Advance modifier |
 |------|-----|----------|-------------------|------------------|
-| **Marcher** | 3 | Grunt | None — executes action as printed. | Normal (1 step). |
+| **Marcher** | 4 | Grunt | None — executes action as printed. | Normal (1 step). |
 | **Ironclad** | 5 | Heavy | Ravage: +1 Corruption (3 total). Rest: recover to full HP. Corrupt: kills 2 Natives instead of 1. | Moves only every other Advance (alternates move/hold). |
-| **Outrider** | 2 | Runner | Ravage: only 1 Corruption, but deals 2 damage to 1 Native first. Rest: doesn't rest — advances 1 instead. Regroup: doesn't regroup — advances 1 instead. | Always +1 movement (2 steps total; 3 on March). |
+| **Outrider** | 3 | Runner | Ravage: only 1 Corruption, but deals 2 damage to 1 Native first. Rest: doesn't rest — advances 1 instead. Regroup: doesn't regroup — advances 1 instead. | Always +1 movement (2 steps total; 3 on March). |
 | **Pioneer** | 2 | Builder | After ANY Activate, if 2+ March units in territory: place 1 Infrastructure. Fortify: fortification also grants +1 Corruption on future Ravage. | Normal (1 step). |
 
 **Infrastructure:** Invader-placed token. All Pale March units in the same territory deal +1 Corruption on Ravage. Infrastructure has 2 HP, can be targeted by damage effects. Destroying Infrastructure generates 1 Fear.
@@ -617,7 +617,7 @@ Natives are the indigenous inhabitants of the sacred territories. They're not pa
 | Unit | HP | Damage | Notes |
 |---|---|---|---|
 | Native | 2 | 3 | Knows the land; hits hard but fragile |
-| Invader (grunt) | 3 | 2 corruption | More durable but less efficient in combat |
+| Invader (Marcher) | 4 | 2 corruption | More durable but less efficient in combat |
 
 Natives deal *damage* (HP reduction) to invaders, not corruption. This distinction matters: invaders can be damaged without corruption advancing.
 
@@ -716,7 +716,7 @@ Each warden gets a unique passive tied to their presence, in addition to the uni
 
 Presence amplification makes the warden's cards stronger, which means invaders need to be rebalanced. Specifically:
 
-- **Invader HP may need to increase.** If a 2-presence territory turns a 4-damage card into 6-damage, Marchers (3 HP) die even more easily. Consider Marcher HP 4 or adding a shield baseline.
+- **Invader HP increased (D31).** Marchers now 4 HP (was 3), Outriders 3 HP (was 2), to account for presence amplification.
 - **Corruption rates may need to increase.** If presence amplifies cleanse cards (+1 per presence), territories stay cleaner longer. Consider Ravage dealing 3 base corruption instead of 2.
 - **Escalation should threaten presence.** The Corrupt escalation card could include "remove 1 Presence from this territory" in addition to its current effects. This makes Escalation feel dangerous in a new way.
 
@@ -741,11 +741,11 @@ These are playtesting knobs — the numbers above are starting proposals, not co
 **Element affinity:** Root (heavy), Mist (medium), Shadow (light)
 
 **Presence mechanic — Network Fear + Slowing Web:**
-- Root Presence generates passive Fear each turn equal to the number of *adjacent* Presence tokens (network effect — directed edges, each pair counted twice). Spreading wide is as valuable as spreading fast.
-- **Network Slow:** Invaders in territories adjacent to 2 or more Root Presence territories have −1 Advance movement (minimum 0). A dense Root network acts as a web that physically slows invaders. An invader surrounded by Root presence can't advance at all. This rewards the "spread wide" strategy — wide presence creates a slow zone across multiple territories.
+- Root Presence generates passive Fear each turn: 1 Fear per invader in a territory whose **cluster presence ≥ 3** (sum of presence on the territory itself + all adjacent territories). Capped at `BalanceConfig.NetworkFearCap` (currently 3 per Tide). Rewards both tall stacking (3 presence on one territory activates by itself) and wide spreading (1 presence each on 3 neighbors).
+- **Network Slow (pool passive):** Invaders in territories whose **cluster presence ≥ 3** (same formula: self + all neighbors) get −1 Advance movement (minimum 0). Upgrade `network_slow_u1` increases penalty to −2. A dense Root network acts as a web that physically slows invaders.
 
-**Presence combat — Root's Provocation:**
-- **Natives in territories with Root Presence counter-attack on ANY invader action, not just Ravage/Corrupt.** This is Root's specific exception to the D25 provocation rule. Without Root presence, natives only fight when attacked. With it, they fight every Tide — the roots stir them to action.
+**Presence combat — Root's Provocation (base passive, B6):**
+- **Natives in territories with Root Presence counter-attack on ANY invader action, not just Ravage/Corrupt.** This is Root's specific exception to the D25 provocation rule. Without Root presence, natives only fight when attacked. With it, they fight every Tide — the roots stir them to action. Moved to base passive in the B6 redesign (was pool passive before D45).
 - This makes presence placement about enabling your combat layer. Place presence → natives become aggressive → invaders face opposition every turn in that territory.
 
 **Starting deck:** 10 cards, all Dormant rarity. Corruption reduction, Fear generation, Presence placement, one damage top (Grasping Roots), Weave recovery, and Awaken support. Full 28-card pool includes 10 starting + 18 more across Dormant/Awakened/Ancient rarities available as draft rewards. **Note (D29):** root_025 (Grasping Roots) replaced root_011 (Reclaim the Soil) as a starting card; Reclaim the Soil moved to the draft pool.
@@ -765,25 +765,25 @@ When Root plays the bottom of a card, the card enters a **Dormant** state rather
 
 | Mechanic | Description |
 |---|---|
-| **Network Slow** | −1 movement for invaders adjacent to 2+ presence territories |
+| **Network Slow** | −1 movement for invaders in territories with cluster presence ≥ 3 (self + neighbors) |
 | **Presence Provocation** | Natives counter-attack on all invader actions in presence territories |
 | **Grasping Roots** | Repeatable damage top: 2 + amplification (replaced Reclaim the Soil) |
 | **Rest Growth** | Place 1 free presence on rest (on any territory with existing presence) |
 
-**Passives (D42):** 3 base passives always active; player picks 2 from a pool of 3 per run. Pool passives unlock mid-encounter when the matching element threshold fires for the first time.
+**Passives (D42/B6):** 3 base passives always active (`network_fear`, `dormancy`, `presence_provocation`); player picks 2 from a pool of 3 per run (`rest_growth`, `assimilation`, `network_slow`). Pool passives unlock via end-of-encounter rewards or `ForceUnlock` in sim/tests.
 
 | Id | Name | Type | Trigger | Effect | Upgrade |
 |----|------|------|---------|--------|---------|
-| network_fear | The Web Remembers | **Base** | Turn start | Generate 1 Fear per invader in a territory whose 3+ neighbors have Presence (max 3 Fear) | U1: cap increases to 6 Fear/turn |
+| network_fear | The Web Remembers | **Base** | Turn start | Generate 1 Fear per invader in a territory whose cluster presence ≥ 3 (self + neighbors; max 3 Fear, cap from BalanceConfig.NetworkFearCap) | U1: cap increases to 6 Fear/turn |
 | dormancy | Nothing Truly Dies | **Base** | On bottom | Bottom goes Dormant (inert in deck) instead of permanently removed | U1: auto-restore 1 dormant card per encounter |
-| assimilation | The Land Reclaims | **Base** | Resolution | For each territory with 2+ stacked Presence AND 2+ Natives: convert floor(min(presence,natives)/2) invaders → Natives (weakest first; new native HP = max(1, invader.MaxHp/2)) | U1: extends range to 1 |
-| rest_growth | Deep Breath | **Pool** | On Rest | Place 1 free Presence on any territory with existing Presence | U1: place 2 instead of 1 · *Unlocks: Root T1* |
-| presence_provocation | Protector's Call | **Pool** | On activate | Natives in Presence territories counter-attack on every invader action (not just Ravage) | U1: provocation extends to range 1 from Presence · *Unlocks: Root T2* |
-| network_slow | Tangled Earth | **Pool** | On advance | Invaders in a territory whose 3+ neighbors have Presence have −1 Advance movement | U1: penalty increases to −2 · *Unlocks: Shadow T1* |
+| presence_provocation | Protector's Call | **Base** | On activate | Natives in Presence territories counter-attack on every invader action (not just Ravage) | U1: provocation extends to range 1 from Presence |
+| rest_growth | Deep Breath | **Pool** | On Rest | Place 1 free Presence on any territory with existing Presence | U1: place 2 instead of 1 |
+| assimilation | The Land Reclaims | **Pool** | Tide start | Pick ONE presence territory (most adjacent invaders); spawn natives per formula (linear/scaled/half, configurable via `BalanceConfig.AssimilationSpawnMode`). Default "scaled" = 1 + floor(presence/2). | U1: at Resolution, territories with ≥2 presence + ≥2 natives + invaders convert floor(min(presence,natives)/2) invaders → natives |
+| network_slow | Tangled Earth | **Pool** | On advance | Invaders in a territory whose cluster presence ≥ 3 (self + neighbors) have −1 Advance movement | U1: penalty increases to −2 |
 
-**Resolution style:** Assimilation — at Resolution, Root converts invaders into Natives in territories where Presence and Natives are both stacked (see table above).
+**Resolution style:** Assimilation — at tide start, Root spawns natives in one presence territory (most adjacent invaders). Spawn count depends on `AssimilationSpawnMode` (default "scaled" = 1 + floor(presence/2)). Upgrade `assimilation_u1` adds invader→native conversion at Resolution (requires ≥2 presence + ≥2 natives). See D45 in CLAUDE-decisions.md.
 
-> ⚠️ **B6 redesign open (2026-03-24):** The D42 same-territory Assimilation mechanic has caused balance collapse (0% Clean across all encounters). Root has no tools to build a native army, so the ≥2 natives condition almost never triggers. Proposed fix: split the mechanic — base Assimilation grows natives (1 new Native per tide in territories with 2+ Presence), upgraded Assimilation converts invaders. See CLAUDE-decisions.md §D43 and CLAUDE-balance.md §B6.
+**Note:** "Clean" (zero alive invaders) is effectively unreachable for Root without extraordinary native-army play. **"Weathered" is the new success state for Root** — the key health metric is breach rate, not clean rate.
 
 ### 8.2 The Ember (V1 — Second Warden)
 **Archetype:** Burst Damage / Glass Cannon
@@ -795,16 +795,16 @@ When Root plays the bottom of a card, the card enters a **Dormant** state rather
 
 | # | Card | Elements | Top | Bottom |
 |---|------|----------|-----|--------|
-| 001 | Flame Burst | Ash×2 | Deal 3 damage (range 1) | Deal 6 damage (range 1) |
+| 001 | Flame Burst | Ash×2 | Deal 2 damage (range 1) *(B1: was 3)* | Deal 6 damage (range 1) |
 | 002 | Kindle | Ash, Gale | Place 1 Presence (range 1) | Place 1 Presence anywhere + 2 damage |
 | 003 | Burning Ground | Ash, Shadow | Deal 2 damage anywhere | Deal 4 damage + 3 Fear anywhere |
 | 004 | Smoke Screen | Shadow, Gale | Generate 3 Fear | Generate 6 Fear |
 | 005 | Stoke the Fire | Ash×2 | Reduce Corruption 2 pts (range 1) | Reduce 4 pts + 2 damage there |
 | 006 | Ember Spread | Ash, Shadow | Place 1 Presence (range 1) | Place 2 Presence (range 2) |
 | 007 | Heat Shimmer | Ash, Gale | Restore 1 Weave | Restore 2 Weave + 2 Fear |
-| 008 | Conflagration | Ash×2, Shadow | Deal 3 damage (range 1) | Deal 5 damage + Slow (range 2) |
+| 008 | Conflagration | Ash×2, Shadow | Deal 2 damage (range 1) *(B1: was 3)* | Deal 5 damage + Slow (range 2) |
 
-*(All damage values currently as shown, subject to balance tuning.)*
+*(B1 nerf shipped: Flame Burst + Conflagration tops 3→2. Other values as shown. See `data/wardens/ember.json` for authoritative values.)*
 
 **Draft pool:** 10 cards across Dormant, Awakened, and Ancient rarities including Ash Veil, Cinder Presence, Fan the Flames, Purifying Fire, Smoldering Ruins, Fire Storm, Blazing Advance, Flashpoint, Wildfire, and Last Conflagration.
 
@@ -991,7 +991,7 @@ Unlocks happen between runs:
 
 ### 10.6 Sim-Validated Balance Results (Realm 1, 500 seeds each)
 
-Current shipped balance: **B1** (Ember nerf) + **B2** (Root +1 invader/wave).
+Current shipped balance: **B1** (Ember top damage nerf) + **B2** (+1 invader/wave) + **B4** (Ember feel fixes) + **B5** (siege/elite +2 invaders) + **B6** (Root passive redesign — tide-start Assimilation spawn, presence_provocation to base). Three-tier measurement model: `root_wide` (greedy floor) / `root_tall` (heuristic) / `smart` (ParameterizedBot near-ceiling).
 
 **Balance targets:** Clean 50–70%, Weathered 20–35%, Breach 5–15%
 
@@ -1323,15 +1323,15 @@ public partial class ElementTracker : Node
     public void DecayAtTurnEnd()
     {
         foreach (var key in _pool.Keys.ToList())
-            _pool[key] = _pool[key] / 2; // halve, round down
+            _pool[key] = Math.Max(0, _pool[key] - 1); // reduce by 1 (D20)
         EmitSignal(SignalName.ElementsDecayed);
     }
 
     private void CheckThresholds(Element e)
     {
         int val = _pool.GetValueOrDefault(e);
-        foreach (int threshold in new[] { 2, 3, 5 })
-            if (val == threshold)
+        foreach (int threshold in new[] { 4, 7, 11 })  // D20 thresholds
+            if (val >= threshold)
                 EmitSignal(SignalName.ElementThresholdReached, (int)e, threshold);
     }
 }
@@ -1513,26 +1513,28 @@ One Warden (The Root), 10-card starting deck + 18-card draft pool, 3-2-1 pyramid
 - [x] Second balance pass (BalanceConfig centralization, outnumber-based Network Slow)
 
 **Phase 8 — Root Tightening** ✅ Complete
-- [x] Passive gating (3 base + 3 unlockable, encounter-level unlock tracking)
-- [x] Network Fear cap (BalanceConfig.NetworkFearCap)
+- [x] Passive gating (3 base + 3 pool, encounter-level unlock tracking)
+- [x] Network Fear cap (BalanceConfig.NetworkFearCap = 3)
 - [x] Passive panel shows locked/unlocked state with unlock conditions
+- [x] B6 passive reassignment: presence_provocation → base, assimilation → pool
 
 **Phase 9 — Second Warden (Ember)** ✅ Complete
 - [x] Ember data file (data/wardens/ember.json) + EmberAbility implementation
 - [x] Warden selection screen in Godot (WardenSelectController)
 - [x] EmberBotStrategy for simulation
-- [x] Ember balance patches (corruption sweet spot)
-- [ ] Balance tuning in progress
+- [x] Ember balance patches (B1 top damage nerf, B4 feel fixes)
 
 **Phase 10 — Simulation Workbench** ✅ Complete
-- [x] BotStrategy + EncounterSimulator
+- [x] BotStrategy + EncounterRunner
 - [x] Deterministic replay (F5 export, paste import)
 - [x] Verbose logging with bot decision reasoning
 - [x] SimProfile JSON-driven configuration
 - [x] BalanceConfig centralization (replaces hardcoded values across 13+ files)
 - [x] Seeds-based CLI (--seeds range)
-- [x] Combo testing scripts
-- [ ] Balance parameter sweeps in progress
+- [x] RootTallStrategy (D44) — heuristic mid-tier bot
+- [x] ParameterizedBotStrategy (D46) — 37-param adaptive bot
+- [x] HillClimber optimizer (D46) — momentum-biased parameter search
+- [x] Three-tier measurement model: root_wide / root_tall / smart
 
 ---
 
@@ -1562,7 +1564,7 @@ One Warden (The Root), 10-card starting deck + 18-card draft pool, 3-2-1 pyramid
 
 11. ~~**Presence amplification balance**~~ — **RESOLVED (D28, D31).** Amplification is +1 per presence, capped at 3 tokens per territory (`PresenceSystem.MaxPresencePerTerritory = 3`). Sim showed tension was too low before the balance pass — Network Fear halving was the primary adjustment (D31), not amplification changes. Spatial-only amplification (cleanse, damage, shield) confirmed; GenerateFear does not benefit. Reference D31.
 
-12. ~~**Invader HP rebalance**~~ — **RESOLVED (D31).** HP confirmed unchanged from initial design: Marcher=3, Ironclad=5, Outrider=2. Fast killing of individual invaders is acceptable — the survival model means threat comes from volume and positioning, not unit durability. Reference D31.
+12. ~~**Invader HP rebalance**~~ — **RESOLVED (D31).** HP tuned up from initial design: Marcher=4 (was 3), Ironclad=5, Outrider=3 (was 2). Increase accounts for stronger card damage after presence amplification. Fast killing of individual invaders is acceptable — the survival model means threat comes from volume and positioning, not unit durability. Reference D31.
 
 13. ~~**Presence sacrifice UI**~~ — **RESOLVED (D28).** Sacrifice is a free action in TurnManager/TurnActions during Vigil or Dusk. UI uses territory clicking (same targeting mode as card plays). No dedicated sacrifice mode — the player clicks a territory with presence to activate sacrifice.
 
@@ -1591,7 +1593,7 @@ Custom CSV-based localization — **not** Godot's built-in `Tr()`. Lives in `Hol
 - `Loc.LoadFromDict(dict)` — for unit tests (no file I/O)
 - `Loc.Clear()` — resets state
 
-**`data/localization/strings.csv`** — source of truth, 83+ keys, format:
+**`data/localization/strings.csv`** — source of truth, 321 keys, format:
 ```csv
 KEY,en
 PHASE_VIGIL,Vigil
@@ -1658,6 +1660,12 @@ dotnet run --project src/HollowWardens.Sim/ -- --profile sim-profiles/X.json
 | `--profile <path>` | — | JSON sim profile (overrides CLI flags) |
 | `--output <dir>` | `sim-results` | Output directory |
 | `--verbose` | — | Full logs for first 5 encounters + all breaches |
+| `--strategy <name>` | warden default | Bot strategy: `root_wide`, `root_tall`, `smart`, `optimised` |
+| `--strategy-params <path>` | — | Load saved StrategyParams JSON (for `optimised` strategy) |
+| `--optimise` | — | Run HillClimber optimizer to find near-optimal params |
+| `--optimise-seeds <range>` | `1-20` | Seed range for optimization evaluations |
+| `--optimise-iterations <n>` | `200` | Max optimizer iterations |
+| `--optimise-output <path>` | — | Save best params to file |
 
 ### Encounter Types
 | ID | Name | Description |
@@ -1679,6 +1687,8 @@ Read `BalanceConfig.cs` for all tunable parameters — all balance constants are
 - `warden` — `"root"` or `"ember"`
 - `encounter` — encounter ID (e.g., `"pale_march_scouts"`)
 - `seeds` — seed range as string (e.g., `"1-500"`)
+- `strategy` — bot strategy name: `"root_wide"`, `"root_tall"`, `"smart"`, `"optimised"` (default: warden-specific)
+- `strategy_params_path` — path to saved StrategyParams JSON (for `optimised` strategy)
 - `encounter_overrides` — override any `EncounterConfig` lever: `{ "extra_invaders_per_wave": 1, "surge_tides": [3] }`
 - `balance_overrides` — override `BalanceConfig` constants: `{ "heart_damage_multiplier": 1.5 }`
 - `passive_overrides` — force-lock or force-unlock specific passives by name
@@ -1689,12 +1699,13 @@ Read `BalanceConfig.cs` for all tunable parameters — all balance constants are
   - `total_fear` — carry accumulated fear (**no gameplay effect** — confirmed)
   - `removed_cards` — deck degradation: list of card IDs permanently removed from starting deck
 
-**Balance targets (sim-validated):**
-| Outcome | Target range | Definition |
-|---------|-------------|------------|
-| Clean% | 50–70% | No invaders in I1 or Heart at encounter end |
-| Weathered% | 20–35% | Cleared but weave took damage (Root) / invaders at I1 at end (Ember) |
-| Breach% | 5–15% | Invaders remain after all Resolution turns |
+**Balance targets (tiered, measured against `smart` bot):**
+| Outcome | Easy encounters | Hard encounters | No upgrades/draft |
+|---------|----------------|-----------------|-------------------|
+| Clean% | 50–70% | 30–50% | 20–40% |
+| Breach% | ~5% | 15–20% | up to 30% |
+
+*Easy = standard, scouts. Hard = siege, elite. "No upgrades" = starting deck only, no draft cards. Will iterate with playtesting.*
 
 **Note on Ember "Weathered":** For Ember, Weathered = invaders at I1 at encounter end (board-state classification), NOT heart damage. Ember never takes weave damage in sim at current difficulty. The Weathered/Clean distinction for Ember is about board coverage, not survival.
 
@@ -1702,19 +1713,45 @@ Read `BalanceConfig.cs` for all tunable parameters — all balance constants are
 - `sim-profiles/scripts/combo-cards.sh` — tests all draft card pair combinations
 - `sim-profiles/scripts/sweep-balance.sh` — sweeps a balance parameter across a range
 
+### Strategy System (D44/D46)
+
+The sim supports multiple bot strategies to measure encounter difficulty at different skill levels.
+
+**Three-tier measurement model:**
+| Tier | Strategy | Description |
+|------|----------|-------------|
+| Floor | `root_wide` / `ember_aggressive` | Greedy bots — baseline measurement (worst reasonable play) |
+| Midpoint | `root_tall` | Heuristic bot — presence stacking, M-row choke (what a "good" player does) |
+| Ceiling | `smart` | ParameterizedBotStrategy — 37 tunable params, near-optimal play |
+
+**ParameterizedBotStrategy (D46):** Scores cards as `priority×10 + element_value×3 + target_quality×2 + urgency×20`. Two phases: early (engine-building, tides 1–PhaseTransitionTide) and late (threat response). Phase determines which priority rank governs each effect type.
+
+**StrategyParams:** 37 int/bool parameters (phase transition tide, spread/stack targets, 6 early/late priority ranks, urgency thresholds, bottom weights, nested `TargetingParams` with 15 territory-selection flags). JSON-serializable, backward-compatible (new fields default when missing from old JSON).
+
+**HillClimber optimizer:** Momentum-biased hill-climber that finds near-optimal params for any encounter config. 70% recent-improver / 30% random param selection. Shake every 60 iterations. Converges when score doesn't improve ≥0.5 in 40 iters. Score function: `clean% - 3.0×breach% - 0.5×|weathered%-27.5| + 0.1×avgHeartDmg - 0.2×|avgWeave-16|`.
+
+**Per-warden saved defaults (`sim-params/`):** Every `--optimise` run writes its best params to `sim-params/{warden}.params.json`. The next run automatically loads it as the starting point, so optimization is cumulative. Delete the file to restart from hardcoded defaults.
+
 ### Bot Decision Priorities
-**Root:** presence expansion → damage → cleanse → fear → any card
-**Ember:** presence expansion → damage → cleanse at 7+ corruption → fear → any card
+**Root (root_wide):** presence expansion → damage → cleanse → fear → any card
+**Ember (ember_aggressive):** presence expansion → damage → cleanse at 7+ corruption → fear → any card
+**Smart:** parameterized — priorities vary by phase (early/late) and StrategyParams configuration
 
 ### Key Files
 
 | File | Role |
 |------|------|
-| `src/HollowWardens.Core/Run/BotStrategy.cs` | Root deterministic AI (implements `IPlayerStrategy`) |
-| `src/HollowWardens.Core/Run/EmberBotStrategy.cs` | Ember deterministic AI |
+| `src/HollowWardens.Core/Run/BotStrategy.cs` | Root greedy bot (`root_wide`, implements `IPlayerStrategy`) |
+| `src/HollowWardens.Core/Run/RootTallStrategy.cs` | Root heuristic bot (`root_tall` — M-row choke, presence stacking) |
+| `src/HollowWardens.Core/Run/EmberBotStrategy.cs` | Ember greedy bot (`ember_aggressive`) |
+| `src/HollowWardens.Core/Run/ParameterizedBotStrategy.cs` | Adaptive bot (`smart` / `optimised` — 37-param scoring) |
+| `src/HollowWardens.Core/Run/StrategyParams.cs` | 37-param config struct (JSON-serializable, `WithPerturbation()`) |
+| `src/HollowWardens.Core/Run/StrategyDefaults.cs` | Per-warden hardcoded starting points |
+| `src/HollowWardens.Core/Run/TargetingParams.cs` | 15 territory-selection preference flags |
+| `src/HollowWardens.Sim/HillClimber.cs` | Momentum-biased optimizer (delegate pattern) |
 | `src/HollowWardens.Core/Run/SimStats.cs` | Per-encounter outcome model |
 | `src/HollowWardens.Core/Run/SimStatsCollector.cs` | Multi-run aggregator |
-| `src/HollowWardens.Sim/SimProfile.cs` | JSON-driven config model |
+| `src/HollowWardens.Sim/SimProfile.cs` | JSON-driven config model (includes `StrategyParamsPath`) |
 | `src/HollowWardens.Sim/SimProfileApplier.cs` | Applies profile overrides to EncounterState |
 | `src/HollowWardens.Sim/VerboseLogger.cs` | Turn-by-turn decision log with reasoning |
-| `src/HollowWardens.Sim/Program.cs` | CLI entry point |
+| `src/HollowWardens.Sim/Program.cs` | CLI entry point + HillClimber closure builder |
