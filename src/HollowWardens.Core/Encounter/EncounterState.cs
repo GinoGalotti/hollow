@@ -6,6 +6,7 @@ using HollowWardens.Core.Data;
 using HollowWardens.Core.Models;
 using HollowWardens.Core.Map;
 using HollowWardens.Core.Systems;
+using HollowWardens.Core.Turn;
 using HollowWardens.Core.Wardens;
 
 public class EncounterState
@@ -30,6 +31,19 @@ public class EncounterState
     public WardenData? WardenData { get; set; }
     public PassiveGating? PassiveGating { get; set; }
     public BalanceConfig Balance { get; set; } = new();
+
+    // ── Pairing system state ──────────────────────────────────────────────────
+    /// <summary>The current pair being played this turn (set by TurnManager.SubmitPair).</summary>
+    public CardPair? CurrentPair { get; set; }
+
+    /// <summary>Number of rest cycles completed so far in this encounter.</summary>
+    public int RestCycleCount { get; set; }
+
+    /// <summary>True when this turn is a rest turn (no pair played, Tide still runs).</summary>
+    public bool IsRestTurn { get; set; }
+
+    /// <summary>Root passive: once per rest cycle, discard a card for its elements. Resets on rest.</summary>
+    public bool RootOfferingUsedThisCycle { get; set; }
 
     /// <summary>
     /// Optional strategy hook for ordering Provocation candidate territories.

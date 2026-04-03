@@ -178,6 +178,59 @@ public class D29_RootCombatTests : IDisposable
         Assert.Equal(1, new RootAbility().GetMovementPenalty("M1", territories));
     }
 
+    // ── Cluster Presence: total presence across territory + neighbors ≥ 3 ──
+
+    [Fact]
+    public void NetworkSlow_TallPresence3OnSelf_TriggersCluster()
+    {
+        // M1 has 3 presence itself, no neighbors with presence → cluster total = 3 → penalty 1
+        var territories = AllTerritories().ToList();
+        territories.First(t => t.Id == "M1").PresenceCount = 3;
+        territories.First(t => t.Id == "M1").Invaders.Add(
+            new Invader { Id = "i1", UnitType = UnitType.Marcher, Hp = 4, MaxHp = 4, TerritoryId = "M1" });
+
+        Assert.Equal(1, new RootAbility().GetMovementPenalty("M1", territories));
+    }
+
+    [Fact]
+    public void NetworkSlow_TwoPresenceSelf_PlusOneNeighbor_TriggersCluster()
+    {
+        // User's example: M1 has 2 presence, M2 has 1 → cluster for M1 = 2 + 1 = 3 → penalty 1
+        var territories = AllTerritories().ToList();
+        territories.First(t => t.Id == "M1").PresenceCount = 2;
+        territories.First(t => t.Id == "M2").PresenceCount = 1;
+        territories.First(t => t.Id == "M1").Invaders.Add(
+            new Invader { Id = "i1", UnitType = UnitType.Marcher, Hp = 4, MaxHp = 4, TerritoryId = "M1" });
+
+        Assert.Equal(1, new RootAbility().GetMovementPenalty("M1", territories));
+    }
+
+    [Fact]
+    public void NetworkSlow_OnePresenceSelf_OneNeighbor_BelowCluster()
+    {
+        // M1 has 1 presence, A1 has 1 → cluster total = 2 → below 3 → no penalty
+        var territories = AllTerritories().ToList();
+        territories.First(t => t.Id == "M1").PresenceCount = 1;
+        territories.First(t => t.Id == "A1").PresenceCount = 1;
+        territories.First(t => t.Id == "M1").Invaders.Add(
+            new Invader { Id = "i1", UnitType = UnitType.Marcher, Hp = 4, MaxHp = 4, TerritoryId = "M1" });
+
+        Assert.Equal(0, new RootAbility().GetMovementPenalty("M1", territories));
+    }
+
+    [Fact]
+    public void NetworkSlow_NeighborWithTwoPresence_CountsBoth()
+    {
+        // M1 has 0 presence; A1 has 2, A2 has 1 → cluster = 0 + 2 + 1 = 3 → penalty 1
+        var territories = AllTerritories().ToList();
+        territories.First(t => t.Id == "A1").PresenceCount = 2;
+        territories.First(t => t.Id == "A2").PresenceCount = 1;
+        territories.First(t => t.Id == "M1").Invaders.Add(
+            new Invader { Id = "i1", UnitType = UnitType.Marcher, Hp = 4, MaxHp = 4, TerritoryId = "M1" });
+
+        Assert.Equal(1, new RootAbility().GetMovementPenalty("M1", territories));
+    }
+
     [Fact]
     public void NetworkSlow_DefaultInterface_ReturnsZero()
     {

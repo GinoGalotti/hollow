@@ -91,5 +91,6 @@ public static class CommandParser
         ["run_info"]         = "/run_info — Print current run state",
         ["skip_tide"]        = "/skip_tide — Auto-resolve the current tide",
         ["end_encounter"]    = "/end_encounter [result] — Force-end the encounter (clean/weathered/breach)",
+        ["set_terrain"]      = "/set_terrain <territory> <TerrainType> — Set terrain on a territory (Plains/Forest/Mountain/Wetland/Sacred/Scorched/Blighted/Ruins/Fertile)",
     };
 }

@@ -20,23 +20,35 @@ public class PushInvadersEffect : IEffect
         var invaders = territory.Invaders.Where(i => i.IsAlive).Take(_count).ToList();
         if (invaders.Count == 0) return;
 
-        // Push to an adjacent territory that is farther from I1 (or equal distance).
+        var neighbors = state.Graph.GetNeighbors(territory.Id).ToList();
+        if (neighbors.Count == 0) return;
+
+        // Auto-selection fallback: push to farthest neighbor from heart
         int currentDist = state.Graph.Distance(territory.Id, state.Graph.HeartId);
-        var pushTargetId = state.Graph.GetNeighbors(territory.Id)
+        var autoTarget = neighbors
             .Where(n => state.Graph.Distance(n, state.Graph.HeartId) >= currentDist)
             .OrderByDescending(n => state.Graph.Distance(n, state.Graph.HeartId))
-            .FirstOrDefault();
+            .FirstOrDefault() ?? neighbors[0];
 
-        if (pushTargetId == null) return;
-        var dest = state.GetTerritory(pushTargetId);
-        if (dest == null) return;
-
-        foreach (var invader in invaders)
+        for (int i = 0; i < invaders.Count; i++)
         {
+            var invader = invaders[i];
+            // Per-invader player choice: use PushDestinations[i] if provided and valid
+            string destId = autoTarget;
+            if (target.PushDestinations != null && i < target.PushDestinations.Count)
+            {
+                var requested = target.PushDestinations[i];
+                if (neighbors.Contains(requested))
+                    destId = requested;
+            }
+
+            var dest = state.GetTerritory(destId);
+            if (dest == null) continue;
+
             territory.Invaders.Remove(invader);
-            invader.TerritoryId = pushTargetId;
+            invader.TerritoryId = destId;
             dest.Invaders.Add(invader);
-            GameEvents.InvaderAdvanced?.Invoke(invader, territory.Id, pushTargetId);
+            GameEvents.InvaderAdvanced?.Invoke(invader, territory.Id, destId);
         }
     }
 }

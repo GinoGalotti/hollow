@@ -1,5 +1,6 @@
 namespace HollowWardens.Core.Encounter;
 
+using System.Text.Json.Serialization;
 using HollowWardens.Core.Models;
 
 public class EncounterConfig
@@ -24,6 +25,13 @@ public class EncounterConfig
     // ── Board Layout ─────────────────────────────────────────────────────────
     /// <summary>Layout ID passed to TerritoryGraph.Create. Default: "standard" (3-2-1 pyramid).</summary>
     public string BoardLayout { get; set; } = "standard";
+
+    // ── Terrain ───────────────────────────────────────────────────────────────
+    /// <summary>Terrain preset ID from terrain_presets.json. Default: "all_plains".</summary>
+    public string TerrainPreset { get; set; } = "all_plains";
+
+    /// <summary>Per-territory terrain overrides. Key = territory ID, Value = terrain type name.</summary>
+    public Dictionary<string, string>? TerrainOverrides { get; set; }
 
     // ── Element / Threshold ──────────────────────────────────────────────────
     /// <summary>Override element decay for this encounter (null = use BalanceConfig).</summary>

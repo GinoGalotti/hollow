@@ -3,6 +3,7 @@ using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Models;
 using HollowWardens.Core.Run;
 using HollowWardens.Core.Telemetry;
+using HollowWardens.Core.Turn;
 
 namespace HollowWardens.Sim;
 
@@ -68,6 +69,19 @@ public class TelemetryBotWrapper : IPlayerStrategy
         }
         return target;
     }
+
+    // ── Pairing system delegation ────────────────────────────────────────────
+
+    public bool UsesPairingSystem => _inner.UsesPairingSystem;
+
+    public CardPair? ChoosePair(IReadOnlyList<Card> hand, EncounterState state)
+        => _inner.ChoosePair(hand, state);
+
+    public bool ShouldRest(IReadOnlyList<Card> hand, EncounterState state)
+        => _inner.ShouldRest(hand, state);
+
+    public bool ShouldReroll(Card dissolved, EncounterState state)
+        => _inner.ShouldReroll(dissolved, state);
 
     private static string GetReason(IPlayerStrategy strategy) => strategy switch
     {

@@ -16,7 +16,10 @@ public class EffectResolver
         EffectType.AwakeDormant     => new AwakeDormantEffect(data),
         EffectType.SlowInvaders     => new SlowInvadersEffect(data),  // D29
         EffectType.SpawnNatives     => new SpawnNativesEffect(data),
-        EffectType.MoveNatives      => new MoveNativesEffect(data),
+        EffectType.MoveNatives          => new MoveNativesEffect(data),
+        EffectType.PullInvaders         => new PullInvadersEffect(data),
+        EffectType.AddCorruption        => new AddCorruptionEffect(data),
+        EffectType.CorruptionDetonate   => new CorruptionDetonateEffect(data),
         _ => throw new NotImplementedException($"Effect type {data.Type} is not implemented.")
     };
 }

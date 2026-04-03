@@ -1,5 +1,6 @@
 namespace HollowWardens.Core.Run;
 
+using HollowWardens.Core.Cards;
 using HollowWardens.Core.Effects;
 using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Events;
@@ -79,13 +80,114 @@ public class EncounterRunner
         tideRunner.CounterAttackHandler = strategy.AssignCounterDamage;
         state.ProvocationSelector = strategy.RankProvocationTerritories;
 
+        // Pairing mode: all cards start in hand (no draw pile concept).
+        // Legacy mode: draw up to handLimit; StartVigil also calls RefillHand (idempotent).
+        if (strategy.UsesPairingSystem)
+            state.Deck?.DealAllToHand();
+        else
+            state.Deck?.RefillHand();
+
         int tidesExecuted = 0;
 
         while (tidesExecuted < state.Config.TideCount)
         {
             state.CurrentTide = tidesExecuted + 1;
+            var hand = state.Deck?.Hand ?? [];
 
-            // ── Vigil ───────────────────────────────────────────────────────
+            // ── Pairing loop (strategy.UsesPairingSystem == true) ──────────
+            if (strategy.UsesPairingSystem)
+            {
+                bool mustRest = !turnManager.CanSubmitPair();
+                bool wantsRest = mustRest || strategy.ShouldRest(hand, state);
+
+                if (wantsRest)
+                {
+                    turnManager.BeginRestTurn();
+
+                    tideRunner.ExecuteTide(tidesExecuted + 1, state);
+                    tidesExecuted++;
+                    PostTideTerrainProcessing(state);
+                    GameEvents.TideCompleted?.Invoke(tidesExecuted);
+
+                    if (state.Weave?.IsGameOver == true) break;
+
+                    var restResult = turnManager.ExecutePairingRest(strategy.ChooseRestGrowthTarget(state));
+                    if (restResult != null && state.Deck is DeckManager dm)
+                    {
+                        foreach (var dissolved in restResult.Dissolved.ToList())
+                            if (strategy.ShouldReroll(dissolved, state))
+                                dm.RerollDissolve(dissolved);
+                    }
+                    turnManager.CompleteRestWithPairing();
+                    // No RefillHand — CompleteRestWithPairing returns all survivors to hand directly.
+                    continue;
+                }
+
+                var pair = strategy.ChoosePair(hand, state);
+                if (pair == null || !turnManager.SubmitPair(pair)) break;
+
+                var topTarget    = PickTarget(pair.TopCard.TopEffect, state, strategy);
+                var bottomTarget = PickTarget(pair.BottomCard.BottomEffect, state, strategy);
+
+                // Log the pair selection
+                state.ActionLog.Record(new GameAction
+                {
+                    TurnNumber = state.CurrentTide,
+                    Phase      = TurnPhase.Plan,
+                    Type       = GameActionType.PlayTop,
+                    CardId     = pair.TopCard.Id
+                });
+                if (topTarget != null)
+                    state.ActionLog.Record(new GameAction
+                    {
+                        TurnNumber        = state.CurrentTide,
+                        Phase             = TurnPhase.Plan,
+                        Type              = GameActionType.SelectTarget,
+                        TargetTerritoryId = topTarget.TerritoryId
+                    });
+                state.ActionLog.Record(new GameAction
+                {
+                    TurnNumber = state.CurrentTide,
+                    Phase      = TurnPhase.Dusk,
+                    Type       = GameActionType.PlayBottom,
+                    CardId     = pair.BottomCard.Id
+                });
+                if (bottomTarget != null)
+                    state.ActionLog.Record(new GameAction
+                    {
+                        TurnNumber        = state.CurrentTide,
+                        Phase             = TurnPhase.Dusk,
+                        Type              = GameActionType.SelectTarget,
+                        TargetTerritoryId = bottomTarget.TerritoryId
+                    });
+
+                turnManager.ExecuteFastPhase(topTarget);
+                strategy.ResolvePendingThresholds(_thresholdResolver!, state);
+
+                tideRunner.ExecuteTide(tidesExecuted + 1, state);
+                tidesExecuted++;
+                PostTideTerrainProcessing(state);
+                GameEvents.TideCompleted?.Invoke(tidesExecuted);
+
+                if (state.Weave?.IsGameOver == true) break;
+
+                turnManager.ExecuteSlowPhase(topTarget);
+                strategy.ResolvePendingThresholds(_thresholdResolver!, state);
+
+                turnManager.ExecutePairingDusk(bottomTarget);
+                strategy.ResolvePendingThresholds(_thresholdResolver!, state);
+                _thresholdResolver!.ClearUnresolved();
+
+                turnManager.ExecuteElements();
+                strategy.ResolvePendingThresholds(_thresholdResolver!, state);
+
+                turnManager.ExecuteCleanup();
+                continue;
+            }
+
+            // ── Legacy loop ──────────────────────────────────────────────────
+
+            // Vigil
             turnManager.StartVigil();
 
             if (turnManager.IsRestTurn)
@@ -116,14 +218,15 @@ public class EncounterRunner
             strategy.ResolvePendingThresholds(_thresholdResolver!, state); // D41: drain pending after Vigil
             turnManager.EndVigil();
 
-            // ── Tide ────────────────────────────────────────────────────────
+            // Tide
             tideRunner.ExecuteTide(tidesExecuted + 1, state);
             tidesExecuted++;
+            PostTideTerrainProcessing(state);
             GameEvents.TideCompleted?.Invoke(tidesExecuted);
 
             if (state.Weave?.IsGameOver == true) break;
 
-            // ── Dusk ────────────────────────────────────────────────────────
+            // Dusk
             turnManager.StartDusk();
             PlayBottoms(turnManager, state, strategy);
             strategy.ResolvePendingThresholds(_thresholdResolver!, state); // D41: drain pending after Dusk
@@ -201,6 +304,26 @@ public class EncounterRunner
     }
 
     // ── Private helpers ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Run terrain transitions and auto-effects (Blighted corruption, Wetland heal) at end of tide.
+    /// </summary>
+    private static void PostTideTerrainProcessing(EncounterState state)
+    {
+        foreach (var territory in state.Territories)
+        {
+            TerrainTransitions.ApplyBlightedAutoCorruption(territory, state.Corruption);
+            TerrainTransitions.CheckTransitions(territory);
+        }
+    }
+
+    /// <summary>Resolve a target for an effect using the strategy. Returns null if untargeted.</summary>
+    private static TargetInfo? PickTarget(EffectData effect, EncounterState state, IPlayerStrategy strategy)
+    {
+        if (!TargetValidator.NeedsTarget(effect)) return null;
+        var territoryId = strategy.ChooseTarget(effect, state);
+        return territoryId != null ? new TargetInfo { TerritoryId = territoryId } : null;
+    }
 
     private static void PlayTops(TurnManager turnManager, EncounterState state, IPlayerStrategy strategy)
     {

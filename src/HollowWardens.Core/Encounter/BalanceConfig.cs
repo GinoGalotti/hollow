@@ -38,7 +38,23 @@ public class BalanceConfig
     public int ElementTier1Threshold { get; set; } = 4;
     public int ElementTier2Threshold { get; set; } = 7;
     public int ElementTier3Threshold { get; set; } = 11;
+    /// <summary>Legacy flat decay (still used when tier-scaled decay is not set). Defaults to BelowT1 value.</summary>
     public int ElementDecayPerTurn { get; set; } = 1;
+    /// <summary>Decay per turn when element pool is below T1 threshold.</summary>
+    public int ElementDecayBelowT1 { get; set; } = 1;
+    /// <summary>Decay per turn when element pool is at or above T1 threshold (but below T2).</summary>
+    public int ElementDecayAtT1 { get; set; } = 2;
+    /// <summary>Decay per turn when element pool is at or above T2 threshold (but below T3).</summary>
+    public int ElementDecayAtT2 { get; set; } = 3;
+    /// <summary>Decay per turn when element pool is at or above T3 threshold.</summary>
+    public int ElementDecayAtT3 { get; set; } = 4;
+    /// <summary>
+    /// Extra element decay applied to Root on rest (all elements lose this many extra points).
+    /// Balances Root's stamina advantage from having more cards. Ember does not take extra decay.
+    /// </summary>
+    public int RootRestExtraDecay { get; set; } = 2;
+    /// <summary>Enable tier-scaled decay. When false, uses legacy flat ElementDecayPerTurn.</summary>
+    public bool TierScaledDecay { get; set; } = true;
     public int TopElementMultiplier { get; set; } = 1;
     public int BottomElementMultiplier { get; set; } = 2;
 

@@ -11,10 +11,11 @@ public static class EncounterLoader
     /// </summary>
     public static EncounterConfig CreatePaleMarchStandard() => new()
     {
-        Id        = "enc_pale_march_01",
-        Tier      = EncounterTier.Standard,
-        FactionId = "pale_march",
-        TideCount = 6,
+        Id           = "enc_pale_march_01",
+        Tier         = EncounterTier.Standard,
+        FactionId    = "pale_march",
+        TideCount    = 6,
+        TerrainPreset = "standard_mixed",
         Cadence   = new CadenceConfig
         {
             Mode             = "rule_based",
@@ -46,10 +47,11 @@ public static class EncounterLoader
 
     public static EncounterConfig CreatePaleMarchScouts() => new()
     {
-        Id        = "enc_pale_march_scouts",
-        Tier      = EncounterTier.Standard,
-        FactionId = "pale_march",
-        TideCount = 6,
+        Id            = "enc_pale_march_scouts",
+        Tier          = EncounterTier.Standard,
+        FactionId     = "pale_march",
+        TideCount     = 6,
+        TerrainPreset = "standard_mixed",
         Cadence   = new CadenceConfig { Mode = "rule_based", MaxPainfulStreak = 1, EasyFrequency = 2 },
         NativeSpawns = new Dictionary<string, int>
         {
@@ -106,10 +108,11 @@ public static class EncounterLoader
 
     public static EncounterConfig CreatePaleMarchSiege() => new()
     {
-        Id        = "enc_pale_march_siege",
-        Tier      = EncounterTier.Standard,
-        FactionId = "pale_march",
-        TideCount = 8,
+        Id            = "enc_pale_march_siege",
+        Tier          = EncounterTier.Standard,
+        FactionId     = "pale_march",
+        TideCount     = 8,
+        TerrainPreset = "standard_mixed",
         Cadence   = new CadenceConfig { Mode = "rule_based", MaxPainfulStreak = 1, EasyFrequency = 2 },
         NativeSpawns = new Dictionary<string, int>
         {
@@ -183,10 +186,11 @@ public static class EncounterLoader
 
     public static EncounterConfig CreatePaleMarchElite() => new()
     {
-        Id        = "enc_pale_march_elite",
-        Tier      = EncounterTier.Elite,
-        FactionId = "pale_march",
-        TideCount = 6,
+        Id            = "enc_pale_march_elite",
+        Tier          = EncounterTier.Elite,
+        FactionId     = "pale_march",
+        TideCount     = 6,
+        TerrainPreset = "blighted_land",
         Cadence   = new CadenceConfig { Mode = "rule_based", MaxPainfulStreak = 1, EasyFrequency = 2 },
         NativeSpawns = new Dictionary<string, int>
         {
@@ -253,11 +257,12 @@ public static class EncounterLoader
 
     public static EncounterConfig CreatePaleMarchFrontier() => new()
     {
-        Id          = "enc_pale_march_frontier",
-        Tier        = EncounterTier.Standard,
-        FactionId   = "pale_march",
-        TideCount   = 7,
-        BoardLayout = "wide",
+        Id            = "enc_pale_march_frontier",
+        Tier          = EncounterTier.Standard,
+        FactionId     = "pale_march",
+        TideCount     = 7,
+        BoardLayout   = "wide",
+        TerrainPreset = "frontier_wild",
         Cadence     = new CadenceConfig { Mode = "rule_based", MaxPainfulStreak = 1, EasyFrequency = 2 },
         NativeSpawns = new Dictionary<string, int>
         {

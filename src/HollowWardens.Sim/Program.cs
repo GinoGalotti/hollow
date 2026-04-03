@@ -574,6 +574,9 @@ static IPlayerStrategy BuildStrategy(string? strategyName, string? profilePath, 
         return new TelemetryDrivenStrategy(playerProfile, new Random());
     }
 
+    if (strategyName == "pairing")
+        return new PairingBotStrategy();
+
     if (strategyName == "smart")
         return new ParameterizedBotStrategy(wardenId == "ember" ? StrategyDefaults.Ember : StrategyDefaults.Root);
 
@@ -591,9 +594,7 @@ static IPlayerStrategy BuildStrategy(string? strategyName, string? profilePath, 
         "root_tall"                    => new RootTallStrategy(),
         "root_wide"                    => new BotStrategy(),
         "ember" or "ember_aggressive"  => new EmberBotStrategy(),
-        null or "" => wardenId == "ember"
-            ? (IPlayerStrategy)new EmberBotStrategy()
-            : new RootTallStrategy(),   // root defaults to tall
+        null or "" => (IPlayerStrategy)new PairingBotStrategy(),  // new default: pairing system
         _ => wardenId == "ember"
             ? (IPlayerStrategy)new EmberBotStrategy()
             : new RootTallStrategy()
@@ -695,6 +696,13 @@ static (EncounterState state, EncounterRunner runner, SimStats stats, SimStatsCo
     // Must come after Deck is built so PermanentlyRemove works
     if (profile?.BoardCarryover != null)
         SimProfileApplier.ApplyBoardCarryoverOverride(state, profile.BoardCarryover);
+
+    // Apply terrain preset (terrain_presets.json lives alongside wardens/ in data/)
+    var dataRoot      = Path.GetDirectoryName(Path.GetDirectoryName(wardenJsonPath)) ?? ".";
+    var presetsPath   = Path.Combine(dataRoot, "terrain_presets.json");
+    var presetId      = profile?.EncounterOverrides?.TerrainPreset ?? config.TerrainPreset;
+    if (!string.IsNullOrEmpty(presetId))
+        HollowWardens.Core.Data.TerrainPresetLoader.Apply(territories, presetId, presetsPath, config.TerrainOverrides);
 
     var actionDeck = new ActionDeck(faction.BuildPainfulPool(), faction.BuildEasyPool(), random, shuffle: true);
     var cadence    = new CadenceManager(config.Cadence);

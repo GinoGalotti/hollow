@@ -8,7 +8,7 @@ public enum UnitType { Marcher, Ironclad, Outrider, Pioneer }
 
 public enum TerritoryRow { Arrival, Middle, Bridge, Inner }
 
-public enum TurnPhase { Vigil, Tide, Dusk, Rest, Resolution }
+public enum TurnPhase { Vigil, Tide, Dusk, Rest, Resolution, Plan, Fast, Slow, Elements, Cleanup }
 
 public enum TideStep { FearActions, Activate, CounterAttack, Advance, Arrive, Escalate, Preview }
 
@@ -32,3 +32,5 @@ public enum EncounterResult { Clean, Weathered, Breach }
 public enum BottomResult { Dissolved, Dormant, PermanentlyRemoved }
 
 public enum TokenType { Native, Infrastructure, Bramble, DangerousTerrain }
+
+public enum CardTiming { Fast, Slow }

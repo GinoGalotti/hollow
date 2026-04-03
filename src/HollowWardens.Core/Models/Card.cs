@@ -15,6 +15,8 @@ public class Card
     public EffectData BottomEffect { get; set; } = new();
     public EffectData? BottomSecondary { get; set; }  // nullable, for compound bottoms
 
+    public CardTiming TopTiming { get; set; } = CardTiming.Slow;
+
     public List<CardUpgradeSlot> UpgradeSlots { get; set; } = new();
     public List<string> AppliedUpgradeIds { get; set; } = new();
 }

@@ -1,5 +1,6 @@
 namespace HollowWardens.Core.Turn;
 
+using HollowWardens.Core.Cards;
 using HollowWardens.Core.Effects;
 using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Events;
@@ -65,6 +66,33 @@ public class TurnActions
 
         GameEvents.PresenceSacrificed?.Invoke(territory, 1);
         return true;
+    }
+
+    // ── Pairing system actions ────────────────────────────────────────────────
+
+    /// <summary>Resolve the top effect and route the card to top-discard (pairing system).</summary>
+    public void PlayPairTop(Card card, TargetInfo? target = null)
+    {
+        _state.Deck?.PlayAsTop(card);
+        ResolveEffect(card.TopEffect, target);
+    }
+
+    /// <summary>Resolve the bottom effect(s) and route the card to bottom-discard (pairing system).</summary>
+    public void PlayPairBottom(Card card, TargetInfo? target = null)
+    {
+        _state.Deck?.PlayAsBottom(card);
+        ResolveEffect(card.BottomEffect, target);
+        if (card.BottomSecondary != null)
+            ResolveEffect(card.BottomSecondary, target);
+    }
+
+    /// <summary>
+    /// Add elements from both pair cards: top ×1, bottom ×2. Called in the Elements phase.
+    /// </summary>
+    public void ExecutePairElements(CardPair pair)
+    {
+        _state.Elements?.AddElements(pair.TopCard.Elements, _state.Balance.TopElementMultiplier);
+        _state.Elements?.AddElements(pair.BottomCard.Elements, _state.Balance.BottomElementMultiplier);
     }
 
     public void AssignCounterDamage(Territory territory, Dictionary<Invader, int> assignments)

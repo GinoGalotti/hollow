@@ -111,6 +111,41 @@ public class RootFullEncounterTest : IDisposable
         Assert.Equal(1, warden.CalculatePassiveFear(state));
     }
 
+    [Fact]
+    public void NetworkFear_TallPresence3OnSelf_GeneratesFear()
+    {
+        // M1 has invader; M1 itself has 3 presence → cluster total = 3 → 1 fear
+        var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
+        var presence = new PresenceSystem(() => territories);
+        var warden = new RootAbility(presence);
+
+        territories.First(t => t.Id == "M1").Invaders.Add(
+            new Invader { Id = "i1", UnitType = UnitType.Marcher, Hp = 4, MaxHp = 4, TerritoryId = "M1" });
+        territories.First(t => t.Id == "M1").PresenceCount = 3;
+
+        var state = new EncounterState { Territories = territories };
+
+        Assert.Equal(1, warden.CalculatePassiveFear(state));
+    }
+
+    [Fact]
+    public void NetworkFear_TwoPresenceSelf_PlusOneNeighbor_GeneratesFear()
+    {
+        // M1=2 presence, M2=1 presence → cluster for M1 = 2+1 = 3 → triggers
+        var territories = HollowWardens.Core.Map.BoardState.CreatePyramid().Territories.Values.ToList();
+        var presence = new PresenceSystem(() => territories);
+        var warden = new RootAbility(presence);
+
+        territories.First(t => t.Id == "M1").Invaders.Add(
+            new Invader { Id = "i1", UnitType = UnitType.Marcher, Hp = 4, MaxHp = 4, TerritoryId = "M1" });
+        territories.First(t => t.Id == "M1").PresenceCount = 2;
+        territories.First(t => t.Id == "M2").PresenceCount = 1;
+
+        var state = new EncounterState { Territories = territories };
+
+        Assert.Equal(1, warden.CalculatePassiveFear(state));
+    }
+
     // ── Assimilation — base spawn (B6 tide-start, three formula modes) ──────────
 
     [Fact]

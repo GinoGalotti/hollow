@@ -80,6 +80,7 @@ public static class WardenLoader
         Rarity          = ParseRarity(c.Rarity),
         IsStarting      = c.Starting,
         Elements        = c.Elements.Select(ParseElement).ToArray(),
+        TopTiming       = ParseCardTiming(c.TopTiming),
         TopEffect       = MapEffect(c.Top),
         BottomEffect    = MapEffect(c.Bottom),
         BottomSecondary = c.Bottom.Secondary != null ? MapEffect(c.Bottom.Secondary) : null,
@@ -107,6 +108,12 @@ public static class WardenLoader
     };
 
     private static Element    ParseElement(string s) => Enum.Parse<Element>(s, ignoreCase: true);
+    private static CardTiming ParseCardTiming(string? s) => s?.ToLowerInvariant() switch
+    {
+        "fast"  => CardTiming.Fast,
+        "slow"  => CardTiming.Slow,
+        _       => CardTiming.Slow  // default to Slow if missing
+    };
     private static CardRarity ParseRarity(string s)  => s.ToLowerInvariant() switch
     {
         "dormant"  => CardRarity.Dormant,
@@ -194,6 +201,10 @@ public static class WardenLoader
         public string   Rarity   { get; set; } = string.Empty;
         public bool     Starting { get; set; }
         public string[] Elements { get; set; } = Array.Empty<string>();
+
+        [JsonPropertyName("top_timing")]
+        public string?  TopTiming { get; set; }
+
         public EffectJson Top    { get; set; } = new();
         public BottomJson Bottom { get; set; } = new();
 

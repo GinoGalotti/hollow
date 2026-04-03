@@ -11,8 +11,8 @@ using HollowWardens.Core.Systems;
 /// - Playing a bottom: card goes Dormant (shuffled back into draw pile, unplayable).
 /// - Playing the bottom of an already-Dormant card on Boss: permanently removed.
 /// - Rest-dissolve: card goes Dormant instead of being removed from the encounter.
-/// - Network Fear: 1 Fear per invader in a territory adjacent to ≥3 Presence territories, capped at NetworkFearCap.
-/// - Network Slow (pool): invaders in territories adjacent to ≥3 Presence territories have −1 Advance movement.
+/// - Network Fear: 1 Fear per invader in a territory whose cluster presence (self + all neighbors) ≥ 3, capped at NetworkFearCap.
+/// - Network Slow (pool): invaders in territories whose cluster presence (self + all neighbors) ≥ 3 have −1 Advance movement.
 /// - Presence Provocation (BASE, B6): at tide start, select which Presence territories have Provocation active.
 ///   Bot selects up to ProvocationTerritoryLimit territories (0 = unlimited) by most invaders, tiebreak proximity to Heart.
 ///   Natives in selected territories counter-attack on every invader action. Rate-capped at ProvocationNativesPerPresence.
@@ -166,9 +166,10 @@ public class RootAbility : IWardenAbility
     }
 
     /// <summary>
-    /// Network Fear: for each invader in a territory adjacent to ≥3 Presence territories,
-    /// generate 1 Fear. Total capped at NetworkFearCap (default 3).
-    /// Rewards wide network building — spreading across many territories.
+    /// Network Fear: for each invader in a territory whose cluster presence ≥ 3
+    /// (sum of presence on the territory itself + all its neighbors), generate 1 Fear.
+    /// Total capped at NetworkFearCap (default 3).
+    /// Rewards both tall stacking (3 presence on one territory) and wide spreading.
     /// </summary>
     public int CalculatePassiveFear(EncounterState state)
     {
@@ -180,10 +181,11 @@ public class RootAbility : IWardenAbility
             int aliveInvaders = territory.Invaders.Count(i => i.IsAlive);
             if (aliveInvaders == 0) continue;
 
-            int presenceNeighborCount = TerritoryGraph.Standard.GetNeighbors(territory.Id)
-                .Count(n => territories.TryGetValue(n, out var t) && t.HasPresence);
+            int clusterPresence = territory.PresenceCount
+                + TerritoryGraph.Standard.GetNeighbors(territory.Id)
+                    .Sum(n => territories.TryGetValue(n, out var t) ? t.PresenceCount : 0);
 
-            if (presenceNeighborCount >= 3)
+            if (clusterPresence >= 3)
                 fear += aliveInvaders;
         }
 
@@ -191,21 +193,22 @@ public class RootAbility : IWardenAbility
     }
 
     /// <summary>
-    /// Network Slow: invaders in a territory adjacent to ≥3 Presence territories have −1 movement.
-    /// Requires dense wide spread to trigger — prevents accidental early-game shutdown.
+    /// Network Slow: invaders in a territory whose cluster presence ≥ 3
+    /// (sum of presence on the territory itself + all its neighbors) have −1 movement.
+    /// Rewards both tall stacking and wide spreading — prevents accidental early-game shutdown.
     /// Upgrade (network_slow_u1) increases penalty to −2.
     /// </summary>
     public int GetMovementPenalty(string territoryId, IEnumerable<Territory> allTerritories)
     {
         if (Gating != null && !Gating.IsActive("network_slow")) return 0;
         var territories = allTerritories.ToDictionary(t => t.Id);
-        if (!territories.TryGetValue(territoryId, out _)) return 0;
+        if (!territories.TryGetValue(territoryId, out var self)) return 0;
 
-        var neighbors = TerritoryGraph.Standard.GetNeighbors(territoryId);
-        int presenceNeighborCount = neighbors.Count(n =>
-            territories.TryGetValue(n, out var t) && t.HasPresence);
+        int clusterPresence = self.PresenceCount
+            + TerritoryGraph.Standard.GetNeighbors(territoryId)
+                .Sum(n => territories.TryGetValue(n, out var t) ? t.PresenceCount : 0);
 
-        if (presenceNeighborCount < 3) return 0;
+        if (clusterPresence < 3) return 0;
 
         // Upgrade: increases penalty from 1 to 2
         return (Gating?.IsUpgraded("network_slow_u1") ?? false) ? 2 : 1;
@@ -240,11 +243,37 @@ public class RootAbility : IWardenAbility
     }
 
     /// <summary>
+    /// Elemental Offering passive: once per rest cycle, discard a card from hand to top-discard (safe)
+    /// and add its elements ×1 to the element pool. No top effect resolves.
+    /// Returns false if already used this cycle or card is not in hand / not usable.
+    /// </summary>
+    public bool UseElementalOffering(Card card, EncounterState state)
+    {
+        if (state.RootOfferingUsedThisCycle) return false;
+        if (state.Deck == null) return false;
+        if (!state.Deck.Hand.Contains(card)) return false;
+
+        state.Deck.SoakDamage(card);  // SoakDamage moves card to top-discard (safe)
+        state.Elements?.AddElements(card.Elements, 1);
+        state.RootOfferingUsedThisCycle = true;
+        return true;
+    }
+
+    /// <summary>
     /// Rest Growth: Place 1 free Presence on any territory with existing Presence.
     /// Upgrade (rest_growth_u1) places 2 Presence instead of 1.
+    /// Also applies Root's rest element penalty (RootRestExtraDecay) and resets the offering flag.
     /// </summary>
     public void OnRest(EncounterState state, string? targetTerritoryId)
     {
+        // Reset offering flag for the new rest cycle
+        state.RootOfferingUsedThisCycle = false;
+
+        // Apply Root's rest element penalty (extra decay to balance stamina advantage)
+        int extraDecay = _config?.RootRestExtraDecay ?? 2;
+        state.Elements?.ApplyExtraDecay(extraDecay);
+
+        // Rest Growth: place free presence
         if (Gating != null && !Gating.IsActive("rest_growth")) return;
         if (targetTerritoryId == null) return;
         var territory = state.GetTerritory(targetTerritoryId);

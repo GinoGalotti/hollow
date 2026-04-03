@@ -5,8 +5,12 @@ using HollowWardens.Core.Events;
 using HollowWardens.Core.Models;
 using HollowWardens.Core.Wardens;
 
+/// <summary>Result of the new dual-discard rest mechanic.</summary>
+public record RestResult(IReadOnlyList<Card> Dissolved);
+
 /// <summary>
 /// Manages the card deck for a single encounter: draw pile, hand, discard, dissolved, and dormant state.
+/// Supports both the legacy single-discard system and the new dual-discard pairing system.
 /// </summary>
 public class DeckManager : IDeckManager
 {
@@ -18,6 +22,12 @@ public class DeckManager : IDeckManager
     private readonly HandManager _handManager;
     private readonly GameRandom _rng;
     private readonly int _handLimit;
+
+    // ── Dual-discard pairing system ───────────────────────────────────────────
+    private readonly List<Card> _topDiscard = new();
+    private readonly List<Card> _bottomDiscard = new();
+    /// <summary>Cards from bottom-discard that survived dissolution during rest (awaiting CompleteRestWithPairing).</summary>
+    private List<Card> _bottomSurvivors = new();
 
     /// <param name="shuffle">Set false for deterministic tests.</param>
     public DeckManager(
@@ -38,6 +48,12 @@ public class DeckManager : IDeckManager
     public int DrawPileCount => _drawPile.Count;
     public int DiscardCount => _discardPile.Count;
     public int DissolvedCount => _dissolved.Count;
+
+    // ── Dual-discard properties ───────────────────────────────────────────────
+    public int TopDiscardCount => _topDiscard.Count;
+    public int BottomDiscardCount => _bottomDiscard.Count;
+    public IReadOnlyList<Card> TopDiscardCards => _topDiscard;
+    public IReadOnlyList<Card> BottomDiscardCards => _bottomDiscard;
 
     public int DormantCount =>
         _drawPile.Count(c => c.IsDormant) +
@@ -83,6 +99,24 @@ public class DeckManager : IDeckManager
         }
         if (drawn > 0)
             GameEvents.DeckRefilled?.Invoke(drawn);
+    }
+
+    /// <summary>
+    /// Moves ALL cards from draw pile to hand regardless of handLimit.
+    /// Used by pairing mode where all cards start in hand (no draw pile concept).
+    /// </summary>
+    public void DealAllToHand()
+    {
+        int dealt = 0;
+        while (_drawPile.Count > 0)
+        {
+            var card = _drawPile[^1];
+            _drawPile.RemoveAt(_drawPile.Count - 1);
+            _handManager.Add(card);
+            dealt++;
+        }
+        if (dealt > 0)
+            GameEvents.DeckRefilled?.Invoke(dealt);
     }
 
     public void PlayTop(Card card)
@@ -185,6 +219,111 @@ public class DeckManager : IDeckManager
             .ToList();
         foreach (var card in allDormant)
             AwakenDormant(card);
+    }
+
+    // ── Dual-discard pairing methods ──────────────────────────────────────────
+
+    /// <summary>
+    /// New pairing system: play a card as top — goes to top-discard (safe, always recovered on rest).
+    /// </summary>
+    public void PlayAsTop(Card card)
+    {
+        if (!_handManager.Remove(card))
+            throw new InvalidOperationException($"Card '{card.Id}' is not in hand.");
+        _topDiscard.Add(card);
+        GameEvents.CardPlayed?.Invoke(card, TurnPhase.Vigil);
+    }
+
+    /// <summary>
+    /// New pairing system: play a card as bottom — goes to bottom-discard (at-risk, 2 random dissolved on rest).
+    /// </summary>
+    public void PlayAsBottom(Card card)
+    {
+        if (!_handManager.Remove(card))
+            throw new InvalidOperationException($"Card '{card.Id}' is not in hand.");
+        _bottomDiscard.Add(card);
+        GameEvents.CardPlayed?.Invoke(card, TurnPhase.Dusk);
+    }
+
+    /// <summary>
+    /// Damage soak: discard a card from hand to block up to 3 heart damage.
+    /// Card goes to top-discard (safe — recovered on rest).
+    /// </summary>
+    public void SoakDamage(Card card)
+    {
+        if (!_handManager.Remove(card))
+            throw new InvalidOperationException($"Card '{card.Id}' is not in hand.");
+        _topDiscard.Add(card);
+    }
+
+    /// <summary>
+    /// Phase 1 of the new rest mechanic: recovers all top-discard to hand, then dissolves
+    /// exactly 2 random cards from the bottom-discard pile. Returns the dissolved cards.
+    /// If fewer than 2 bottoms exist, dissolves all of them.
+    /// Call <see cref="RerollDissolve"/> for optional rerolls, then <see cref="CompleteRestWithPairing"/>.
+    /// </summary>
+    public RestResult BeginRestWithPairing()
+    {
+        GameEvents.RestStarted?.Invoke();
+
+        // Recover all top-discard to hand
+        foreach (var c in _topDiscard) _handManager.Add(c);
+        _topDiscard.Clear();
+
+        // Move bottom-discard to survivors pool; pick up to 2 to dissolve
+        _bottomSurvivors = _bottomDiscard.ToList();
+        _bottomDiscard.Clear();
+
+        var dissolved = new List<Card>();
+        while (dissolved.Count < 2 && _bottomSurvivors.Count > 0)
+        {
+            int idx = _rng.Next(_bottomSurvivors.Count);
+            var victim = _bottomSurvivors[idx];
+            _bottomSurvivors.RemoveAt(idx);
+            dissolved.Add(victim);
+            _dissolved.Add(victim);
+            GameEvents.CardRestDissolved?.Invoke(victim);
+        }
+
+        return new RestResult(dissolved.AsReadOnly());
+    }
+
+    /// <summary>
+    /// Reroll: save <paramref name="cardToSave"/> from dissolution by swapping it with a random
+    /// card from the remaining bottom survivor pool. The replacement is dissolved instead.
+    /// Must be called after <see cref="BeginRestWithPairing"/> and before <see cref="CompleteRestWithPairing"/>.
+    /// If no survivor pool exists, the saved card simply returns to hand with no replacement dissolved.
+    /// </summary>
+    public void RerollDissolve(Card cardToSave)
+    {
+        if (!_dissolved.Remove(cardToSave)) return;
+
+        if (_bottomSurvivors.Count == 0)
+        {
+            // No pool left — card returns to hand directly
+            _handManager.Add(cardToSave);
+            return;
+        }
+
+        // Put saved card back into survivor pool
+        _bottomSurvivors.Add(cardToSave);
+
+        // Pick a random replacement from the pool
+        int idx = _rng.Next(_bottomSurvivors.Count);
+        var newVictim = _bottomSurvivors[idx];
+        _bottomSurvivors.RemoveAt(idx);
+        _dissolved.Add(newVictim);
+        GameEvents.CardRestDissolved?.Invoke(newVictim);
+    }
+
+    /// <summary>
+    /// Phase 2 of the new rest mechanic: returns all surviving bottom-discard cards to hand.
+    /// Must be called after <see cref="BeginRestWithPairing"/> (and any <see cref="RerollDissolve"/> calls).
+    /// </summary>
+    public void CompleteRestWithPairing()
+    {
+        foreach (var c in _bottomSurvivors) _handManager.Add(c);
+        _bottomSurvivors.Clear();
     }
 
     private void ApplyBottomResult(Card card, BottomResult result)

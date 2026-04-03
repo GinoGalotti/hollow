@@ -32,18 +32,45 @@ public class ElementSystem : IElementSystem
 
     public void Decay()
     {
-        int decay = _config?.ElementDecayPerTurn ?? 1;
         foreach (Element e in Enum.GetValues<Element>())
-        {
-            var newVal = Math.Max(0, _pool[e] - decay);
-            if (newVal != _pool[e])
-            {
-                _pool[e] = newVal;
-                GameEvents.ElementChanged?.Invoke(e, newVal);
-            }
-        }
+            DecayElement(e, GetDecayAmount(e));
         ClearBanked();
         GameEvents.ElementsDecayed?.Invoke();
+    }
+
+    /// <summary>
+    /// Apply extra decay to ALL elements (used for Root's rest penalty).
+    /// Does not clear banked effects or fire ElementsDecayed — call Decay() for the regular turn decay.
+    /// </summary>
+    public void ApplyExtraDecay(int amount)
+    {
+        if (amount <= 0) return;
+        foreach (Element e in Enum.GetValues<Element>())
+            DecayElement(e, amount);
+    }
+
+    private void DecayElement(Element e, int amount)
+    {
+        if (amount <= 0) return;
+        var newVal = Math.Max(0, _pool[e] - amount);
+        if (newVal != _pool[e])
+        {
+            _pool[e] = newVal;
+            GameEvents.ElementChanged?.Invoke(e, newVal);
+        }
+    }
+
+    /// <summary>Returns the per-turn decay for the given element based on its current tier.</summary>
+    private int GetDecayAmount(Element e)
+    {
+        if (_config == null) return 1;
+        if (!_config.TierScaledDecay) return _config.ElementDecayPerTurn;
+
+        int val = _pool[e];
+        if (val >= _config.GetThreshold(e, 3)) return _config.ElementDecayAtT3;
+        if (val >= _config.GetThreshold(e, 2)) return _config.ElementDecayAtT2;
+        if (val >= _config.GetThreshold(e, 1)) return _config.ElementDecayAtT1;
+        return _config.ElementDecayBelowT1;
     }
 
     public void OnNewTurn()

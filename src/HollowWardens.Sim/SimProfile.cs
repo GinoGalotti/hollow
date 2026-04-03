@@ -210,6 +210,10 @@ public class EncounterOverrides
     // Board layout
     [JsonPropertyName("board_layout")]
     public string? BoardLayout { get; set; }
+
+    // Terrain preset override
+    [JsonPropertyName("terrain_preset")]
+    public string? TerrainPreset { get; set; }
 }
 
 public class EscalationOverride

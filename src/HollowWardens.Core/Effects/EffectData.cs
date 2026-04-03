@@ -16,5 +16,6 @@ public enum EffectType
     RestoreWeave,
     ShieldNatives, BoostNatives, HealNatives, DamageNatives, SpawnNatives, MoveNatives,
     AwakeDormant,
+    PullInvaders, CorruptionDetonate, AddCorruption,
     Conditional, Custom
 }

@@ -1,5 +1,6 @@
 namespace HollowWardens.Core.Systems;
 
+using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Events;
 using HollowWardens.Core.Models;
 
@@ -11,10 +12,27 @@ public class CorruptionSystem : ICorruptionSystem
     {
         if (SacredTerritories.Contains(territory.Id)) return;
 
+        // Terrain: Sacred terrain caps corruption at L1 (Tainted threshold = 8 points - 1)
+        int maxLevel = TerrainEffects.GetCorruptionMaxLevel(territory.Terrain);
+        if (territory.CorruptionLevel >= maxLevel) return;
+
         // D28 Vulnerability: detect crossing into Desecrated (Level 3)
         var levelBefore = territory.CorruptionLevel;
 
         territory.CorruptionPoints += points;
+
+        // Enforce terrain-based max corruption level (clamp to top of allowed level)
+        if (territory.CorruptionLevel > maxLevel)
+        {
+            territory.CorruptionPoints = maxLevel switch
+            {
+                0 => 2,   // stay at top of L0 (< 3)
+                1 => 7,   // stay at top of L1 (< 8)
+                2 => 14,  // stay at top of L2 (< 15)
+                _ => territory.CorruptionPoints
+            };
+        }
+
         GameEvents.CorruptionChanged?.Invoke(territory, territory.CorruptionPoints, territory.CorruptionLevel);
 
         // If corruption just crossed into Level 3, presence is destroyed

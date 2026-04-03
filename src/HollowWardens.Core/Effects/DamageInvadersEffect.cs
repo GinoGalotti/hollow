@@ -1,7 +1,7 @@
 namespace HollowWardens.Core.Effects;
 
-using HollowWardens.Core.Events;
 using HollowWardens.Core.Encounter;
+using HollowWardens.Core.Events;
 using HollowWardens.Core.Models;
 
 public class DamageInvadersEffect : IEffect
@@ -19,6 +19,9 @@ public class DamageInvadersEffect : IEffect
         // Ember Fury: +1 per corrupted territory when warden is Ember and fury is active
         if (state.Warden?.WardenId == "ember")
             damage += EmberFuryHelper.GetFuryBonus(state);
+        // Terrain modifier: Forest +1, Blighted -1
+        damage += TerrainEffects.GetDamageModifier(territory.Terrain)
+                + TerrainEffects.GetEffectValueModifier(territory.Terrain);
 
         foreach (var invader in territory.Invaders.Where(i => i.IsAlive).ToList())
         {

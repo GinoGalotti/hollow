@@ -18,4 +18,14 @@ public class Territory
     public List<Native> Natives { get; set; } = new();
     public List<BoardToken> Tokens { get; set; } = new();
     public bool HasPresence => PresenceCount > 0;
+
+    // ── Terrain ───────────────────────────────────────────────────────────────
+    /// <summary>Current terrain type. Defaults to Plains (no modifier).</summary>
+    public TerrainType Terrain { get; set; } = TerrainType.Plains;
+
+    /// <summary>
+    /// General-purpose terrain timer. Semantics depend on terrain:
+    /// - Scorched: counts clean tides (→ Plains after 3 clean tides)
+    /// </summary>
+    public int TerrainTimer { get; set; }
 }

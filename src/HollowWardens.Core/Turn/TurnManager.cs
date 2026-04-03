@@ -1,5 +1,6 @@
 namespace HollowWardens.Core.Turn;
 
+using HollowWardens.Core.Cards;
 using HollowWardens.Core.Effects;
 using HollowWardens.Core.Encounter;
 using HollowWardens.Core.Events;
@@ -159,4 +160,135 @@ public class TurnManager
 
     public void AssignCounterDamage(Territory territory, Dictionary<Invader, int> assignments)
         => _actions.AssignCounterDamage(territory, assignments);
+
+    // ── Pairing system: Plan → Fast → Tide → Slow → Dusk → Elements → Cleanup ─
+
+    /// <summary>
+    /// True when the player can submit a pair: hand has at least 2 playable cards.
+    /// False when forced to rest.
+    /// </summary>
+    public bool CanSubmitPair()
+        => _state.Deck != null && _state.Deck.Hand.Count(c => !c.IsDormant) >= 2;
+
+    /// <summary>
+    /// Plan phase: player submits a pair. Returns false if pair is invalid (same card, not in hand).
+    /// Stores the pair in EncounterState.CurrentPair.
+    /// </summary>
+    public bool SubmitPair(CardPair pair)
+    {
+        if (pair.TopCard == pair.BottomCard) return false;
+        if (_state.Deck == null) return false;
+        if (!_state.Deck.IsPlayable(pair.TopCard) || !_state.Deck.IsPlayable(pair.BottomCard)) return false;
+
+        _state.CurrentPair = pair;
+        _state.IsRestTurn = false;
+        CurrentPhase = TurnPhase.Plan;
+        GameEvents.PhaseChanged?.Invoke(TurnPhase.Plan);
+        return true;
+    }
+
+    /// <summary>
+    /// Fast phase: if the top card is FAST, resolve it now (before Tide).
+    /// If the top card is SLOW, this phase does nothing.
+    /// </summary>
+    public void ExecuteFastPhase(TargetInfo? topTarget = null)
+    {
+        CurrentPhase = TurnPhase.Fast;
+        GameEvents.PhaseChanged?.Invoke(TurnPhase.Fast);
+
+        if (_state.CurrentPair?.TopIsFast == true)
+            _actions.PlayPairTop(_state.CurrentPair.TopCard, topTarget);
+    }
+
+    /// <summary>
+    /// Slow phase: if the top card is SLOW, resolve it now (after Tide).
+    /// If the top card is FAST, this phase does nothing.
+    /// </summary>
+    public void ExecuteSlowPhase(TargetInfo? topTarget = null)
+    {
+        CurrentPhase = TurnPhase.Slow;
+        GameEvents.PhaseChanged?.Invoke(TurnPhase.Slow);
+
+        if (_state.CurrentPair?.TopIsSlow == true)
+            _actions.PlayPairTop(_state.CurrentPair.TopCard, topTarget);
+    }
+
+    /// <summary>
+    /// Dusk (pairing): resolve the bottom card.
+    /// </summary>
+    public void ExecutePairingDusk(TargetInfo? bottomTarget = null)
+    {
+        CurrentPhase = TurnPhase.Dusk;
+        GameEvents.PhaseChanged?.Invoke(TurnPhase.Dusk);
+
+        if (_state.CurrentPair != null)
+            _actions.PlayPairBottom(_state.CurrentPair.BottomCard, bottomTarget);
+    }
+
+    /// <summary>
+    /// Elements phase: add top card elements ×1, bottom card elements ×2, fire thresholds.
+    /// </summary>
+    public void ExecuteElements()
+    {
+        CurrentPhase = TurnPhase.Elements;
+        GameEvents.PhaseChanged?.Invoke(TurnPhase.Elements);
+
+        if (_state.CurrentPair != null)
+            _actions.ExecutePairElements(_state.CurrentPair);
+    }
+
+    /// <summary>
+    /// Cleanup phase: apply decay, clear current pair, fire TurnEnded.
+    /// </summary>
+    public void ExecuteCleanup()
+    {
+        CurrentPhase = TurnPhase.Cleanup;
+        GameEvents.PhaseChanged?.Invoke(TurnPhase.Cleanup);
+
+        _state.Elements?.Decay();
+        _state.CurrentPair = null;
+        GameEvents.TurnEnded?.Invoke();
+    }
+
+    /// <summary>
+    /// Mark this as a rest turn (player chose to rest or hand is empty).
+    /// The Tide still runs — caller is responsible for executing the Tide after calling this.
+    /// </summary>
+    public void BeginRestTurn()
+    {
+        _state.IsRestTurn = true;
+        CurrentPhase = TurnPhase.Rest;
+        GameEvents.PhaseChanged?.Invoke(TurnPhase.Rest);
+    }
+
+    /// <summary>
+    /// Execute the new pairing rest: recover tops, dissolve 2 bottoms.
+    /// Returns RestResult with the dissolved cards.
+    /// Call RerollDissolve for optional rerolls, then CompleteRestWithPairing.
+    /// </summary>
+    public RestResult? ExecutePairingRest(string? growthTarget = null)
+    {
+        if (_state.Deck is not DeckManager dm) return null;
+
+        var result = dm.BeginRestWithPairing();
+
+        // Reset offering flag
+        _state.RootOfferingUsedThisCycle = false;
+        _state.RestCycleCount++;
+
+        // Warden rest behavior (e.g., Root Rest Growth)
+        _state.Warden?.OnRest(_state, growthTarget);
+
+        RestCount++;
+        return result;
+    }
+
+    /// <summary>
+    /// Finalize the pairing rest: return surviving bottom-discard cards to hand.
+    /// </summary>
+    public void CompleteRestWithPairing()
+    {
+        if (_state.Deck is DeckManager dm)
+            dm.CompleteRestWithPairing();
+    }
 }
